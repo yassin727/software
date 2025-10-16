@@ -202,7 +202,141 @@
                 </button>
             </div>
 
+            <!-- Pending Approvals Alert -->
+            <div class="alert-card warning">
+                <i class="fas fa-exclamation-circle"></i>
+                <div>
+                    <h4>Pending Maid Approvals</h4>
+                    <p>You have <strong>2 maid registrations</strong> waiting for approval</p>
+                </div>
+                <button class="btn-primary" onclick="showPendingApprovals()">Review Now</button>
+            </div>
+
+            <!-- Pending Approvals Section -->
+            <div class="card" id="pendingApprovalsCard" style="display: none;">
+                <div class="card-header">
+                    <h3><i class="fas fa-user-clock"></i> Pending Approvals</h3>
+                    <button class="btn-small" onclick="hidePendingApprovals()">Hide</button>
+                </div>
+                <div class="approval-list">
+                    <div class="approval-card">
+                        <div class="approval-header">
+                            <img src="https://via.placeholder.com/60" alt="Maid">
+                            <div>
+                                <h4>Emma Wilson</h4>
+                                <p>Registered 2 days ago</p>
+                            </div>
+                        </div>
+                        <div class="approval-body">
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Phone:</label>
+                                    <span>+1 234-567-8904</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Email:</label>
+                                    <span>emma.wilson@email.com</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Specialization:</label>
+                                    <span>General Cleaning</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Experience:</label>
+                                    <span>3 years</span>
+                                </div>
+                            </div>
+                            <div class="documents-section">
+                                <h5><i class="fas fa-file-alt"></i> Uploaded Documents</h5>
+                                <div class="document-list">
+                                    <div class="document-item">
+                                        <i class="fas fa-id-card"></i>
+                                        <span>National ID</span>
+                                        <button class="btn-icon" onclick="viewDocument('id')"><i class="fas fa-eye"></i></button>
+                                    </div>
+                                    <div class="document-item">
+                                        <i class="fas fa-certificate"></i>
+                                        <span>Work Certificate</span>
+                                        <button class="btn-icon" onclick="viewDocument('cert')"><i class="fas fa-eye"></i></button>
+                                    </div>
+                                    <div class="document-item">
+                                        <i class="fas fa-file-medical"></i>
+                                        <span>Health Certificate</span>
+                                        <button class="btn-icon" onclick="viewDocument('health')"><i class="fas fa-eye"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="approval-footer">
+                            <button class="btn-danger" onclick="rejectMaid('Emma Wilson')">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                            <button class="btn-success" onclick="approveMaid('Emma Wilson')">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="approval-card">
+                        <div class="approval-header">
+                            <img src="https://via.placeholder.com/60" alt="Maid">
+                            <div>
+                                <h4>Jennifer Martinez</h4>
+                                <p>Registered 1 day ago</p>
+                            </div>
+                        </div>
+                        <div class="approval-body">
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <label>Phone:</label>
+                                    <span>+1 234-567-8905</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Email:</label>
+                                    <span>jennifer.m@email.com</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Specialization:</label>
+                                    <span>Deep Cleaning</span>
+                                </div>
+                                <div class="info-item">
+                                    <label>Experience:</label>
+                                    <span>5 years</span>
+                                </div>
+                            </div>
+                            <div class="documents-section">
+                                <h5><i class="fas fa-file-alt"></i> Uploaded Documents</h5>
+                                <div class="document-list">
+                                    <div class="document-item">
+                                        <i class="fas fa-id-card"></i>
+                                        <span>National ID</span>
+                                        <button class="btn-icon" onclick="viewDocument('id')"><i class="fas fa-eye"></i></button>
+                                    </div>
+                                    <div class="document-item">
+                                        <i class="fas fa-certificate"></i>
+                                        <span>Work Certificate</span>
+                                        <button class="btn-icon" onclick="viewDocument('cert')"><i class="fas fa-eye"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="approval-footer">
+                            <button class="btn-danger" onclick="rejectMaid('Jennifer Martinez')">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                            <button class="btn-success" onclick="approveMaid('Jennifer Martinez')">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Maids Table -->
             <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-users"></i> Active Maids</h3>
+                </div>
                 <div class="table-container">
                     <table class="data-table">
                         <thead>
@@ -236,7 +370,7 @@
                                 <td>
                                     <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
                                     <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
-                                    <button class="btn-icon" title="Delete"><i class="fas fa-trash"></i></button>
+                                    <button class="btn-icon" title="Suspend"><i class="fas fa-ban"></i></button>
                                 </td>
                             </tr>
                             <tr>
@@ -258,7 +392,7 @@
                                 <td>
                                     <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
                                     <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
-                                    <button class="btn-icon" title="Delete"><i class="fas fa-trash"></i></button>
+                                    <button class="btn-icon" title="Suspend"><i class="fas fa-ban"></i></button>
                                 </td>
                             </tr>
                             <tr>
@@ -280,7 +414,7 @@
                                 <td>
                                     <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
                                     <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
-                                    <button class="btn-icon" title="Delete"><i class="fas fa-trash"></i></button>
+                                    <button class="btn-icon" title="Suspend"><i class="fas fa-ban"></i></button>
                                 </td>
                             </tr>
                         </tbody>
