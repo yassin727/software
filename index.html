@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Maid Tracking System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-home"></i>
+            <h2>MaidTrack</h2>
+        </div>
+        <nav class="nav-menu">
+            <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard')">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#maids" class="nav-item" onclick="showSection('maids')">
+                <i class="fas fa-users"></i>
+                <span>Maids</span>
+            </a>
+            <a href="#schedule" class="nav-item" onclick="showSection('schedule')">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Schedule</span>
+            </a>
+            <a href="#tasks" class="nav-item" onclick="showSection('tasks')">
+                <i class="fas fa-tasks"></i>
+                <span>Tasks</span>
+            </a>
+            <a href="#attendance" class="nav-item" onclick="showSection('attendance')">
+                <i class="fas fa-clipboard-check"></i>
+                <span>Attendance</span>
+            </a>
+            <a href="#payments" class="nav-item" onclick="showSection('payments')">
+                <i class="fas fa-dollar-sign"></i>
+                <span>Payments</span>
+            </a>
+            <a href="#reports" class="nav-item" onclick="showSection('reports')">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reports</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="#settings" class="nav-item">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+            <a href="#logout" class="nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 id="page-title">Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <button class="notification-btn">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </button>
+                <div class="user-profile">
+                    <img src="https://via.placeholder.com/40" alt="User">
+                    <span>Admin</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="content-section active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>12</h3>
+                        <p>Total Maids</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>8</h3>
+                        <p>On Duty Today</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>24</h3>
+                        <p>Pending Tasks</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>$2,450</h3>
+                        <p>This Month</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Today's Schedule</h3>
+                        <button class="btn-small">View All</button>
+                    </div>
+                    <div class="schedule-list">
+                        <div class="schedule-item">
+                            <div class="schedule-time">08:00 AM</div>
+                            <div class="schedule-details">
+                                <h4>Maria Garcia</h4>
+                                <p>House Cleaning - Sector 1</p>
+                            </div>
+                            <span class="status-badge active">Active</span>
+                        </div>
+                        <div class="schedule-item">
+                            <div class="schedule-time">09:00 AM</div>
+                            <div class="schedule-details">
+                                <h4>Sarah Johnson</h4>
+                                <p>Deep Cleaning - Sector 2</p>
+                            </div>
+                            <span class="status-badge active">Active</span>
+                        </div>
+                        <div class="schedule-item">
+                            <div class="schedule-time">10:00 AM</div>
+                            <div class="schedule-details">
+                                <h4>Lisa Brown</h4>
+                                <p>Kitchen Cleaning - Sector 3</p>
+                            </div>
+                            <span class="status-badge pending">Pending</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Recent Activities</h3>
+                    </div>
+                    <div class="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon blue">
+                                <i class="fas fa-user-plus"></i>
+                            </div>
+                            <div class="activity-details">
+                                <p><strong>New maid registered</strong></p>
+                                <span>Emma Wilson - 2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon green">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="activity-details">
+                                <p><strong>Task completed</strong></p>
+                                <span>Maria Garcia - 3 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon orange">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="activity-details">
+                                <p><strong>Payment received</strong></p>
+                                <span>$250 - Sarah Johnson - 5 hours ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Maids Section -->
+        <section id="maids" class="content-section">
+            <div class="section-header">
+                <button class="btn-primary" onclick="openAddMaidModal()">
+                    <i class="fas fa-plus"></i> Add New Maid
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Specialization</th>
+                                <th>Status</th>
+                                <th>Rating</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>#001</td>
+                                <td>
+                                    <div class="user-cell">
+                                        <img src="https://via.placeholder.com/35" alt="Maid">
+                                        <span>Maria Garcia</span>
+                                    </div>
+                                </td>
+                                <td>+1 234-567-8901</td>
+                                <td>General Cleaning</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <div class="rating">
+                                        <i class="fas fa-star"></i> 4.8
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon" title="Delete"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>#002</td>
+                                <td>
+                                    <div class="user-cell">
+                                        <img src="https://via.placeholder.com/35" alt="Maid">
+                                        <span>Sarah Johnson</span>
+                                    </div>
+                                </td>
+                                <td>+1 234-567-8902</td>
+                                <td>Deep Cleaning</td>
+                                <td><span class="status-badge active">Active</span></td>
+                                <td>
+                                    <div class="rating">
+                                        <i class="fas fa-star"></i> 4.9
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon" title="Delete"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>#003</td>
+                                <td>
+                                    <div class="user-cell">
+                                        <img src="https://via.placeholder.com/35" alt="Maid">
+                                        <span>Lisa Brown</span>
+                                    </div>
+                                </td>
+                                <td>+1 234-567-8903</td>
+                                <td>Kitchen Specialist</td>
+                                <td><span class="status-badge inactive">Off Duty</span></td>
+                                <td>
+                                    <div class="rating">
+                                        <i class="fas fa-star"></i> 4.7
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon" title="Edit"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon" title="Delete"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Schedule Section -->
+        <section id="schedule" class="content-section">
+            <div class="section-header">
+                <button class="btn-primary" onclick="openScheduleModal()">
+                    <i class="fas fa-plus"></i> Create Schedule
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="calendar-header">
+                    <button class="btn-secondary"><i class="fas fa-chevron-left"></i></button>
+                    <h3>October 2025</h3>
+                    <button class="btn-secondary"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="calendar-day header">Sun</div>
+                    <div class="calendar-day header">Mon</div>
+                    <div class="calendar-day header">Tue</div>
+                    <div class="calendar-day header">Wed</div>
+                    <div class="calendar-day header">Thu</div>
+                    <div class="calendar-day header">Fri</div>
+                    <div class="calendar-day header">Sat</div>
+                    
+                    <div class="calendar-day other-month">29</div>
+                    <div class="calendar-day other-month">30</div>
+                    <div class="calendar-day">1</div>
+                    <div class="calendar-day">2</div>
+                    <div class="calendar-day">3</div>
+                    <div class="calendar-day">4</div>
+                    <div class="calendar-day">5</div>
+                    <div class="calendar-day">6</div>
+                    <div class="calendar-day">7</div>
+                    <div class="calendar-day">8</div>
+                    <div class="calendar-day">9</div>
+                    <div class="calendar-day">10</div>
+                    <div class="calendar-day">11</div>
+                    <div class="calendar-day">12</div>
+                    <div class="calendar-day">13</div>
+                    <div class="calendar-day">14</div>
+                    <div class="calendar-day">15</div>
+                    <div class="calendar-day today">16<span class="event-dot"></span></div>
+                    <div class="calendar-day">17<span class="event-dot"></span></div>
+                    <div class="calendar-day">18<span class="event-dot"></span></div>
+                    <div class="calendar-day">19</div>
+                    <div class="calendar-day">20</div>
+                    <div class="calendar-day">21</div>
+                    <div class="calendar-day">22</div>
+                    <div class="calendar-day">23</div>
+                    <div class="calendar-day">24</div>
+                    <div class="calendar-day">25</div>
+                    <div class="calendar-day">26</div>
+                    <div class="calendar-day">27</div>
+                    <div class="calendar-day">28</div>
+                    <div class="calendar-day">29</div>
+                    <div class="calendar-day">30</div>
+                    <div class="calendar-day">31</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tasks Section -->
+        <section id="tasks" class="content-section">
+            <div class="section-header">
+                <button class="btn-primary" onclick="openTaskModal()">
+                    <i class="fas fa-plus"></i> Add New Task
+                </button>
+            </div>
+
+            <div class="tasks-grid">
+                <div class="task-column">
+                    <h3 class="column-title pending">Pending <span class="count">5</span></h3>
+                    <div class="task-card">
+                        <h4>Living Room Cleaning</h4>
+                        <p>Complete cleaning of living room including furniture dusting</p>
+                        <div class="task-meta">
+                            <span class="assigned-to">
+                                <i class="fas fa-user"></i> Maria Garcia
+                            </span>
+                            <span class="task-priority high">High</span>
+                        </div>
+                    </div>
+                    <div class="task-card">
+                        <h4>Kitchen Deep Clean</h4>
+                        <p>Deep cleaning of kitchen area, appliances, and cabinets</p>
+                        <div class="task-meta">
+                            <span class="assigned-to">
+                                <i class="fas fa-user"></i> Sarah Johnson
+                            </span>
+                            <span class="task-priority medium">Medium</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="task-column">
+                    <h3 class="column-title in-progress">In Progress <span class="count">3</span></h3>
+                    <div class="task-card">
+                        <h4>Bedroom Cleaning</h4>
+                        <p>Clean all bedrooms, change linens, organize closets</p>
+                        <div class="task-meta">
+                            <span class="assigned-to">
+                                <i class="fas fa-user"></i> Lisa Brown
+                            </span>
+                            <span class="task-priority high">High</span>
+                        </div>
+                    </div>
+                    <div class="task-card">
+                        <h4>Bathroom Sanitization</h4>
+                        <p>Sanitize all bathrooms, clean fixtures, restock supplies</p>
+                        <div class="task-meta">
+                            <span class="assigned-to">
+                                <i class="fas fa-user"></i> Emma Wilson
+                            </span>
+                            <span class="task-priority medium">Medium</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="task-column">
+                    <h3 class="column-title completed">Completed <span class="count">8</span></h3>
+                    <div class="task-card completed">
+                        <h4>Window Cleaning</h4>
+                        <p>Clean all windows inside and outside</p>
+                        <div class="task-meta">
+                            <span class="assigned-to">
+                                <i class="fas fa-user"></i> Maria Garcia
+                            </span>
+                            <span class="task-priority low">Low</span>
+                        </div>
+                        <div class="completed-badge">
+                            <i class="fas fa-check-circle"></i> Completed
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Attendance Section -->
+        <section id="attendance" class="content-section">
+            <div class="section-header">
+                <div class="date-picker">
+                    <input type="date" value="2025-10-16">
+                </div>
+                <button class="btn-primary">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Maid Name</th>
+                                <th>Check In</th>
+                                <th>Check Out</th>
+                                <th>Working Hours</th>
+                                <th>Status</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <img src="https://via.placeholder.com/35" alt="Maid">
+                                        <span>Maria Garcia</span>
+                                    </div>
+                                </td>
+                                <td>08:00 AM</td>
+                                <td>04:30 PM</td>
+                                <td>8.5 hrs</td>
+                                <td><span class="status-badge completed">Present</span></td>
+                                <td>Sector 1</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <img src="https://via.placeholder.com/35" alt="Maid">
+                                        <span>Sarah Johnson</span>
+                                    </div>
+                                </td>
+                                <td>09:00 AM</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td><span class="status-badge active">On Duty</span></td>
+                                <td>Sector 2</td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <img src="https://via.placeholder.com/35" alt="Maid">
+                                        <span>Lisa Brown</span>
+                                    </div>
+                                </td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td><span class="status-badge inactive">Absent</span></td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Payments Section -->
+        <section id="payments" class="content-section">
+            <div class="section-header">
+                <button class="btn-primary" onclick="openPaymentModal()">
+                    <i class="fas fa-plus"></i> Record Payment
+                </button>
+            </div>
+
+            <div class="payments-grid">
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>$12,450</h3>
+                        <p>Total Paid This Month</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>$2,300</h3>
+                        <p>Pending Payments</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-calendar"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>$1,850</h3>
+                        <p>Due This Week</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>Payment History</h3>
+                    <select class="filter-select">
+                        <option>All</option>
+                        <option>Paid</option>
+                        <option>Pending</option>
+                        <option>Overdue</option>
+                    </select>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice ID</th>
+                                <th>Maid Name</th>
+                                <th>Amount</th>
+                                <th>Payment Date</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>#INV-001</td>
+                                <td>Maria Garcia</td>
+                                <td>$450</td>
+                                <td>Oct 15, 2025</td>
+                                <td>Bank Transfer</td>
+                                <td><span class="status-badge completed">Paid</span></td>
+                                <td>
+                                    <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon" title="Download"><i class="fas fa-download"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>#INV-002</td>
+                                <td>Sarah Johnson</td>
+                                <td>$500</td>
+                                <td>Oct 16, 2025</td>
+                                <td>Cash</td>
+                                <td><span class="status-badge pending">Pending</span></td>
+                                <td>
+                                    <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon" title="Download"><i class="fas fa-download"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>#INV-003</td>
+                                <td>Lisa Brown</td>
+                                <td>$425</td>
+                                <td>Oct 10, 2025</td>
+                                <td>Bank Transfer</td>
+                                <td><span class="status-badge completed">Paid</span></td>
+                                <td>
+                                    <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
+                                    <button class="btn-icon" title="Download"><i class="fas fa-download"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reports Section -->
+        <section id="reports" class="content-section">
+            <div class="section-header">
+                <h2>Analytics & Reports</h2>
+            </div>
+
+            <div class="reports-grid">
+                <div class="card chart-card">
+                    <h3>Performance Overview</h3>
+                    <div class="chart-placeholder">
+                        <i class="fas fa-chart-line"></i>
+                        <p>Chart: Task completion rate over time</p>
+                    </div>
+                </div>
+                <div class="card chart-card">
+                    <h3>Attendance Rate</h3>
+                    <div class="chart-placeholder">
+                        <i class="fas fa-chart-bar"></i>
+                        <p>Chart: Monthly attendance statistics</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Monthly Summary</h3>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="summary-label">Total Working Hours</span>
+                        <span class="summary-value">1,240 hrs</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Tasks Completed</span>
+                        <span class="summary-value">156</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Average Rating</span>
+                        <span class="summary-value">4.8 <i class="fas fa-star"></i></span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Total Payments</span>
+                        <span class="summary-value">$12,450</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal for Adding New Maid -->
+    <div id="addMaidModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Maid</h2>
+                <button class="close-btn" onclick="closeModal('addMaidModal')">&times;</button>
+            </div>
+            <form class="form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" placeholder="Enter full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number *</label>
+                        <input type="tel" placeholder="+1 234-567-8900" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" placeholder="email@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Specialization *</label>
+                        <select required>
+                            <option value="">Select specialization</option>
+                            <option>General Cleaning</option>
+                            <option>Deep Cleaning</option>
+                            <option>Kitchen Specialist</option>
+                            <option>Laundry Specialist</option>
+                            <option>Baby Care</option>
+                            <option>Elderly Care</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Hourly Rate ($)</label>
+                        <input type="number" placeholder="15" min="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <textarea rows="3" placeholder="Enter full address"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Upload Photo</label>
+                    <input type="file" accept="image/*">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('addMaidModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Maid</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
