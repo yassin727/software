@@ -5,17 +5,27 @@
 }
 
 :root {
-    --primary-color: #4f46e5;
-    --primary-dark: #4338ca;
-    --secondary-color: #64748b;
-    --success-color: #10b981;
-    --warning-color: #f59e0b;
-    --danger-color: #ef4444;
-    --info-color: #3b82f6;
-    --bg-light: #f8fafc;
-    --bg-white: #ffffff;
-    --text-dark: #1e293b;
-    --text-light: #64748b;
+    /* Primary Colors */
+    --primary-color: #1A374D;        /* Deep Navy - Buttons, headers */
+    --primary-dark: #0f2333;         /* Darker Navy for hover states */
+    --secondary-color: #406882;      /* Steel Blue - Links, icons */
+    --accent-color: #6998AB;         /* Turquoise - Hover and accent */
+    
+    /* State Colors */
+    --success-color: #2ECC71;        /* Emerald Green - Success states */
+    --warning-color: #F4D03F;        /* Sunset Yellow - Caution, pending */
+    --danger-color: #E74C3C;         /* Coral Red - Error */
+    --info-color: #6998AB;           /* Turquoise - Info messages */
+    
+    /* Background Colors */
+    --bg-light: #F5F5F5;             /* Light Gray - Main background */
+    --bg-white: #FFFFFF;             /* White - Cards, modals */
+    
+    /* Text Colors */
+    --text-dark: #1C1C1C;            /* Almost Black - Main text */
+    --text-light: #7A7A7A;           /* Gray - Subtext */
+    
+    /* Utility */
     --border-color: #e2e8f0;
     --sidebar-width: 260px;
     --header-height: 70px;
@@ -38,7 +48,7 @@ body {
     top: 0;
     width: var(--sidebar-width);
     height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -262,19 +272,19 @@ body {
 }
 
 .stat-icon.blue {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
 }
 
 .stat-icon.green {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, var(--success-color) 0%, #27ae60 100%);
 }
 
 .stat-icon.orange {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    background: linear-gradient(135deg, var(--warning-color) 0%, #f39c12 100%);
 }
 
 .stat-icon.red {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, var(--danger-color) 0%, #c0392b 100%);
 }
 
 .stat-details h3 {
@@ -1134,7 +1144,7 @@ input:checked + .slider:before {
 }
 
 .btn-success:hover {
-    background: #059669;
+    background: #27ae60;
 }
 
 .btn-danger {
@@ -1150,7 +1160,7 @@ input:checked + .slider:before {
 }
 
 .btn-danger:hover {
-    background: #dc2626;
+    background: #c0392b;
 }
 
 /* Maid Cards Grid */
@@ -1178,7 +1188,7 @@ input:checked + .slider:before {
     position: relative;
     padding: 20px;
     text-align: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
 }
 
 .maid-card-header img {
@@ -1255,7 +1265,7 @@ input:checked + .slider:before {
 
 .tag {
     padding: 4px 10px;
-    background: rgba(79, 70, 229, 0.1);
+    background: rgba(26, 55, 77, 0.1);
     color: var(--primary-color);
     border-radius: 12px;
     font-size: 11px;
@@ -1955,7 +1965,7 @@ input:checked + .slider:before {
 }
 
 .special-notes {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(105, 152, 171, 0.1);
     padding: 12px;
     border-radius: 8px;
     border-left: 3px solid var(--info-color);
@@ -2142,7 +2152,7 @@ input:checked + .slider:before {
 }
 
 .mark-done-btn:hover {
-    background: #059669;
+    background: #27ae60;
 }
 
 .job-action-buttons {
@@ -2246,7 +2256,7 @@ input:checked + .slider:before {
 }
 
 .earning-card.primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
     color: white;
 }
 
