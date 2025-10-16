@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maid Dashboard - MaidTrack</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-home"></i>
+            <h2>MaidTrack</h2>
+        </div>
+        <nav class="nav-menu">
+            <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard')">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#job-requests" class="nav-item" onclick="showSection('job-requests')">
+                <i class="fas fa-inbox"></i>
+                <span>Job Requests</span>
+                <span class="badge">3</span>
+            </a>
+            <a href="#my-jobs" class="nav-item" onclick="showSection('my-jobs')">
+                <i class="fas fa-briefcase"></i>
+                <span>My Jobs</span>
+            </a>
+            <a href="#schedule" class="nav-item" onclick="showSection('schedule')">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Schedule</span>
+            </a>
+            <a href="#earnings" class="nav-item" onclick="showSection('earnings')">
+                <i class="fas fa-dollar-sign"></i>
+                <span>Earnings</span>
+            </a>
+            <a href="#reviews" class="nav-item" onclick="showSection('reviews')">
+                <i class="fas fa-star"></i>
+                <span>Reviews</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="#profile" class="nav-item">
+                <i class="fas fa-user-circle"></i>
+                <span>Profile</span>
+            </a>
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 id="page-title">Maid Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <!-- Availability Toggle -->
+                <div class="availability-toggle">
+                    <label class="switch">
+                        <input type="checkbox" id="availabilityToggle" onchange="toggleAvailability()">
+                        <span class="slider"></span>
+                    </label>
+                    <span id="availabilityText">You are Offline</span>
+                </div>
+                <button class="notification-btn" onclick="showMaidNotifications()">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">4</span>
+                </button>
+                <div class="user-profile">
+                    <img src="https://via.placeholder.com/40" alt="User">
+                    <span>Maria Garcia</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="content-section active">
+            <!-- Status Card -->
+            <div class="status-card offline-status" id="statusCard">
+                <div class="status-icon">
+                    <i class="fas fa-power-off"></i>
+                </div>
+                <div class="status-info">
+                    <h2>You are currently Offline</h2>
+                    <p>Turn on availability to start receiving job requests</p>
+                    <button class="btn-primary" onclick="goOnline()">
+                        <i class="fas fa-toggle-on"></i> Go Online
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>2</h3>
+                        <p>Active Jobs Today</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>45</h3>
+                        <p>Completed This Month</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>4.8</h3>
+                        <p>Average Rating</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>$1,845</h3>
+                        <p>Earned This Month</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Today's Jobs -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar-day"></i> Today's Schedule</h3>
+                        <button class="btn-small" onclick="showSection('my-jobs')">View All</button>
+                    </div>
+                    <div class="job-list">
+                        <div class="job-item active-job">
+                            <div class="job-status">
+                                <span class="status-badge active">In Progress</span>
+                            </div>
+                            <div class="job-details">
+                                <h4>General House Cleaning</h4>
+                                <p class="client-name"><i class="fas fa-user"></i> John Doe</p>
+                                <p><i class="fas fa-clock"></i> 10:00 AM - 2:00 PM</p>
+                                <p><i class="fas fa-map-marker-alt"></i> Sector 1, Building A</p>
+                                <p><i class="fas fa-dollar-sign"></i> $60 (4 hours)</p>
+                            </div>
+                            <div class="job-actions">
+                                <button class="btn-secondary" onclick="updateJobStatus()">
+                                    <i class="fas fa-tasks"></i> Update Tasks
+                                </button>
+                                <button class="btn-primary" onclick="checkOut()">
+                                    <i class="fas fa-sign-out-alt"></i> Check Out
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="job-item">
+                            <div class="job-status">
+                                <span class="status-badge pending">Upcoming</span>
+                            </div>
+                            <div class="job-details">
+                                <h4>Deep Cleaning</h4>
+                                <p class="client-name"><i class="fas fa-user"></i> Sarah Smith</p>
+                                <p><i class="fas fa-clock"></i> 3:00 PM - 6:00 PM</p>
+                                <p><i class="fas fa-map-marker-alt"></i> Sector 2, Building B</p>
+                                <p><i class="fas fa-dollar-sign"></i> $54 (3 hours)</p>
+                            </div>
+                            <div class="job-actions">
+                                <button class="btn-secondary" onclick="viewJobDetails(2)">
+                                    <i class="fas fa-info-circle"></i> Details
+                                </button>
+                                <button class="btn-secondary" onclick="getDirections(2)">
+                                    <i class="fas fa-directions"></i> Directions
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-chart-line"></i> This Week</h3>
+                    </div>
+                    <div class="weekly-stats">
+                        <div class="stat-row">
+                            <span class="stat-label">Jobs Completed</span>
+                            <span class="stat-value">12</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Hours Worked</span>
+                            <span class="stat-value">48</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Earnings</span>
+                            <span class="stat-value">$720</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">New Reviews</span>
+                            <span class="stat-value">8</span>
+                        </div>
+                    </div>
+                    <button class="btn-primary full-width" onclick="showSection('earnings')">
+                        View Detailed Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Reviews -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-comments"></i> Recent Reviews</h3>
+                    <button class="btn-small" onclick="showSection('reviews')">View All</button>
+                </div>
+                <div class="reviews-list">
+                    <div class="review-item">
+                        <div class="review-header">
+                            <img src="https://via.placeholder.com/45" alt="Client">
+                            <div>
+                                <h4>John Doe</h4>
+                                <div class="rating">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                </div>
+                            </div>
+                            <span class="review-date">Today</span>
+                        </div>
+                        <p class="review-text">"Excellent work! Very thorough and professional. Will definitely book again."</p>
+                    </div>
+                    <div class="review-item">
+                        <div class="review-header">
+                            <img src="https://via.placeholder.com/45" alt="Client">
+                            <div>
+                                <h4>Emma Wilson</h4>
+                                <div class="rating">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star-half-alt"></i>
+                                </div>
+                            </div>
+                            <span class="review-date">Yesterday</span>
+                        </div>
+                        <p class="review-text">"Great service! Very punctual and did a fantastic job."</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Job Requests Section -->
+        <section id="job-requests" class="content-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-inbox"></i> New Job Requests</h3>
+                    <span class="badge-large">3 Pending</span>
+                </div>
+                
+                <div class="job-requests-list">
+                    <div class="job-request-card">
+                        <div class="request-header">
+                            <div class="client-info">
+                                <img src="https://via.placeholder.com/60" alt="Client">
+                                <div>
+                                    <h4>Michael Brown</h4>
+                                    <p class="client-rating"><i class="fas fa-star"></i> 4.9 (as client)</p>
+                                </div>
+                            </div>
+                            <div class="request-time">
+                                <i class="fas fa-clock"></i> Requested 15 min ago
+                            </div>
+                        </div>
+                        <div class="request-body">
+                            <h4><i class="fas fa-broom"></i> General House Cleaning</h4>
+                            <div class="request-details">
+                                <p><i class="fas fa-calendar"></i> <strong>Date:</strong> October 18, 2025</p>
+                                <p><i class="fas fa-clock"></i> <strong>Time:</strong> 9:00 AM - 1:00 PM (4 hours)</p>
+                                <p><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> Sector 3, Building C, Apt 205 (3.2 km away)</p>
+                                <p><i class="fas fa-dollar-sign"></i> <strong>Payment:</strong> $60.00</p>
+                            </div>
+                            <div class="task-list-preview">
+                                <strong>Tasks:</strong>
+                                <ul>
+                                    <li>Living room and dining area</li>
+                                    <li>2 Bedrooms</li>
+                                    <li>Kitchen (deep clean)</li>
+                                    <li>2 Bathrooms</li>
+                                </ul>
+                            </div>
+                            <div class="special-notes">
+                                <strong><i class="fas fa-info-circle"></i> Special Instructions:</strong>
+                                <p>Please bring eco-friendly cleaning products. Two pets in the house (friendly dogs).</p>
+                            </div>
+                        </div>
+                        <div class="request-footer">
+                            <button class="btn-secondary" onclick="declineRequest(1)">
+                                <i class="fas fa-times"></i> Decline
+                            </button>
+                            <button class="btn-primary" onclick="acceptRequest(1, 'Michael Brown')">
+                                <i class="fas fa-check"></i> Accept Job
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="job-request-card urgent">
+                        <div class="urgent-badge">
+                            <i class="fas fa-bolt"></i> Urgent Request
+                        </div>
+                        <div class="request-header">
+                            <div class="client-info">
+                                <img src="https://via.placeholder.com/60" alt="Client">
+                                <div>
+                                    <h4>Jennifer Taylor</h4>
+                                    <p class="client-rating"><i class="fas fa-star"></i> 5.0 (as client)</p>
+                                </div>
+                            </div>
+                            <div class="request-time">
+                                <i class="fas fa-clock"></i> Requested 30 min ago
+                            </div>
+                        </div>
+                        <div class="request-body">
+                            <h4><i class="fas fa-tachometer-alt"></i> Express Cleaning</h4>
+                            <div class="request-details">
+                                <p><i class="fas fa-calendar"></i> <strong>Date:</strong> October 16, 2025 (Today)</p>
+                                <p><i class="fas fa-clock"></i> <strong>Time:</strong> 4:00 PM - 6:00 PM (2 hours)</p>
+                                <p><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> Sector 1, Building D, Apt 101 (1.5 km away)</p>
+                                <p><i class="fas fa-dollar-sign"></i> <strong>Payment:</strong> $40.00 + $10 tip</p>
+                            </div>
+                            <div class="special-notes">
+                                <strong><i class="fas fa-exclamation-triangle"></i> Urgent:</strong>
+                                <p>Need quick clean before guests arrive. Focus on living room and guest bathroom.</p>
+                            </div>
+                        </div>
+                        <div class="request-footer">
+                            <button class="btn-secondary" onclick="declineRequest(2)">
+                                <i class="fas fa-times"></i> Decline
+                            </button>
+                            <button class="btn-primary pulse" onclick="acceptRequest(2, 'Jennifer Taylor')">
+                                <i class="fas fa-check"></i> Accept Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- My Jobs Section -->
+        <section id="my-jobs" class="content-section">
+            <div class="job-tabs">
+                <button class="tab-btn active" onclick="filterJobs('active')">Active (2)</button>
+                <button class="tab-btn" onclick="filterJobs('upcoming')">Upcoming (3)</button>
+                <button class="tab-btn" onclick="filterJobs('completed')">Completed (45)</button>
+            </div>
+
+            <!-- Active Job with Check-in/out -->
+            <div class="card active-job-card">
+                <div class="job-card-header">
+                    <h3>Current Job - In Progress</h3>
+                    <span class="status-badge active">Active</span>
+                </div>
+                <div class="job-card-body">
+                    <div class="job-info-grid">
+                        <div class="info-item">
+                            <label>Client</label>
+                            <p><img src="https://via.placeholder.com/30" alt="Client" class="inline-avatar"> John Doe</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Service</label>
+                            <p>General House Cleaning</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Check-in</label>
+                            <p class="success-text"><i class="fas fa-check-circle"></i> 10:05 AM</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Duration</label>
+                            <p id="workingTime">1h 10m</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Location</label>
+                            <p>Sector 1, Building A, Apt 301</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Expected Payment</label>
+                            <p class="highlight-text">$60.00</p>
+                        </div>
+                    </div>
+
+                    <!-- Task Checklist -->
+                    <div class="task-update-section">
+                        <h4><i class="fas fa-tasks"></i> Task Checklist (3/5 completed)</h4>
+                        <div class="task-checklist-maid">
+                            <label class="task-checkbox completed">
+                                <input type="checkbox" checked disabled>
+                                <span>Living Room - Dusting, vacuuming, organizing</span>
+                                <small>Completed at 10:30 AM</small>
+                            </label>
+                            <label class="task-checkbox completed">
+                                <input type="checkbox" checked disabled>
+                                <span>Kitchen - Dishes, counters, appliances, floor</span>
+                                <small>Completed at 11:00 AM</small>
+                            </label>
+                            <label class="task-checkbox completed">
+                                <input type="checkbox" checked disabled>
+                                <span>Bathroom - Toilet, shower, sink, mirrors</span>
+                                <small>Completed at 11:15 AM</small>
+                            </label>
+                            <label class="task-checkbox">
+                                <input type="checkbox" onchange="markTaskComplete(this, 'Bedroom')">
+                                <span>Bedroom - Making beds, organizing, vacuuming</span>
+                                <button class="mark-done-btn" onclick="markTaskDone(4)">Mark Done</button>
+                            </label>
+                            <label class="task-checkbox">
+                                <input type="checkbox" onchange="markTaskComplete(this, 'Final Inspection')">
+                                <span>Final Inspection - Walk-through and touch-ups</span>
+                                <button class="mark-done-btn" onclick="markTaskDone(5)">Mark Done</button>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="job-action-buttons">
+                        <button class="btn-secondary" onclick="contactClient(1)">
+                            <i class="fas fa-phone"></i> Contact Client
+                        </button>
+                        <button class="btn-secondary" onclick="reportIssue()">
+                            <i class="fas fa-exclamation-circle"></i> Report Issue
+                        </button>
+                        <button class="btn-primary large" onclick="completeJob()">
+                            <i class="fas fa-check-circle"></i> Complete & Check Out
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upcoming Jobs -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-calendar-alt"></i> Upcoming Jobs</h3>
+                </div>
+                <div class="upcoming-jobs-list">
+                    <div class="upcoming-job-item">
+                        <div class="job-time">
+                            <div class="time-badge">
+                                <span class="time">3:00 PM</span>
+                                <span class="date">Today</span>
+                            </div>
+                        </div>
+                        <div class="job-details">
+                            <h4>Deep Cleaning</h4>
+                            <p><i class="fas fa-user"></i> Sarah Smith</p>
+                            <p><i class="fas fa-map-marker-alt"></i> Sector 2, Building B, Apt 502</p>
+                            <p><i class="fas fa-dollar-sign"></i> $54.00 (3 hours)</p>
+                        </div>
+                        <div class="job-actions-compact">
+                            <button class="btn-icon-text" onclick="checkIn(2)">
+                                <i class="fas fa-sign-in-alt"></i> Check In
+                            </button>
+                            <button class="btn-icon-text" onclick="getDirections(2)">
+                                <i class="fas fa-directions"></i> Directions
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="upcoming-job-item">
+                        <div class="job-time">
+                            <div class="time-badge">
+                                <span class="time">10:00 AM</span>
+                                <span class="date">Tomorrow</span>
+                            </div>
+                        </div>
+                        <div class="job-details">
+                            <h4>Kitchen Specialist</h4>
+                            <p><i class="fas fa-user"></i> David Lee</p>
+                            <p><i class="fas fa-map-marker-alt"></i> Sector 1, Building C, Apt 204</p>
+                            <p><i class="fas fa-dollar-sign"></i> $48.00 (3 hours)</p>
+                        </div>
+                        <div class="job-actions-compact">
+                            <button class="btn-icon-text" onclick="viewJobDetails(3)">
+                                <i class="fas fa-info-circle"></i> Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Earnings Section -->
+        <section id="earnings" class="content-section">
+            <div class="earnings-overview">
+                <div class="earning-card primary">
+                    <h3>Total Earnings</h3>
+                    <h2>$1,845.00</h2>
+                    <p>This Month (October 2025)</p>
+                </div>
+                <div class="earning-card">
+                    <h3>This Week</h3>
+                    <h2>$720.00</h2>
+                    <p>12 jobs completed</p>
+                </div>
+                <div class="earning-card">
+                    <h3>Pending</h3>
+                    <h2>$125.00</h2>
+                    <p>2 jobs awaiting payment</p>
+                </div>
+                <div class="earning-card">
+                    <h3>Average Rate</h3>
+                    <h2>$15/hr</h2>
+                    <p>Based on all jobs</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-history"></i> Payment History</h3>
+                    <button class="btn-small" onclick="exportEarnings()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Client</th>
+                                <th>Service</th>
+                                <th>Duration</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Oct 15, 2025</td>
+                                <td>John Doe</td>
+                                <td>General Cleaning</td>
+                                <td>4 hours</td>
+                                <td>$60.00</td>
+                                <td><span class="status-badge completed">Paid</span></td>
+                            </tr>
+                            <tr>
+                                <td>Oct 14, 2025</td>
+                                <td>Emma Wilson</td>
+                                <td>Deep Cleaning</td>
+                                <td>5 hours</td>
+                                <td>$90.00</td>
+                                <td><span class="status-badge completed">Paid</span></td>
+                            </tr>
+                            <tr>
+                                <td>Oct 13, 2025</td>
+                                <td>Sarah Smith</td>
+                                <td>Kitchen Specialist</td>
+                                <td>3 hours</td>
+                                <td>$48.00</td>
+                                <td><span class="status-badge pending">Pending</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reviews Section -->
+        <section id="reviews" class="content-section">
+            <div class="reviews-summary">
+                <div class="rating-overview">
+                    <h2>4.8</h2>
+                    <div class="stars-large">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star-half-alt"></i>
+                    </div>
+                    <p>Based on 127 reviews</p>
+                </div>
+                <div class="rating-breakdown">
+                    <div class="rating-bar">
+                        <span>5 <i class="fas fa-star"></i></span>
+                        <div class="bar"><div class="fill" style="width: 75%"></div></div>
+                        <span>95</span>
+                    </div>
+                    <div class="rating-bar">
+                        <span>4 <i class="fas fa-star"></i></span>
+                        <div class="bar"><div class="fill" style="width: 20%"></div></div>
+                        <span>25</span>
+                    </div>
+                    <div class="rating-bar">
+                        <span>3 <i class="fas fa-star"></i></span>
+                        <div class="bar"><div class="fill" style="width: 4%"></div></div>
+                        <span>5</span>
+                    </div>
+                    <div class="rating-bar">
+                        <span>2 <i class="fas fa-star"></i></span>
+                        <div class="bar"><div class="fill" style="width: 1%"></div></div>
+                        <span>2</span>
+                    </div>
+                    <div class="rating-bar">
+                        <span>1 <i class="fas fa-star"></i></span>
+                        <div class="bar"><div class="fill" style="width: 0%"></div></div>
+                        <span>0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-comments"></i> All Reviews</h3>
+                    <select class="filter-select">
+                        <option>All Reviews</option>
+                        <option>5 Stars</option>
+                        <option>4 Stars</option>
+                        <option>3 Stars or Less</option>
+                    </select>
+                </div>
+                <div class="reviews-detailed-list">
+                    <div class="review-detail-item">
+                        <div class="review-header">
+                            <img src="https://via.placeholder.com/50" alt="Client">
+                            <div class="review-client-info">
+                                <h4>John Doe</h4>
+                                <div class="stars">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <span class="review-date">October 15, 2025</span>
+                            </div>
+                        </div>
+                        <div class="review-body">
+                            <p>"Excellent work! Maria is very thorough and professional. She arrived on time and completed all tasks perfectly. My house has never looked better. Will definitely book again!"</p>
+                            <div class="review-tags">
+                                <span class="tag">Punctual</span>
+                                <span class="tag">Professional</span>
+                                <span class="tag">Thorough</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="review-detail-item">
+                        <div class="review-header">
+                            <img src="https://via.placeholder.com/50" alt="Client">
+                            <div class="review-client-info">
+                                <h4>Emma Wilson</h4>
+                                <div class="stars">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star-half-alt"></i>
+                                </div>
+                                <span class="review-date">October 14, 2025</span>
+                            </div>
+                        </div>
+                        <div class="review-body">
+                            <p>"Great service! Very punctual and did a fantastic job with the deep cleaning. Kitchen looks amazing!"</p>
+                            <div class="review-tags">
+                                <span class="tag">Great Service</span>
+                                <span class="tag">Punctual</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Schedule Section -->
+        <section id="schedule" class="content-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-calendar"></i> My Schedule</h3>
+                    <div class="schedule-view-toggle">
+                        <button class="view-btn active">Week</button>
+                        <button class="view-btn">Month</button>
+                    </div>
+                </div>
+                <div class="calendar-header">
+                    <button class="btn-secondary"><i class="fas fa-chevron-left"></i></button>
+                    <h3>October 16 - 22, 2025</h3>
+                    <button class="btn-secondary"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="week-schedule">
+                    <div class="day-column">
+                        <div class="day-header">
+                            <span class="day-name">Mon</span>
+                            <span class="day-number">16</span>
+                        </div>
+                        <div class="day-events">
+                            <div class="event active-event">
+                                <span class="event-time">10:00 AM</span>
+                                <span class="event-title">General Cleaning</span>
+                                <span class="event-client">John Doe</span>
+                            </div>
+                            <div class="event">
+                                <span class="event-time">3:00 PM</span>
+                                <span class="event-title">Deep Cleaning</span>
+                                <span class="event-client">Sarah Smith</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="day-column">
+                        <div class="day-header">
+                            <span class="day-name">Tue</span>
+                            <span class="day-number">17</span>
+                        </div>
+                        <div class="day-events">
+                            <div class="event">
+                                <span class="event-time">10:00 AM</span>
+                                <span class="event-title">Kitchen Specialist</span>
+                                <span class="event-client">David Lee</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Add more days as needed -->
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Check-out Modal -->
+    <div id="checkoutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Complete Job & Check Out</h2>
+                <button class="close-btn" onclick="closeModal('checkoutModal')">&times;</button>
+            </div>
+            <form class="form" onsubmit="submitCheckout(event)">
+                <div class="checkout-summary">
+                    <h3>Job Summary</h3>
+                    <p><strong>Client:</strong> John Doe</p>
+                    <p><strong>Check-in:</strong> 10:05 AM</p>
+                    <p><strong>Duration:</strong> <span id="totalDuration">3h 55m</span></p>
+                    <p><strong>Tasks Completed:</strong> 5/5</p>
+                    <p class="payment-amount"><strong>Payment:</strong> $60.00</p>
+                </div>
+                <div class="form-group">
+                    <label>Additional Notes (Optional)</label>
+                    <textarea rows="3" placeholder="Any additional comments for the client..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('checkoutModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Confirm Check Out</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="maid-script.js"></script>
+</body>
+</html>

@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homeowner Dashboard - MaidTrack</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="logo">
+            <i class="fas fa-home"></i>
+            <h2>MaidTrack</h2>
+        </div>
+        <nav class="nav-menu">
+            <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard')">
+                <i class="fas fa-th-large"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#search-maids" class="nav-item" onclick="showSection('search-maids')">
+                <i class="fas fa-search"></i>
+                <span>Search Maids</span>
+            </a>
+            <a href="#my-bookings" class="nav-item" onclick="showSection('my-bookings')">
+                <i class="fas fa-calendar-check"></i>
+                <span>My Bookings</span>
+            </a>
+            <a href="#active-tasks" class="nav-item" onclick="showSection('active-tasks')">
+                <i class="fas fa-tasks"></i>
+                <span>Active Tasks</span>
+            </a>
+            <a href="#history" class="nav-item" onclick="showSection('history')">
+                <i class="fas fa-history"></i>
+                <span>History</span>
+            </a>
+            <a href="#messages" class="nav-item" onclick="showSection('messages')">
+                <i class="fas fa-envelope"></i>
+                <span>Messages</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="#profile" class="nav-item">
+                <i class="fas fa-user-circle"></i>
+                <span>Profile</span>
+            </a>
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 id="page-title">Homeowner Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search...">
+                </div>
+                <button class="notification-btn" onclick="showNotifications()">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">2</span>
+                </button>
+                <div class="user-profile">
+                    <img src="https://via.placeholder.com/40" alt="User">
+                    <span>John Doe</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="content-section active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>3</h3>
+                        <p>Active Bookings</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>1</h3>
+                        <p>Maid On-site Today</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>2</h3>
+                        <p>Pending Reviews</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3>$320</h3>
+                        <p>This Month</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Today's Schedule -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-calendar-day"></i> Today's Schedule</h3>
+                        <button class="btn-small" onclick="showSection('my-bookings')">View All</button>
+                    </div>
+                    <div class="schedule-list">
+                        <div class="schedule-item active-booking">
+                            <div class="schedule-time">10:00 AM</div>
+                            <div class="schedule-details">
+                                <h4>Maria Garcia</h4>
+                                <p><i class="fas fa-broom"></i> General House Cleaning</p>
+                                <p><i class="fas fa-map-marker-alt"></i> Sector 1, Building A</p>
+                            </div>
+                            <div class="booking-actions">
+                                <span class="status-badge active">In Progress</span>
+                                <button class="btn-icon" onclick="trackMaid(1)">
+                                    <i class="fas fa-location-arrow"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="schedule-item">
+                            <div class="schedule-time">02:00 PM</div>
+                            <div class="schedule-details">
+                                <h4>Sarah Johnson</h4>
+                                <p><i class="fas fa-soap"></i> Deep Cleaning</p>
+                                <p><i class="fas fa-map-marker-alt"></i> Sector 1, Building A</p>
+                            </div>
+                            <div class="booking-actions">
+                                <span class="status-badge pending">Upcoming</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                    </div>
+                    <div class="quick-actions">
+                        <button class="action-btn" onclick="showSection('search-maids')">
+                            <i class="fas fa-search"></i>
+                            <span>Find a Maid</span>
+                        </button>
+                        <button class="action-btn" onclick="openBookingModal()">
+                            <i class="fas fa-calendar-plus"></i>
+                            <span>Book Service</span>
+                        </button>
+                        <button class="action-btn" onclick="showSection('active-tasks')">
+                            <i class="fas fa-tasks"></i>
+                            <span>View Tasks</span>
+                        </button>
+                        <button class="action-btn" onclick="showSection('messages')">
+                            <i class="fas fa-comments"></i>
+                            <span>Messages</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                </div>
+                <div class="activity-timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker green"></div>
+                        <div class="timeline-content">
+                            <p><strong>Maria Garcia</strong> checked in</p>
+                            <span class="time">10:00 AM - Today</span>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker blue"></div>
+                        <div class="timeline-content">
+                            <p><strong>Sarah Johnson</strong> accepted your booking</p>
+                            <span class="time">8:30 AM - Today</span>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker orange"></div>
+                        <div class="timeline-content">
+                            <p>Booking reminder: <strong>Deep Cleaning</strong> at 2:00 PM</p>
+                            <span class="time">7:00 AM - Today</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search Maids Section -->
+        <section id="search-maids" class="content-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-filter"></i> Search Filters</h3>
+                </div>
+                <div class="search-filters">
+                    <div class="filter-group">
+                        <label>Location</label>
+                        <select>
+                            <option>All Locations</option>
+                            <option>Sector 1</option>
+                            <option>Sector 2</option>
+                            <option>Sector 3</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Specialization</label>
+                        <select>
+                            <option>All Types</option>
+                            <option>General Cleaning</option>
+                            <option>Deep Cleaning</option>
+                            <option>Kitchen Specialist</option>
+                            <option>Laundry Specialist</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Availability</label>
+                        <select>
+                            <option>Any Time</option>
+                            <option>Available Now</option>
+                            <option>Available Today</option>
+                            <option>Available This Week</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Rating</label>
+                        <select>
+                            <option>All Ratings</option>
+                            <option>4.5+ Stars</option>
+                            <option>4.0+ Stars</option>
+                            <option>3.5+ Stars</option>
+                        </select>
+                    </div>
+                    <button class="btn-primary">Apply Filters</button>
+                </div>
+            </div>
+
+            <!-- Maid Cards -->
+            <div class="maid-cards-grid">
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <img src="https://via.placeholder.com/80" alt="Maid">
+                        <span class="online-badge">Online</span>
+                    </div>
+                    <div class="maid-card-body">
+                        <h3>Maria Garcia</h3>
+                        <div class="maid-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                            <span>4.8 (127 reviews)</span>
+                        </div>
+                        <p class="maid-specialization">
+                            <i class="fas fa-broom"></i> General Cleaning
+                        </p>
+                        <p class="maid-location">
+                            <i class="fas fa-map-marker-alt"></i> 2.3 km away
+                        </p>
+                        <p class="maid-rate">
+                            <i class="fas fa-dollar-sign"></i> $15/hour
+                        </p>
+                        <div class="maid-tags">
+                            <span class="tag">Verified</span>
+                            <span class="tag">Top Rated</span>
+                        </div>
+                    </div>
+                    <div class="maid-card-footer">
+                        <button class="btn-secondary" onclick="viewMaidProfile(1)">View Profile</button>
+                        <button class="btn-primary" onclick="bookMaid(1, 'Maria Garcia')">Book Now</button>
+                    </div>
+                </div>
+
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <img src="https://via.placeholder.com/80" alt="Maid">
+                        <span class="online-badge">Online</span>
+                    </div>
+                    <div class="maid-card-body">
+                        <h3>Sarah Johnson</h3>
+                        <div class="maid-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <span>4.9 (98 reviews)</span>
+                        </div>
+                        <p class="maid-specialization">
+                            <i class="fas fa-soap"></i> Deep Cleaning
+                        </p>
+                        <p class="maid-location">
+                            <i class="fas fa-map-marker-alt"></i> 3.1 km away
+                        </p>
+                        <p class="maid-rate">
+                            <i class="fas fa-dollar-sign"></i> $18/hour
+                        </p>
+                        <div class="maid-tags">
+                            <span class="tag">Verified</span>
+                            <span class="tag">Experienced</span>
+                        </div>
+                    </div>
+                    <div class="maid-card-footer">
+                        <button class="btn-secondary" onclick="viewMaidProfile(2)">View Profile</button>
+                        <button class="btn-primary" onclick="bookMaid(2, 'Sarah Johnson')">Book Now</button>
+                    </div>
+                </div>
+
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <img src="https://via.placeholder.com/80" alt="Maid">
+                        <span class="offline-badge">Offline</span>
+                    </div>
+                    <div class="maid-card-body">
+                        <h3>Lisa Brown</h3>
+                        <div class="maid-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="far fa-star"></i>
+                            <span>4.2 (64 reviews)</span>
+                        </div>
+                        <p class="maid-specialization">
+                            <i class="fas fa-utensils"></i> Kitchen Specialist
+                        </p>
+                        <p class="maid-location">
+                            <i class="fas fa-map-marker-alt"></i> 4.5 km away
+                        </p>
+                        <p class="maid-rate">
+                            <i class="fas fa-dollar-sign"></i> $16/hour
+                        </p>
+                        <div class="maid-tags">
+                            <span class="tag">Verified</span>
+                        </div>
+                    </div>
+                    <div class="maid-card-footer">
+                        <button class="btn-secondary" onclick="viewMaidProfile(3)">View Profile</button>
+                        <button class="btn-primary" disabled>Currently Offline</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- My Bookings Section -->
+        <section id="my-bookings" class="content-section">
+            <div class="section-header">
+                <button class="btn-primary" onclick="openBookingModal()">
+                    <i class="fas fa-plus"></i> New Booking
+                </button>
+            </div>
+
+            <div class="bookings-tabs">
+                <button class="tab-btn active" onclick="filterBookings('all')">All</button>
+                <button class="tab-btn" onclick="filterBookings('upcoming')">Upcoming</button>
+                <button class="tab-btn" onclick="filterBookings('active')">Active</button>
+                <button class="tab-btn" onclick="filterBookings('completed')">Completed</button>
+                <button class="tab-btn" onclick="filterBookings('cancelled')">Cancelled</button>
+            </div>
+
+            <div class="bookings-list">
+                <div class="booking-card active-card">
+                    <div class="booking-header">
+                        <h3>Booking #1234</h3>
+                        <span class="status-badge active">In Progress</span>
+                    </div>
+                    <div class="booking-body">
+                        <div class="booking-maid-info">
+                            <img src="https://via.placeholder.com/60" alt="Maid">
+                            <div>
+                                <h4>Maria Garcia</h4>
+                                <p class="rating"><i class="fas fa-star"></i> 4.8</p>
+                            </div>
+                        </div>
+                        <div class="booking-details">
+                            <p><i class="fas fa-calendar"></i> <strong>Date:</strong> October 16, 2025</p>
+                            <p><i class="fas fa-clock"></i> <strong>Time:</strong> 10:00 AM - 2:00 PM</p>
+                            <p><i class="fas fa-broom"></i> <strong>Service:</strong> General House Cleaning</p>
+                            <p><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> Sector 1, Building A, Apt 301</p>
+                            <p><i class="fas fa-dollar-sign"></i> <strong>Rate:</strong> $15/hour (Est. $60)</p>
+                        </div>
+                    </div>
+                    <div class="booking-footer">
+                        <button class="btn-secondary" onclick="trackMaid(1)">
+                            <i class="fas fa-location-arrow"></i> Track Maid
+                        </button>
+                        <button class="btn-secondary" onclick="contactMaid(1)">
+                            <i class="fas fa-comment"></i> Message
+                        </button>
+                        <button class="btn-primary" onclick="viewTaskProgress(1)">
+                            <i class="fas fa-tasks"></i> View Progress
+                        </button>
+                    </div>
+                </div>
+
+                <div class="booking-card">
+                    <div class="booking-header">
+                        <h3>Booking #1235</h3>
+                        <span class="status-badge pending">Upcoming</span>
+                    </div>
+                    <div class="booking-body">
+                        <div class="booking-maid-info">
+                            <img src="https://via.placeholder.com/60" alt="Maid">
+                            <div>
+                                <h4>Sarah Johnson</h4>
+                                <p class="rating"><i class="fas fa-star"></i> 4.9</p>
+                            </div>
+                        </div>
+                        <div class="booking-details">
+                            <p><i class="fas fa-calendar"></i> <strong>Date:</strong> October 16, 2025</p>
+                            <p><i class="fas fa-clock"></i> <strong>Time:</strong> 2:00 PM - 6:00 PM</p>
+                            <p><i class="fas fa-soap"></i> <strong>Service:</strong> Deep Cleaning</p>
+                            <p><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> Sector 1, Building A, Apt 301</p>
+                            <p><i class="fas fa-dollar-sign"></i> <strong>Rate:</strong> $18/hour (Est. $72)</p>
+                        </div>
+                    </div>
+                    <div class="booking-footer">
+                        <button class="btn-secondary" onclick="rescheduleBooking(2)">
+                            <i class="fas fa-calendar-alt"></i> Reschedule
+                        </button>
+                        <button class="btn-secondary" onclick="cancelBooking(2)">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button class="btn-secondary" onclick="contactMaid(2)">
+                            <i class="fas fa-comment"></i> Message
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Active Tasks Section -->
+        <section id="active-tasks" class="content-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-tasks"></i> Task Progress - Maria Garcia</h3>
+                    <span class="status-badge active">In Progress</span>
+                </div>
+                
+                <div class="task-progress-header">
+                    <div class="progress-stats">
+                        <div class="stat-item">
+                            <span class="label">Started:</span>
+                            <span class="value">10:00 AM</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">Duration:</span>
+                            <span class="value">1h 15m</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="label">Completed:</span>
+                            <span class="value">3/5 Tasks</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: 60%"></div>
+                        <span class="progress-text">60% Complete</span>
+                    </div>
+                </div>
+
+                <div class="task-checklist">
+                    <div class="task-item completed">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="task-info">
+                            <h4>Living Room Cleaning</h4>
+                            <p>Dusting, vacuuming, organizing</p>
+                            <span class="time-stamp">Completed at 10:30 AM</span>
+                        </div>
+                    </div>
+                    <div class="task-item completed">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="task-info">
+                            <h4>Kitchen Cleaning</h4>
+                            <p>Dishes, counters, appliances, floor</p>
+                            <span class="time-stamp">Completed at 11:00 AM</span>
+                        </div>
+                    </div>
+                    <div class="task-item completed">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="task-info">
+                            <h4>Bathroom Sanitization</h4>
+                            <p>Toilet, shower, sink, mirrors</p>
+                            <span class="time-stamp">Completed at 11:15 AM</span>
+                        </div>
+                    </div>
+                    <div class="task-item in-progress">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <div class="task-info">
+                            <h4>Bedroom Cleaning</h4>
+                            <p>Making beds, organizing, vacuuming</p>
+                            <span class="time-stamp">In progress...</span>
+                        </div>
+                    </div>
+                    <div class="task-item pending">
+                        <i class="far fa-circle"></i>
+                        <div class="task-info">
+                            <h4>Final Inspection</h4>
+                            <p>Walk-through and touch-ups</p>
+                            <span class="time-stamp">Not started</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Location Tracking -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-map-marked-alt"></i> Live Location</h3>
+                    <span class="location-status">
+                        <i class="fas fa-check-circle"></i> Inside Geo-fence
+                    </span>
+                </div>
+                <div class="map-placeholder">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <p>Map showing maid's current location</p>
+                    <p class="map-note">Last updated: Just now</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- History Section -->
+        <section id="history" class="content-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-history"></i> Service History</h3>
+                    <button class="btn-small" onclick="exportHistory()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                </div>
+                
+                <div class="history-filters">
+                    <input type="date" value="2025-10-01">
+                    <span>to</span>
+                    <input type="date" value="2025-10-16">
+                    <button class="btn-secondary">Filter</button>
+                </div>
+
+                <div class="history-list">
+                    <div class="history-card">
+                        <div class="history-header">
+                            <h4>Booking #1230</h4>
+                            <span class="status-badge completed">Completed</span>
+                        </div>
+                        <div class="history-body">
+                            <div class="history-maid">
+                                <img src="https://via.placeholder.com/50" alt="Maid">
+                                <div>
+                                    <h5>Maria Garcia</h5>
+                                    <p>General House Cleaning</p>
+                                </div>
+                            </div>
+                            <div class="history-details">
+                                <p><i class="fas fa-calendar"></i> Oct 10, 2025</p>
+                                <p><i class="fas fa-clock"></i> 10:00 AM - 2:00 PM</p>
+                                <p><i class="fas fa-dollar-sign"></i> $60.00</p>
+                            </div>
+                            <div class="history-rating">
+                                <div class="stars">
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <p class="review">"Excellent work! Very thorough and professional."</p>
+                            </div>
+                        </div>
+                        <div class="history-footer">
+                            <button class="btn-small" onclick="viewInvoice(1230)">
+                                <i class="fas fa-file-invoice"></i> Invoice
+                            </button>
+                            <button class="btn-small" onclick="bookAgain(1)">
+                                <i class="fas fa-redo"></i> Book Again
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="history-card">
+                        <div class="history-header">
+                            <h4>Booking #1228</h4>
+                            <span class="status-badge completed">Completed</span>
+                        </div>
+                        <div class="history-body">
+                            <div class="history-maid">
+                                <img src="https://via.placeholder.com/50" alt="Maid">
+                                <div>
+                                    <h5>Sarah Johnson</h5>
+                                    <p>Deep Cleaning</p>
+                                </div>
+                            </div>
+                            <div class="history-details">
+                                <p><i class="fas fa-calendar"></i> Oct 3, 2025</p>
+                                <p><i class="fas fa-clock"></i> 2:00 PM - 6:00 PM</p>
+                                <p><i class="fas fa-dollar-sign"></i> $72.00</p>
+                            </div>
+                            <div class="history-rating pending-review">
+                                <button class="btn-primary" onclick="openReviewModal(1228)">
+                                    <i class="fas fa-star"></i> Leave Review
+                                </button>
+                            </div>
+                        </div>
+                        <div class="history-footer">
+                            <button class="btn-small" onclick="viewInvoice(1228)">
+                                <i class="fas fa-file-invoice"></i> Invoice
+                            </button>
+                            <button class="btn-small" onclick="bookAgain(2)">
+                                <i class="fas fa-redo"></i> Book Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Messages Section -->
+        <section id="messages" class="content-section">
+            <div class="messages-container">
+                <div class="messages-sidebar">
+                    <div class="messages-header">
+                        <h3>Messages</h3>
+                    </div>
+                    <div class="conversations-list">
+                        <div class="conversation-item active">
+                            <img src="https://via.placeholder.com/45" alt="Maid">
+                            <div class="conversation-info">
+                                <h4>Maria Garcia</h4>
+                                <p>I'll be there in 10 minutes</p>
+                            </div>
+                            <span class="message-time">9:50 AM</span>
+                            <span class="unread-badge">2</span>
+                        </div>
+                        <div class="conversation-item">
+                            <img src="https://via.placeholder.com/45" alt="Maid">
+                            <div class="conversation-info">
+                                <h4>Sarah Johnson</h4>
+                                <p>Thanks for booking!</p>
+                            </div>
+                            <span class="message-time">Yesterday</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="messages-main">
+                    <div class="chat-header">
+                        <img src="https://via.placeholder.com/45" alt="Maid">
+                        <div>
+                            <h4>Maria Garcia</h4>
+                            <p class="online-status"><i class="fas fa-circle"></i> Online</p>
+                        </div>
+                    </div>
+                    <div class="chat-messages">
+                        <div class="message received">
+                            <p>Good morning! I'm on my way to your location.</p>
+                            <span class="time">9:45 AM</span>
+                        </div>
+                        <div class="message sent">
+                            <p>Great! See you soon.</p>
+                            <span class="time">9:47 AM</span>
+                        </div>
+                        <div class="message received">
+                            <p>I'll be there in 10 minutes.</p>
+                            <span class="time">9:50 AM</span>
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" placeholder="Type a message...">
+                        <button class="btn-primary"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Booking Modal -->
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Book a Maid Service</h2>
+                <button class="close-btn" onclick="closeModal('bookingModal')">&times;</button>
+            </div>
+            <form class="form" onsubmit="submitBooking(event)">
+                <div class="form-group">
+                    <label>Select Maid *</label>
+                    <select id="maidSelect" required>
+                        <option value="">Choose a maid...</option>
+                        <option value="1">Maria Garcia - $15/hr</option>
+                        <option value="2">Sarah Johnson - $18/hr</option>
+                        <option value="3">Lisa Brown - $16/hr</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date *</label>
+                        <input type="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Start Time *</label>
+                        <input type="time" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Duration (hours) *</label>
+                        <input type="number" min="1" max="8" value="4" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Service Type *</label>
+                        <select required>
+                            <option value="">Select service...</option>
+                            <option>General Cleaning</option>
+                            <option>Deep Cleaning</option>
+                            <option>Kitchen Specialist</option>
+                            <option>Laundry Service</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Location *</label>
+                    <input type="text" value="Sector 1, Building A, Apt 301" required>
+                </div>
+                <div class="form-group">
+                    <label>Special Instructions</label>
+                    <textarea rows="3" placeholder="Any specific requirements or instructions..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Task List</label>
+                    <div class="task-checkboxes">
+                        <label><input type="checkbox" checked> Living Room</label>
+                        <label><input type="checkbox" checked> Kitchen</label>
+                        <label><input type="checkbox" checked> Bathroom</label>
+                        <label><input type="checkbox" checked> Bedrooms</label>
+                        <label><input type="checkbox"> Laundry</label>
+                        <label><input type="checkbox"> Windows</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('bookingModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Confirm Booking</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Rate Your Experience</h2>
+                <button class="close-btn" onclick="closeModal('reviewModal')">&times;</button>
+            </div>
+            <form class="form" onsubmit="submitReview(event)">
+                <div class="form-group">
+                    <label>Overall Rating *</label>
+                    <div class="star-rating">
+                        <i class="far fa-star" data-rating="1"></i>
+                        <i class="far fa-star" data-rating="2"></i>
+                        <i class="far fa-star" data-rating="3"></i>
+                        <i class="far fa-star" data-rating="4"></i>
+                        <i class="far fa-star" data-rating="5"></i>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Your Review</label>
+                    <textarea rows="4" placeholder="Share your experience..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Would you recommend this maid?</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="recommend" value="yes" checked> Yes</label>
+                        <label><input type="radio" name="recommend" value="no"> No</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('reviewModal')">Cancel</button>
+                    <button type="submit" class="btn-primary">Submit Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="homeowner-script.js"></script>
+</body>
+</html>
