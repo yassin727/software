@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HomeMaid Tracking System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --light-bg: #f9fafb;
+            --dark-text: #1f2937;
+            --gray-text: #6b7280;
+            --border-color: #e5e7eb;
+            --white: #ffffff;
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--dark-text);
+            line-height: 1.6;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 260px;
+            background: var(--white);
+            box-shadow: var(--shadow-lg);
+            padding: 20px 0;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .sidebar-header h1 {
+            color: var(--primary-color);
+            font-size: 24px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header .logo {
+            font-size: 32px;
+        }
+
+        .nav-menu {
+            margin-top: 20px;
+            list-style: none;
+        }
+
+        .nav-item {
+            margin: 5px 0;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: var(--dark-text);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-left: 4px solid transparent;
+        }
+
+        .nav-link:hover {
+            background-color: var(--light-bg);
+            border-left-color: var(--primary-color);
+        }
+
+        .nav-link.active {
+            background-color: #eef2ff;
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .nav-link .icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            margin-left: 260px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            background: var(--white);
+            padding: 20px 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-bar h2 {
+            font-size: 28px;
+            color: var(--dark-text);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-icon.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .stat-icon.warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .stat-icon.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .stat-info h3 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--dark-text);
+        }
+
+        .stat-info p {
+            color: var(--gray-text);
+            font-size: 14px;
+        }
+
+        /* Content Sections */
+        .content-section {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section-header h3 {
+            font-size: 22px;
+            color: var(--dark-text);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: var(--white);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: var(--white);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: var(--light-bg);
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark-text);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tbody tr:hover {
+            background-color: var(--light-bg);
+        }
+
+        /* Badge Styles */
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--dark-text);
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .modal-header h3 {
+            font-size: 22px;
+            color: var(--dark-text);
+        }
+
+        .close-modal {
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--gray-text);
+            background: none;
+            border: none;
+            transition: color 0.3s ease;
+        }
+
+        .close-modal:hover {
+            color: var(--danger-color);
+        }
+
+        /* Card Grid */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .maid-card {
+            background: var(--white);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .maid-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-5px);
+        }
+
+        .maid-card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .maid-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .maid-info h4 {
+            font-size: 18px;
+            color: var(--dark-text);
+            margin-bottom: 5px;
+        }
+
+        .maid-info p {
+            color: var(--gray-text);
+            font-size: 14px;
+        }
+
+        .maid-details {
+            margin: 15px 0;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--gray-text);
+            font-size: 14px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: var(--dark-text);
+            font-size: 14px;
+        }
+
+        .maid-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .maid-actions .btn {
+            flex: 1;
+            justify-content: center;
+            font-size: 12px;
+            padding: 8px 12px;
+        }
+
+        /* Search and Filter Bar */
+        .search-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 12px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Calendar Styles */
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-day:hover {
+            border-color: var(--primary-color);
+            background-color: var(--light-bg);
+        }
+
+        .calendar-day.present {
+            background: #d1fae5;
+            border-color: var(--secondary-color);
+        }
+
+        .calendar-day.absent {
+            background: #fee2e2;
+            border-color: var(--danger-color);
+        }
+
+        .calendar-header {
+            font-weight: 600;
+            padding: 10px;
+            text-align: center;
+            background: var(--light-bg);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h1><span class="logo">🏠</span> HomeMaid</h1>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a class="nav-link active" data-page="dashboard">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-page="maids">
+                    <span class="icon">👥</span>
+                    <span>Manage Maids</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-page="attendance">
+                    <span class="icon">📅</span>
+                    <span>Attendance</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-page="schedule">
+                    <span class="icon">⏰</span>
+                    <span>Schedule</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-page="tasks">
+                    <span class="icon">✅</span>
+                    <span>Tasks</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-page="payments">
+                    <span class="icon">💰</span>
+                    <span>Payments</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-page="reports">
+                    <span class="icon">📈</span>
+                    <span>Reports</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-page="settings">
+                    <span class="icon">⚙️</span>
+                    <span>Settings</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <h2 id="pageTitle">Dashboard</h2>
+            <div class="user-info">
+                <div>
+                    <div style="font-weight: 600;">Admin User</div>
+                    <div style="font-size: 12px; color: var(--gray-text);">admin@homemaid.com</div>
+                </div>
+                <div class="user-avatar">AU</div>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="content-section active">
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">👥</div>
+                    <div class="stat-info">
+                        <h3>24</h3>
+                        <p>Total Maids</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">✅</div>
+                    <div class="stat-info">
+                        <h3>18</h3>
+                        <p>Present Today</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon warning">⏰</div>
+                    <div class="stat-info">
+                        <h3>12</h3>
+                        <p>Scheduled Tasks</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon danger">💰</div>
+                    <div class="stat-info">
+                        <h3>$4,250</h3>
+                        <p>Pending Payments</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div style="background: var(--white); padding: 30px; border-radius: 12px; box-shadow: var(--shadow);">
+                <div class="section-header">
+                    <h3>Recent Activity</h3>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Maid Name</th>
+                                <th>Status</th>
+                                <th>Check-In Time</th>
+                                <th>Location</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Maria Garcia</td>
+                                <td><span class="badge badge-success">Present</span></td>
+                                <td>8:30 AM</td>
+                                <td>123 Oak Street</td>
+                                <td><button class="btn btn-outline">View Details</button></td>
+                            </tr>
+                            <tr>
+                                <td>Sarah Johnson</td>
+                                <td><span class="badge badge-success">Present</span></td>
+                                <td>9:00 AM</td>
+                                <td>456 Maple Avenue</td>
+                                <td><button class="btn btn-outline">View Details</button></td>
+                            </tr>
+                            <tr>
+                                <td>Lisa Anderson</td>
+                                <td><span class="badge badge-warning">On Break</span></td>
+                                <td>8:45 AM</td>
+                                <td>789 Pine Road</td>
+                                <td><button class="btn btn-outline">View Details</button></td>
+                            </tr>
+                            <tr>
+                                <td>Emma Wilson</td>
+                                <td><span class="badge badge-danger">Absent</span></td>
+                                <td>-</td>
+                                <td>321 Cedar Lane</td>
+                                <td><button class="btn btn-outline">View Details</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Manage Maids Section -->
+        <section id="maids" class="content-section">
+            <div class="section-header">
+                <h3>Manage Maids</h3>
+                <button class="btn btn-primary" onclick="openModal('addMaidModal')">
+                    <span>➕</span> Add New Maid
+                </button>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Search by name, ID, or phone number...">
+                <select class="form-group" style="padding: 12px; border: 2px solid var(--border-color); border-radius: 8px;">
+                    <option>All Status</option>
+                    <option>Active</option>
+                    <option>Inactive</option>
+                    <option>On Leave</option>
+                </select>
+            </div>
+
+            <div class="card-grid">
+                <!-- Maid Card 1 -->
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <div class="maid-avatar">MG</div>
+                        <div class="maid-info">
+                            <h4>Maria Garcia</h4>
+                            <span class="badge badge-success">Active</span>
+                        </div>
+                    </div>
+                    <div class="maid-details">
+                        <div class="detail-row">
+                            <span class="detail-label">ID:</span>
+                            <span class="detail-value">HM-001</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Phone:</span>
+                            <span class="detail-value">+1 234-567-8901</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Experience:</span>
+                            <span class="detail-value">5 years</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Rating:</span>
+                            <span class="detail-value">⭐ 4.8/5.0</span>
+                        </div>
+                    </div>
+                    <div class="maid-actions">
+                        <button class="btn btn-primary">View</button>
+                        <button class="btn btn-secondary">Edit</button>
+                    </div>
+                </div>
+
+                <!-- Maid Card 2 -->
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <div class="maid-avatar">SJ</div>
+                        <div class="maid-info">
+                            <h4>Sarah Johnson</h4>
+                            <span class="badge badge-success">Active</span>
+                        </div>
+                    </div>
+                    <div class="maid-details">
+                        <div class="detail-row">
+                            <span class="detail-label">ID:</span>
+                            <span class="detail-value">HM-002</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Phone:</span>
+                            <span class="detail-value">+1 234-567-8902</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Experience:</span>
+                            <span class="detail-value">3 years</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Rating:</span>
+                            <span class="detail-value">⭐ 4.5/5.0</span>
+                        </div>
+                    </div>
+                    <div class="maid-actions">
+                        <button class="btn btn-primary">View</button>
+                        <button class="btn btn-secondary">Edit</button>
+                    </div>
+                </div>
+
+                <!-- Maid Card 3 -->
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <div class="maid-avatar">LA</div>
+                        <div class="maid-info">
+                            <h4>Lisa Anderson</h4>
+                            <span class="badge badge-warning">On Leave</span>
+                        </div>
+                    </div>
+                    <div class="maid-details">
+                        <div class="detail-row">
+                            <span class="detail-label">ID:</span>
+                            <span class="detail-value">HM-003</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Phone:</span>
+                            <span class="detail-value">+1 234-567-8903</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Experience:</span>
+                            <span class="detail-value">7 years</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Rating:</span>
+                            <span class="detail-value">⭐ 4.9/5.0</span>
+                        </div>
+                    </div>
+                    <div class="maid-actions">
+                        <button class="btn btn-primary">View</button>
+                        <button class="btn btn-secondary">Edit</button>
+                    </div>
+                </div>
+
+                <!-- Maid Card 4 -->
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <div class="maid-avatar">EW</div>
+                        <div class="maid-info">
+                            <h4>Emma Wilson</h4>
+                            <span class="badge badge-success">Active</span>
+                        </div>
+                    </div>
+                    <div class="maid-details">
+                        <div class="detail-row">
+                            <span class="detail-label">ID:</span>
+                            <span class="detail-value">HM-004</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Phone:</span>
+                            <span class="detail-value">+1 234-567-8904</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Experience:</span>
+                            <span class="detail-value">4 years</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Rating:</span>
+                            <span class="detail-value">⭐ 4.7/5.0</span>
+                        </div>
+                    </div>
+                    <div class="maid-actions">
+                        <button class="btn btn-primary">View</button>
+                        <button class="btn btn-secondary">Edit</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Attendance Section -->
+        <section id="attendance" class="content-section">
+            <div class="section-header">
+                <h3>Attendance Tracking</h3>
+                <button class="btn btn-primary">
+                    <span>📥</span> Export Report
+                </button>
+            </div>
+
+            <div class="search-bar">
+                <input type="date" class="form-group" style="padding: 12px; border: 2px solid var(--border-color); border-radius: 8px;">
+                <select class="form-group" style="padding: 12px; border: 2px solid var(--border-color); border-radius: 8px;">
+                    <option>All Maids</option>
+                    <option>Maria Garcia</option>
+                    <option>Sarah Johnson</option>
+                    <option>Lisa Anderson</option>
+                    <option>Emma Wilson</option>
+                </select>
+                <button class="btn btn-secondary">
+                    <span>🔍</span> Filter
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Maid Name</th>
+                            <th>Date</th>
+                            <th>Check-In</th>
+                            <th>Check-Out</th>
+                            <th>Hours Worked</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Maria Garcia</td>
+                            <td>2025-10-16</td>
+                            <td>8:30 AM</td>
+                            <td>5:00 PM</td>
+                            <td>8.5 hrs</td>
+                            <td><span class="badge badge-success">Present</span></td>
+                            <td>On time</td>
+                        </tr>
+                        <tr>
+                            <td>Sarah Johnson</td>
+                            <td>2025-10-16</td>
+                            <td>9:00 AM</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td><span class="badge badge-info">Working</span></td>
+                            <td>Currently working</td>
+                        </tr>
+                        <tr>
+                            <td>Lisa Anderson</td>
+                            <td>2025-10-16</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td><span class="badge badge-warning">On Leave</span></td>
+                            <td>Medical leave</td>
+                        </tr>
+                        <tr>
+                            <td>Emma Wilson</td>
+                            <td>2025-10-16</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td><span class="badge badge-danger">Absent</span></td>
+                            <td>No notification</td>
+                        </tr>
+                        <tr>
+                            <td>Maria Garcia</td>
+                            <td>2025-10-15</td>
+                            <td>8:25 AM</td>
+                            <td>5:05 PM</td>
+                            <td>8.7 hrs</td>
+                            <td><span class="badge badge-success">Present</span></td>
+                            <td>Excellent work</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Schedule Section -->
+        <section id="schedule" class="content-section">
+            <div class="section-header">
+                <h3>Work Schedule</h3>
+                <button class="btn btn-primary" onclick="openModal('scheduleModal')">
+                    <span>➕</span> Add Schedule
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Maid Name</th>
+                            <th>Location</th>
+                            <th>Date</th>
+                            <th>Time Slot</th>
+                            <th>Client</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Maria Garcia</td>
+                            <td>123 Oak Street</td>
+                            <td>2025-10-17</td>
+                            <td>8:00 AM - 5:00 PM</td>
+                            <td>John Smith</td>
+                            <td><span class="badge badge-info">Scheduled</span></td>
+                            <td>
+                                <button class="btn btn-secondary">Edit</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Sarah Johnson</td>
+                            <td>456 Maple Avenue</td>
+                            <td>2025-10-17</td>
+                            <td>9:00 AM - 4:00 PM</td>
+                            <td>Jane Doe</td>
+                            <td><span class="badge badge-info">Scheduled</span></td>
+                            <td>
+                                <button class="btn btn-secondary">Edit</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Emma Wilson</td>
+                            <td>789 Pine Road</td>
+                            <td>2025-10-18</td>
+                            <td>8:30 AM - 5:30 PM</td>
+                            <td>Bob Johnson</td>
+                            <td><span class="badge badge-success">Confirmed</span></td>
+                            <td>
+                                <button class="btn btn-secondary">Edit</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Maria Garcia</td>
+                            <td>321 Cedar Lane</td>
+                            <td>2025-10-19</td>
+                            <td>7:00 AM - 3:00 PM</td>
+                            <td>Sarah Williams</td>
+                            <td><span class="badge badge-warning">Pending</span></td>
+                            <td>
+                                <button class="btn btn-secondary">Edit</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Tasks Section -->
+        <section id="tasks" class="content-section">
+            <div class="section-header">
+                <h3>Task Management</h3>
+                <button class="btn btn-primary" onclick="openModal('taskModal')">
+                    <span>➕</span> Assign Task
+                </button>
+            </div>
+
+            <div class="card-grid">
+                <!-- Task Card 1 -->
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <div class="maid-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">✅</div>
+                        <div class="maid-info">
+                            <h4>Deep Cleaning</h4>
+                            <span class="badge badge-success">Completed</span>
+                        </div>
+                    </div>
+                    <div class="maid-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Assigned To:</span>
+                            <span class="detail-value">Maria Garcia</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Location:</span>
+                            <span class="detail-value">123 Oak Street</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Date:</span>
+                            <span class="detail-value">Oct 16, 2025</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Priority:</span>
+                            <span class="detail-value">High</span>
+                        </div>
+                    </div>
+                    <div class="maid-actions">
+                        <button class="btn btn-primary">View Details</button>
+                    </div>
+                </div>
+
+                <!-- Task Card 2 -->
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <div class="maid-avatar" style="background: linear-gradient(135deg, #f59e0b, #d97706);">⏰</div>
+                        <div class="maid-info">
+                            <h4>Kitchen Cleaning</h4>
+                            <span class="badge badge-info">In Progress</span>
+                        </div>
+                    </div>
+                    <div class="maid-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Assigned To:</span>
+                            <span class="detail-value">Sarah Johnson</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Location:</span>
+                            <span class="detail-value">456 Maple Ave</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Date:</span>
+                            <span class="detail-value">Oct 16, 2025</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Priority:</span>
+                            <span class="detail-value">Medium</span>
+                        </div>
+                    </div>
+                    <div class="maid-actions">
+                        <button class="btn btn-primary">View Details</button>
+                    </div>
+                </div>
+
+                <!-- Task Card 3 -->
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <div class="maid-avatar" style="background: linear-gradient(135deg, #ef4444, #dc2626);">📋</div>
+                        <div class="maid-info">
+                            <h4>Laundry Service</h4>
+                            <span class="badge badge-warning">Pending</span>
+                        </div>
+                    </div>
+                    <div class="maid-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Assigned To:</span>
+                            <span class="detail-value">Emma Wilson</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Location:</span>
+                            <span class="detail-value">789 Pine Road</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Date:</span>
+                            <span class="detail-value">Oct 17, 2025</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Priority:</span>
+                            <span class="detail-value">Low</span>
+                        </div>
+                    </div>
+                    <div class="maid-actions">
+                        <button class="btn btn-primary">View Details</button>
+                    </div>
+                </div>
+
+                <!-- Task Card 4 -->
+                <div class="maid-card">
+                    <div class="maid-card-header">
+                        <div class="maid-avatar" style="background: linear-gradient(135deg, #667eea, #764ba2);">🏠</div>
+                        <div class="maid-info">
+                            <h4>Full House Cleaning</h4>
+                            <span class="badge badge-info">Scheduled</span>
+                        </div>
+                    </div>
+                    <div class="maid-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Assigned To:</span>
+                            <span class="detail-value">Maria Garcia</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Location:</span>
+                            <span class="detail-value">321 Cedar Lane</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Date:</span>
+                            <span class="detail-value">Oct 18, 2025</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Priority:</span>
+                            <span class="detail-value">High</span>
+                        </div>
+                    </div>
+                    <div class="maid-actions">
+                        <button class="btn btn-primary">View Details</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Payments Section -->
+        <section id="payments" class="content-section">
+            <div class="section-header">
+                <h3>Payment Management</h3>
+                <button class="btn btn-primary" onclick="openModal('paymentModal')">
+                    <span>💳</span> Process Payment
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Maid Name</th>
+                            <th>Period</th>
+                            <th>Hours Worked</th>
+                            <th>Hourly Rate</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Maria Garcia</td>
+                            <td>Oct 1-15, 2025</td>
+                            <td>80 hrs</td>
+                            <td>$15/hr</td>
+                            <td>$1,200</td>
+                            <td><span class="badge badge-success">Paid</span></td>
+                            <td><button class="btn btn-outline">View Receipt</button></td>
+                        </tr>
+                        <tr>
+                            <td>Sarah Johnson</td>
+                            <td>Oct 1-15, 2025</td>
+                            <td>75 hrs</td>
+                            <td>$14/hr</td>
+                            <td>$1,050</td>
+                            <td><span class="badge badge-warning">Pending</span></td>
+                            <td><button class="btn btn-primary">Pay Now</button></td>
+                        </tr>
+                        <tr>
+                            <td>Lisa Anderson</td>
+                            <td>Oct 1-15, 2025</td>
+                            <td>85 hrs</td>
+                            <td>$16/hr</td>
+                            <td>$1,360</td>
+                            <td><span class="badge badge-success">Paid</span></td>
+                            <td><button class="btn btn-outline">View Receipt</button></td>
+                        </tr>
+                        <tr>
+                            <td>Emma Wilson</td>
+                            <td>Oct 1-15, 2025</td>
+                            <td>70 hrs</td>
+                            <td>$15/hr</td>
+                            <td>$1,050</td>
+                            <td><span class="badge badge-danger">Overdue</span></td>
+                            <td><button class="btn btn-danger">Pay Now</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Reports Section -->
+        <section id="reports" class="content-section">
+            <div class="section-header">
+                <h3>Reports & Analytics</h3>
+                <button class="btn btn-primary">
+                    <span>📊</span> Generate Report
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon primary">📈</div>
+                    <div class="stat-info">
+                        <h3>95%</h3>
+                        <p>Average Attendance</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">⭐</div>
+                    <div class="stat-info">
+                        <h3>4.7</h3>
+                        <p>Average Rating</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon warning">✅</div>
+                    <div class="stat-info">
+                        <h3>89%</h3>
+                        <p>Task Completion Rate</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon danger">💵</div>
+                    <div class="stat-info">
+                        <h3>$15,420</h3>
+                        <p>Total Payroll (Oct)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: var(--white); padding: 30px; border-radius: 12px; box-shadow: var(--shadow); margin-top: 20px;">
+                <h3 style="margin-bottom: 20px;">Monthly Performance</h3>
+                <div style="background: var(--light-bg); padding: 60px; border-radius: 8px; text-align: center;">
+                    <p style="color: var(--gray-text);">📊 Performance Chart Placeholder</p>
+                    <p style="color: var(--gray-text); font-size: 14px; margin-top: 10px;">
+                        Attendance trends, task completion rates, and payment statistics would be displayed here
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" class="content-section">
+            <div class="section-header">
+                <h3>Settings</h3>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Company Name</label>
+                    <input type="text" value="HomeMaid Services" placeholder="Enter company name">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" value="admin@homemaid.com" placeholder="Enter email">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" value="+1 234-567-8900" placeholder="Enter phone number">
+                </div>
+                <div class="form-group">
+                    <label>Default Hourly Rate</label>
+                    <input type="number" value="15" placeholder="Enter hourly rate">
+                </div>
+                <div class="form-group">
+                    <label>Working Hours (Daily)</label>
+                    <input type="number" value="8" placeholder="Enter working hours">
+                </div>
+                <div class="form-group">
+                    <label>Timezone</label>
+                    <select>
+                        <option>Eastern Time (ET)</option>
+                        <option>Central Time (CT)</option>
+                        <option>Mountain Time (MT)</option>
+                        <option>Pacific Time (PT)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <button class="btn btn-primary">💾 Save Settings</button>
+                <button class="btn btn-outline" style="margin-left: 10px;">Cancel</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add Maid Modal -->
+    <div id="addMaidModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Maid</h3>
+                <button class="close-modal" onclick="closeModal('addMaidModal')">&times;</button>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" placeholder="Enter full name" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="tel" placeholder="Enter phone number" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" placeholder="Enter email address">
+                </div>
+                <div class="form-group">
+                    <label>Date of Birth</label>
+                    <input type="date">
+                </div>
+                <div class="form-group">
+                    <label>Experience (Years)</label>
+                    <input type="number" placeholder="Enter years of experience">
+                </div>
+                <div class="form-group">
+                    <label>Hourly Rate</label>
+                    <input type="number" placeholder="Enter hourly rate">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <textarea rows="3" placeholder="Enter full address"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Special Skills</label>
+                <textarea rows="2" placeholder="Enter any special skills or certifications"></textarea>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="closeModal('addMaidModal')">Cancel</button>
+                <button class="btn btn-primary">➕ Add Maid</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Modal -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Schedule</h3>
+                <button class="close-modal" onclick="closeModal('scheduleModal')">&times;</button>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Select Maid *</label>
+                    <select required>
+                        <option>Select a maid</option>
+                        <option>Maria Garcia</option>
+                        <option>Sarah Johnson</option>
+                        <option>Lisa Anderson</option>
+                        <option>Emma Wilson</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date *</label>
+                    <input type="date" required>
+                </div>
+                <div class="form-group">
+                    <label>Start Time *</label>
+                    <input type="time" required>
+                </div>
+                <div class="form-group">
+                    <label>End Time *</label>
+                    <input type="time" required>
+                </div>
+                <div class="form-group">
+                    <label>Client Name</label>
+                    <input type="text" placeholder="Enter client name">
+                </div>
+                <div class="form-group">
+                    <label>Client Phone</label>
+                    <input type="tel" placeholder="Enter client phone">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Location Address *</label>
+                <textarea rows="2" placeholder="Enter work location address" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea rows="2" placeholder="Any special instructions or notes"></textarea>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="closeModal('scheduleModal')">Cancel</button>
+                <button class="btn btn-primary">📅 Add Schedule</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Assign New Task</h3>
+                <button class="close-modal" onclick="closeModal('taskModal')">&times;</button>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Task Title *</label>
+                    <input type="text" placeholder="Enter task title" required>
+                </div>
+                <div class="form-group">
+                    <label>Assign To *</label>
+                    <select required>
+                        <option>Select a maid</option>
+                        <option>Maria Garcia</option>
+                        <option>Sarah Johnson</option>
+                        <option>Lisa Anderson</option>
+                        <option>Emma Wilson</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Due Date *</label>
+                    <input type="date" required>
+                </div>
+                <div class="form-group">
+                    <label>Priority *</label>
+                    <select required>
+                        <option>Medium</option>
+                        <option>High</option>
+                        <option>Low</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" placeholder="Enter location address">
+            </div>
+            <div class="form-group">
+                <label>Task Description</label>
+                <textarea rows="4" placeholder="Enter detailed task description"></textarea>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="closeModal('taskModal')">Cancel</button>
+                <button class="btn btn-primary">✅ Assign Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Process Payment</h3>
+                <button class="close-modal" onclick="closeModal('paymentModal')">&times;</button>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Select Maid *</label>
+                    <select required>
+                        <option>Select a maid</option>
+                        <option>Maria Garcia</option>
+                        <option>Sarah Johnson</option>
+                        <option>Lisa Anderson</option>
+                        <option>Emma Wilson</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Payment Period *</label>
+                    <input type="text" placeholder="e.g., Oct 1-15, 2025" required>
+                </div>
+                <div class="form-group">
+                    <label>Hours Worked *</label>
+                    <input type="number" placeholder="Enter total hours" required>
+                </div>
+                <div class="form-group">
+                    <label>Hourly Rate *</label>
+                    <input type="number" placeholder="Enter hourly rate" required>
+                </div>
+                <div class="form-group">
+                    <label>Total Amount *</label>
+                    <input type="number" placeholder="Auto-calculated" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Payment Method *</label>
+                    <select required>
+                        <option>Cash</option>
+                        <option>Bank Transfer</option>
+                        <option>Check</option>
+                        <option>Digital Wallet</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Payment Notes</label>
+                <textarea rows="2" placeholder="Any notes about this payment"></textarea>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="closeModal('paymentModal')">Cancel</button>
+                <button class="btn btn-primary">💳 Process Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Navigation functionality
+        const navLinks = document.querySelectorAll('.nav-link');
+        const contentSections = document.querySelectorAll('.content-section');
+        const pageTitle = document.getElementById('pageTitle');
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                // Remove active class from all links
+                navLinks.forEach(l => l.classList.remove('active'));
+                // Add active class to clicked link
+                this.classList.add('active');
+
+                // Hide all content sections
+                contentSections.forEach(section => section.classList.remove('active'));
+
+                // Show the selected section
+                const pageId = this.getAttribute('data-page');
+                document.getElementById(pageId).classList.add('active');
+
+                // Update page title
+                const pageName = this.querySelector('span:last-child').textContent;
+                pageTitle.textContent = pageName;
+            });
+        });
+
+        // Modal functionality
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+
+        // Mobile menu toggle (for responsive design)
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        // Demo: Auto-calculate payment amount
+        const hoursInput = document.querySelector('#paymentModal input[placeholder="Enter total hours"]');
+        const rateInput = document.querySelector('#paymentModal input[placeholder="Enter hourly rate"]');
+        const totalInput = document.querySelector('#paymentModal input[placeholder="Auto-calculated"]');
+
+        if (hoursInput && rateInput && totalInput) {
+            [hoursInput, rateInput].forEach(input => {
+                input.addEventListener('input', function() {
+                    const hours = parseFloat(hoursInput.value) || 0;
+                    const rate = parseFloat(rateInput.value) || 0;
+                    totalInput.value = (hours * rate).toFixed(2);
+                });
+            });
+        }
+
+        // Demo: Show notification on button clicks
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--secondary-color);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: var(--shadow-lg);
+                z-index: 2000;
+                animation: slideIn 0.3s ease;
+            `;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Add animation keyframes
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        console.log('🏠 HomeMaid Tracking System - Prototype Loaded Successfully!');
+        console.log('This is a frontend prototype for Phase 1 discussion.');
+    </script>
+</body>
+</html>
