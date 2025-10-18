@@ -3,7 +3,20 @@
 // Mobile menu toggle
 function toggleMobileMenu() {
     const navMenu = document.querySelector('.nav-menu');
+    const mobileToggle = document.querySelector('.mobile-menu-toggle');
+    
     navMenu.classList.toggle('active');
+    mobileToggle.classList.toggle('active');
+    
+    // Animate hamburger icon
+    const icon = mobileToggle.querySelector('i');
+    if (navMenu.classList.contains('active')) {
+        icon.classList.remove('fa-bars');
+        icon.classList.add('fa-times');
+    } else {
+        icon.classList.remove('fa-times');
+        icon.classList.add('fa-bars');
+    }
 }
 
 // Smooth scrolling for anchor links
@@ -257,11 +270,109 @@ function animateCounters() {
     });
 }
 
+// Header animations and scroll effects
+function initHeaderAnimations() {
+    const navbar = document.querySelector('.navbar');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const logo = document.querySelector('.nav-logo');
+    
+    // Add scroll effect to navbar
+    let lastScrollY = window.scrollY;
+    
+    window.addEventListener('scroll', () => {
+        const currentScrollY = window.scrollY;
+        
+        if (currentScrollY > 100) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
+        }
+        
+        // Hide/show navbar on scroll direction
+        if (currentScrollY > lastScrollY && currentScrollY > 200) {
+            navbar.style.transform = 'translateY(-100%)';
+        } else {
+            navbar.style.transform = 'translateY(0)';
+        }
+        
+        lastScrollY = currentScrollY;
+    });
+    
+    // Add staggered animation to nav links
+    navLinks.forEach((link, index) => {
+        link.style.opacity = '0';
+        link.style.transform = 'translateY(-20px)';
+        link.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+        
+        setTimeout(() => {
+            link.style.opacity = '1';
+            link.style.transform = 'translateY(0)';
+        }, 200 + (index * 100));
+    });
+    
+    // Add logo animation on load
+    if (logo) {
+        logo.style.opacity = '0';
+        logo.style.transform = 'scale(0.8)';
+        logo.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+        
+        setTimeout(() => {
+            logo.style.opacity = '1';
+            logo.style.transform = 'scale(1)';
+        }, 100);
+    }
+    
+    // Add active state to nav links based on scroll position
+    const sections = document.querySelectorAll('section[id]');
+    
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            const sectionHeight = section.clientHeight;
+            if (window.scrollY >= (sectionTop - 200)) {
+                current = section.getAttribute('id');
+            }
+        });
+        
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === `#${current}`) {
+                link.classList.add('active');
+            }
+        });
+    });
+    
+    // Add ripple effect to buttons
+    const buttons = document.querySelectorAll('.btn-login, .btn-signup');
+    buttons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            const ripple = document.createElement('span');
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            ripple.classList.add('ripple');
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+}
+
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize animations
     initStarRatings();
     initScrollAnimations();
+    initHeaderAnimations();
     
     // Animate counters when hero section is visible
     const heroObserver = new IntersectionObserver((entries) => {
@@ -304,33 +415,195 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     console.log('MaidTrack Homepage loaded successfully!');
+    
+    // Initialize professional header effects
+    initProfessionalHeader();
 });
 
 // Add some interactive hover effects
 document.addEventListener('DOMContentLoaded', function() {
-    // Add hover effects to service cards
+    // Add enhanced hover effects to service cards
     const serviceCards = document.querySelectorAll('.service-card');
     serviceCards.forEach(card => {
         card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-10px) scale(1.02)';
+            this.style.transform = 'translateY(-15px) scale(1.03)';
+            this.style.boxShadow = '0 30px 60px rgba(0, 0, 0, 0.2)';
         });
         
         card.addEventListener('mouseleave', function() {
             this.style.transform = 'translateY(0) scale(1)';
+            this.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.1)';
         });
     });
     
-    // Add hover effects to testimonial cards
+    // Add enhanced hover effects to testimonial cards
     const testimonialCards = document.querySelectorAll('.testimonial-card');
     testimonialCards.forEach(card => {
         card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-5px)';
-            this.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.15)';
+            this.style.transform = 'translateY(-10px) scale(1.02)';
+            this.style.boxShadow = '0 30px 60px rgba(0, 0, 0, 0.2)';
         });
         
         card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+            this.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.1)';
+        });
+    });
+    
+    // Add interactive effects to step cards
+    const stepCards = document.querySelectorAll('.step');
+    stepCards.forEach(step => {
+        step.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-10px)';
+            this.style.background = 'rgba(255, 255, 255, 0.15)';
+            this.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.2)';
+        });
+        
+        step.addEventListener('mouseleave', function() {
             this.style.transform = 'translateY(0)';
+            this.style.background = 'rgba(255, 255, 255, 0.1)';
             this.style.boxShadow = '0 10px 20px rgba(0, 0, 0, 0.1)';
         });
     });
+    
+    // Add parallax scrolling effect to sections
+    window.addEventListener('scroll', () => {
+        const scrolled = window.pageYOffset;
+        const parallaxElements = document.querySelectorAll('.services, .how-it-works, .testimonials');
+        
+        parallaxElements.forEach((element, index) => {
+            const speed = 0.5 + (index * 0.1);
+            element.style.transform = `translateY(${scrolled * speed}px)`;
+        });
+    });
+    
+    // Add intersection observer for section animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate-in');
+            }
+        });
+    }, observerOptions);
+    
+    // Observe all sections
+    const sections = document.querySelectorAll('section');
+    sections.forEach(section => {
+        section.style.opacity = '0';
+        section.style.transform = 'translateY(50px)';
+        section.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+        sectionObserver.observe(section);
+    });
+    
+    // Add CSS for animate-in class
+    const style = document.createElement('style');
+    style.textContent = `
+        .animate-in {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+        }
+    `;
+    document.head.appendChild(style);
 });
+
+// Professional Header Enhancements
+function initProfessionalHeader() {
+    const navbar = document.querySelector('.navbar');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const buttons = document.querySelectorAll('.btn-login, .btn-signup');
+    
+    // Add scroll effect to navbar
+    let lastScrollY = window.scrollY;
+    window.addEventListener('scroll', () => {
+        const currentScrollY = window.scrollY;
+        
+        if (currentScrollY > 100) {
+            navbar.classList.add('scrolled');
+        } else {
+            navbar.classList.remove('scrolled');
+        }
+        
+        lastScrollY = currentScrollY;
+    });
+    
+    // Add ripple effect to buttons
+    buttons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            createRipple(e, this);
+        });
+    });
+    
+    // Add active state to navigation links based on scroll position
+    const sections = document.querySelectorAll('section[id]');
+    const observerOptions = {
+        root: null,
+        rootMargin: '-50% 0px -50% 0px',
+        threshold: 0
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const sectionId = entry.target.getAttribute('id');
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${sectionId}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        });
+    }, observerOptions);
+    
+    sections.forEach(section => observer.observe(section));
+    
+    // Add hover effects to navigation links
+    navLinks.forEach(link => {
+        link.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
+        });
+        
+        link.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Add logo click animation
+    const logo = document.querySelector('.nav-logo');
+    if (logo) {
+        logo.addEventListener('click', function() {
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1)';
+                }, 150);
+            }, 150);
+        });
+    }
+}
+
+// Create ripple effect for buttons
+function createRipple(event, element) {
+    const ripple = document.createElement('span');
+    const rect = element.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    const x = event.clientX - rect.left - size / 2;
+    const y = event.clientY - rect.top - size / 2;
+    
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    ripple.classList.add('ripple');
+    
+    element.appendChild(ripple);
+    
+    setTimeout(() => {
+        ripple.remove();
+    }, 600);
+}
