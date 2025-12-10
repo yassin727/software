@@ -1,0 +1,30 @@
+{
+  "name": "software",
+  "version": "1.0.0",
+  "description": "A comprehensive web-based platform for managing home maid services with three distinct user roles: Homeowners, Maids, and Administrators. This prototype aligns with the Software Requirements Specification (SRS) document and demonstrates all key features defined in Phase 1.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yassin727/software.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/yassin727/software/issues"
+  },
+  "homepage": "https://github.com/yassin727/software#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.15.3"
+  }
+}
