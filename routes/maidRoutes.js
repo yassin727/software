@@ -1,11 +1,23 @@
 const express = require('express');
-const { listMaids, createMaid } = require('../controllers/maidController');
-const authenticate = require('../middleware/auth');
+const { body } = require('express-validator');
+const MaidController = require('../controllers/maidController');
+const auth = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
 
 const router = express.Router();
 
-router.get('/', listMaids);
-router.post('/', authenticate, createMaid);
+// GET /api/maids/pending → list pending maids
+router.get('/pending', auth(['admin']), MaidController.listPendingMaids);
+
+// POST /api/maids/approve → approve maid
+router.post(
+  '/approve',
+  auth(['admin']),
+  validate([
+    body('maidId').notEmpty().withMessage('maidId is required').isInt().withMessage('maidId must be an integer'),
+  ]),
+  MaidController.approveMaid
+);
+router.get('/recommend', auth(['homeowner']), MaidController.recommendMaids);
 
 module.exports = router;
-

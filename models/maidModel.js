@@ -16,7 +16,16 @@ class MaidModel {
     );
     return result.affectedRows;
   }
-
+  static async getApprovedWithUserData() {
+    const [rows] = await db.query(
+      `SELECT m.*, u.user_id, u.name, u.email
+       FROM maids m
+       JOIN users u ON m.user_id = u.user_id
+       WHERE m.approval_status = 'approved'`
+    );
+    return rows;
+  }
+  
   static async getPending() {
     const [rows] = await db.execute(
       `SELECT m.*, u.name, u.email

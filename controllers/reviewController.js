@@ -1,9 +1,13 @@
-const reviewModel = require('../models/reviewModel');
+const ReviewService = require('../services/reviewService');
 
+/**
+ * (Optional) List reviews for a maid by maid user_id.
+ * Keep if you still need it.
+ */
 const listReviewsForMaid = async (req, res) => {
   try {
-    const { maidId } = req.params;
-    const reviews = await reviewModel.getReviewsForMaid(maidId);
+    const { maidUserId } = req.params; // user_id of maid
+    const reviews = await ReviewService.getReviewsForMaid(maidUserId);
     return res.json(reviews);
   } catch (err) {
     console.error('List reviews error', err);
@@ -11,14 +15,38 @@ const listReviewsForMaid = async (req, res) => {
   }
 };
 
+/**
+ * Homeowner creates a review for a maid.
+ */
 const createReview = async (req, res) => {
   try {
-    const { maid_id, homeowner_id, rating, comment } = req.body;
-    if (!maid_id || !homeowner_id || !rating) {
-      return res.status(400).json({ message: 'maid_id, homeowner_id, and rating are required' });
+    const reviewerId = req.user.userId; // homeowner
+    const { jobId, revieweeId, rating, comments } = req.body;
+
+    if (!jobId || !revieweeId || rating == null) {
+      return res.status(400).json({
+        message: 'jobId, revieweeId, and rating are required',
+      });
     }
-    const review = await reviewModel.createReview({ maid_id, homeowner_id, rating, comment });
-    return res.status(201).json(review);
+
+    const parsedRating = Number(rating);
+    if (Number.isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+      return res
+        .status(400)
+        .json({ message: 'rating must be between 1 and 5' });
+    }
+
+    const reviewId = await ReviewService.createReview({
+      jobId,
+      reviewerId,
+      revieweeId,
+      rating: parsedRating,
+      comments,
+    });
+
+    return res
+      .status(201)
+      .json({ reviewId, message: 'Review created successfully' });
   } catch (err) {
     console.error('Create review error', err);
     return res.status(500).json({ message: 'Failed to create review' });
@@ -29,4 +57,3 @@ module.exports = {
   listReviewsForMaid,
   createReview,
 };
-

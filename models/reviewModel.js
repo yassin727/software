@@ -1,3 +1,4 @@
+// models/reviewModel.js
 const db = require('../config/db');
 
 class ReviewModel {
@@ -9,7 +10,18 @@ class ReviewModel {
     );
     return result.insertId;
   }
+
+  static async getForMaid(maidUserId) {
+    const [rows] = await db.execute(
+      `SELECT r.*, u.name AS reviewer_name
+       FROM reviews r
+       INNER JOIN users u ON r.reviewer_id = u.user_id
+       WHERE r.reviewee_id = ?
+       ORDER BY r.created_at DESC`,
+      [maidUserId]
+    );
+    return rows;
+  }
 }
 
 module.exports = ReviewModel;
-

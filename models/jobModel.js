@@ -19,6 +19,18 @@ class JobModel {
     const [rows] = await db.execute('SELECT * FROM jobs WHERE job_id = ?', [jobId]);
     return rows[0];
   }
+  static async countCompletedJobsForMaid(maidId, homeownerId) {
+    let sql = `SELECT COUNT(*) AS cnt FROM jobs WHERE maid_id = ? AND status = 'completed'`;
+    const params = [maidId];
+  
+    if (homeownerId) {
+      sql += ' AND homeowner_id = ?';
+      params.push(homeownerId);
+    }
+  
+    const [rows] = await db.query(sql, params);
+    return rows[0].cnt || 0;
+  }
 
   static async listForUser(userId, role) {
     if (role === 'homeowner') {
