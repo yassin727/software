@@ -45,7 +45,7 @@
             </a>
         </nav>
         <div class="sidebar-footer">
-            <a href="#settings" class="nav-item">
+            <a href="#settings" class="nav-item" onclick="showSection('settings')">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
@@ -774,6 +774,84 @@
                     <div class="summary-item">
                         <span class="summary-label">Total Payments</span>
                         <span class="summary-value">$12,450</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" class="content-section">
+            <div class="section-header">
+                <h2>Admin Settings</h2>
+            </div>
+
+            <div class="settings-grid">
+                <!-- Profile Settings -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-circle"></i> Profile Settings</h3>
+                    </div>
+                    <form id="adminProfileForm" class="form" onsubmit="saveAdminProfile(event)">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="settingsName" placeholder="Admin Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" id="settingsEmail" placeholder="admin@example.com" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="tel" id="settingsPhone" placeholder="+1 234 567 8900">
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Change Password -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-lock"></i> Change Password</h3>
+                    </div>
+                    <form id="adminPasswordForm" class="form" onsubmit="changeAdminPassword(event)">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <input type="password" id="currentAdminPassword" placeholder="Enter current password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" id="newAdminPassword" placeholder="Enter new password" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="confirmAdminPassword" placeholder="Confirm new password" required>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-key"></i> Update Password
+                        </button>
+                    </form>
+                </div>
+
+                <!-- System Info -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-info-circle"></i> System Information</h3>
+                    </div>
+                    <div class="system-info">
+                        <div class="info-row">
+                            <span class="info-label">Application</span>
+                            <span class="info-value">MaidTrack v1.0</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Environment</span>
+                            <span class="info-value">Production</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Database</span>
+                            <span class="info-value">MongoDB</span>
+                        </div>
                     </div>
                 </div>
             </div>

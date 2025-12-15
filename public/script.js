@@ -1,7 +1,8 @@
 // Navigation and Section Management
 
-// Store current pending maids data
+// Store current data
 let pendingMaidsData = [];
+let adminDashboardData = null;
 
 function showSection(sectionId) {
     // Hide all sections
@@ -33,22 +34,257 @@ function showSection(sectionId) {
         'tasks': 'Task Tracking',
         'attendance': 'Attendance Records',
         'payments': 'Payment Management',
-        'reports': 'Reports & Analytics'
+        'reports': 'Reports & Analytics',
+        'settings': 'Settings'
     };
     document.getElementById('page-title').textContent = titles[sectionId] || 'Dashboard';
     
     // Prevent default anchor behavior
     event?.preventDefault();
     
-    // Check if we need to update dashboard stats
-    checkDashboardUpdate(sectionId);
+    // Load section-specific data
+    loadSectionData(sectionId);
 }
 
-// Update dashboard stats when switching to dashboard
-function checkDashboardUpdate(sectionId) {
-    if (sectionId === 'dashboard') {
-        updateDashboardStats();
+// Load data for specific section
+async function loadSectionData(sectionId) {
+    switch (sectionId) {
+        case 'dashboard':
+            await loadAdminDashboard();
+            break;
+        case 'maids':
+            await loadPendingMaidsCount();
+            break;
+        case 'attendance':
+            await loadAttendanceData();
+            break;
+        case 'schedule':
+            await loadScheduleData();
+            break;
+        case 'reports':
+            await loadReportsData();
+            break;
+        case 'settings':
+            await loadAdminSettings();
+            break;
     }
+}
+
+// Load admin dashboard data from API
+async function loadAdminDashboard() {
+    try {
+        adminDashboardData = await apiGetAdminDashboard();
+        renderAdminDashboard(adminDashboardData);
+    } catch (error) {
+        console.error('Error loading admin dashboard:', error);
+    }
+}
+
+// Render admin dashboard with real data
+function renderAdminDashboard(data) {
+    if (!data || !data.stats) return;
+    
+    const stats = data.stats;
+    
+    // Update stat cards
+    const statCards = document.querySelectorAll('.stat-card .stat-details h3');
+    if (statCards.length >= 4) {
+        statCards[0].textContent = stats.totalMaids || 0;
+        statCards[1].textContent = stats.onDutyToday || 0;
+        statCards[2].textContent = stats.pendingJobs || 0;
+        statCards[3].textContent = `$${stats.revenueThisMonth || 0}`;
+    }
+    
+    // Update pending maids alert
+    const pendingAlert = document.querySelector('.alert-card.warning');
+    if (pendingAlert) {
+        if (stats.pendingMaids > 0) {
+            pendingAlert.style.display = 'flex';
+            const strongEl = pendingAlert.querySelector('strong');
+            if (strongEl) {
+                strongEl.textContent = `${stats.pendingMaids} maid registration${stats.pendingMaids > 1 ? 's' : ''}`;
+            }
+        } else {
+            pendingAlert.style.display = 'none';
+        }
+    }
+    
+    // Render today's schedule
+    if (data.todaySchedule) {
+        renderTodaySchedule(data.todaySchedule);
+    }
+    
+    // Render recent activities
+    if (data.recentActivities) {
+        renderRecentActivities(data.recentActivities);
+    }
+}
+
+// Render today's schedule
+function renderTodaySchedule(schedule) {
+    const scheduleList = document.querySelector('#dashboard .schedule-list');
+    if (!scheduleList) return;
+    
+    if (!schedule || schedule.length === 0) {
+        scheduleList.innerHTML = '<p class="empty-text">No jobs scheduled for today</p>';
+        return;
+    }
+    
+    scheduleList.innerHTML = schedule.map(item => `
+        <div class="schedule-item">
+            <div class="schedule-time">${item.time}</div>
+            <div class="schedule-details">
+                <h4>${item.title}</h4>
+                <p>${item.homeownerName} - ${item.address || 'No address'}</p>
+            </div>
+            <span class="status-badge ${item.status}">${item.status}</span>
+        </div>
+    `).join('');
+}
+
+// Render recent activities
+function renderRecentActivities(activities) {
+    const activityList = document.querySelector('.activity-list');
+    if (!activityList) return;
+    
+    if (!activities || activities.length === 0) {
+        activityList.innerHTML = '<p class="empty-text">No recent activities</p>';
+        return;
+    }
+    
+    activityList.innerHTML = activities.map(a => `
+        <div class="activity-item">
+            <div class="activity-icon ${a.color}">
+                <i class="fas ${a.icon}"></i>
+            </div>
+            <div class="activity-details">
+                <p>${a.message}</p>
+                <span class="activity-time">${a.timeAgo}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Load pending maids count
+async function loadPendingMaidsCount() {
+    try {
+        const response = await apiGetPendingMaids();
+        pendingMaidsData = response || [];
+        
+        const alertCard = document.querySelector('.alert-card.warning');
+        if (alertCard) {
+            if (pendingMaidsData.length > 0) {
+                alertCard.style.display = 'flex';
+                const strongEl = alertCard.querySelector('strong');
+                if (strongEl) {
+                    strongEl.textContent = `${pendingMaidsData.length} maid registration${pendingMaidsData.length > 1 ? 's' : ''}`;
+                }
+            } else {
+                alertCard.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading pending maids:', error);
+    }
+}
+
+// Load attendance data
+async function loadAttendanceData(date) {
+    try {
+        const data = await apiGetAdminAttendance(date);
+        renderAttendanceTable(data.records || []);
+    } catch (error) {
+        console.error('Error loading attendance:', error);
+    }
+}
+
+// Render attendance table
+function renderAttendanceTable(records) {
+    const tbody = document.querySelector('#attendance .data-table tbody');
+    if (!tbody) return;
+    
+    if (!records || records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No attendance records for this date</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = records.map(r => `
+        <tr>
+            <td>${r.maidName}</td>
+            <td>${r.jobTitle}</td>
+            <td>${new Date(r.checkIn).toLocaleTimeString()}</td>
+            <td>${r.checkOut ? new Date(r.checkOut).toLocaleTimeString() : '-'}</td>
+            <td>${r.duration ? r.duration + ' hrs' : 'On duty'}</td>
+            <td><span class="status-badge ${r.status}">${r.status}</span></td>
+        </tr>
+    `).join('');
+}
+
+// Load schedule data
+async function loadScheduleData() {
+    try {
+        const today = new Date();
+        const from = today.toISOString().split('T')[0];
+        const to = new Date(today.setMonth(today.getMonth() + 1)).toISOString().split('T')[0];
+        
+        const data = await apiGetAdminSchedule(from, to);
+        // Schedule rendering would update calendar component
+        console.log('Schedule loaded:', data.events?.length || 0, 'events');
+    } catch (error) {
+        console.error('Error loading schedule:', error);
+    }
+}
+
+// Load reports data
+async function loadReportsData() {
+    try {
+        const summary = await apiGetReportsSummary('month');
+        renderReportsSummary(summary);
+    } catch (error) {
+        console.error('Error loading reports:', error);
+    }
+}
+
+// Render reports summary
+function renderReportsSummary(data) {
+    if (!data) return;
+    
+    // Update report cards if they exist
+    const reportCards = document.querySelectorAll('#reports .stat-card h3');
+    if (reportCards.length >= 4) {
+        reportCards[0].textContent = data.totalJobs || 0;
+        reportCards[1].textContent = data.completedJobs || 0;
+        reportCards[2].textContent = `$${data.totalRevenue || 0}`;
+        reportCards[3].textContent = `${data.completionRate || 0}%`;
+    }
+}
+
+// Load admin settings
+async function loadAdminSettings() {
+    try {
+        const profile = await apiGetAdminProfile();
+        renderAdminSettings(profile);
+    } catch (error) {
+        console.error('Error loading admin settings:', error);
+    }
+}
+
+// Render admin settings
+function renderAdminSettings(profile) {
+    if (!profile) return;
+    
+    const nameInput = document.getElementById('settingsName');
+    const emailInput = document.getElementById('settingsEmail');
+    const phoneInput = document.getElementById('settingsPhone');
+    
+    if (nameInput) nameInput.value = profile.name || '';
+    if (emailInput) emailInput.value = profile.email || '';
+    if (phoneInput) phoneInput.value = profile.phone || '';
+}
+
+// Update dashboard stats (legacy function)
+function updateDashboardStats() {
+    loadAdminDashboard();
 }
 
 // Sidebar Toggle for Mobile
@@ -276,6 +512,58 @@ function initTooltips() {
     });
 }
 
+// ============================================================
+// Admin Settings Functions
+// ============================================================
+
+async function saveAdminProfile(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('settingsName').value;
+    const phone = document.getElementById('settingsPhone').value;
+    
+    try {
+        await apiUpdateAdminProfile({ name, phone });
+        alert('Profile updated successfully!');
+        
+        // Update header display
+        const userNameEl = document.querySelector('.user-profile span');
+        if (userNameEl) userNameEl.textContent = name;
+    } catch (error) {
+        alert('Error updating profile: ' + (error.message || 'Unknown error'));
+    }
+}
+
+async function changeAdminPassword(event) {
+    event.preventDefault();
+    
+    const currentPassword = document.getElementById('currentAdminPassword').value;
+    const newPassword = document.getElementById('newAdminPassword').value;
+    const confirmPassword = document.getElementById('confirmAdminPassword').value;
+    
+    if (newPassword !== confirmPassword) {
+        alert('New passwords do not match!');
+        return;
+    }
+    
+    if (newPassword.length < 6) {
+        alert('Password must be at least 6 characters!');
+        return;
+    }
+    
+    try {
+        await apiChangeAdminPassword(currentPassword, newPassword);
+        alert('Password changed successfully!');
+        
+        // Clear form
+        document.getElementById('currentAdminPassword').value = '';
+        document.getElementById('newAdminPassword').value = '';
+        document.getElementById('confirmAdminPassword').value = '';
+    } catch (error) {
+        alert('Error changing password: ' + (error.message || 'Unknown error'));
+    }
+}
+
 // Admin Approval Functions
 async function showPendingApprovals() {
     document.getElementById('pendingApprovalsCard').style.display = 'block';
@@ -311,54 +599,84 @@ async function showPendingApprovals() {
  */
 function renderPendingMaids(maids) {
     const approvalList = document.querySelector('.approval-list');
-    if (!approvalList || !maids.length) return;
+    if (!approvalList) return;
+    
+    if (!maids || maids.length === 0) {
+        approvalList.innerHTML = `
+            <div class="empty-state" style="padding: 40px; text-align: center;">
+                <i class="fas fa-check-circle" style="font-size: 48px; color: #2ECC71; margin-bottom: 16px;"></i>
+                <p>No pending maid approvals</p>
+            </div>
+        `;
+        return;
+    }
     
     // Clear existing content
     approvalList.innerHTML = '';
     
     maids.forEach(maid => {
+        // Handle MongoDB structure: maid has _id and user_id populated with user data
+        const maidId = maid._id;
+        const userData = maid.user_id || {};
+        const name = userData.name || maid.name || 'Unknown';
+        const email = userData.email || maid.email || 'N/A';
+        const phone = userData.phone || maid.phone || 'N/A';
+        const specializations = maid.specializations || 'General Cleaning';
+        const experience = maid.experience_years ? `${maid.experience_years} years` : 'Not specified';
+        const createdAt = maid.createdAt || userData.createdAt;
+        
         const card = document.createElement('div');
         card.className = 'approval-card';
-        card.dataset.maidId = maid.id;
+        card.dataset.maidId = maidId;
         card.innerHTML = `
             <div class="approval-header">
-                <img src="https://via.placeholder.com/60" alt="Maid">
+                <img src="${userData.photo_url || 'https://via.placeholder.com/60'}" alt="Maid">
                 <div>
-                    <h4>${maid.name || 'Unknown'}</h4>
-                    <p>Registered ${maid.createdAt ? formatDate(maid.createdAt) : 'recently'}</p>
+                    <h4>${escapeHtmlAdmin(name)}</h4>
+                    <p>Registered ${createdAt ? formatDate(createdAt) : 'recently'}</p>
                 </div>
             </div>
             <div class="approval-body">
                 <div class="info-grid">
                     <div class="info-item">
                         <label>Phone:</label>
-                        <span>${maid.phone || 'N/A'}</span>
+                        <span>${escapeHtmlAdmin(phone)}</span>
                     </div>
                     <div class="info-item">
                         <label>Email:</label>
-                        <span>${maid.email || 'N/A'}</span>
+                        <span>${escapeHtmlAdmin(email)}</span>
                     </div>
                     <div class="info-item">
                         <label>Specialization:</label>
-                        <span>${maid.specializations || 'General Cleaning'}</span>
+                        <span>${escapeHtmlAdmin(specializations)}</span>
                     </div>
                     <div class="info-item">
                         <label>Experience:</label>
-                        <span>${maid.experience || 'Not specified'}</span>
+                        <span>${escapeHtmlAdmin(experience)}</span>
                     </div>
                 </div>
             </div>
             <div class="approval-footer">
-                <button class="btn-danger" onclick="rejectMaid(${maid.id}, '${maid.name}')">
+                <button class="btn-danger" onclick="rejectMaid('${maidId}', '${escapeHtmlAdmin(name)}')">
                     <i class="fas fa-times"></i> Reject
                 </button>
-                <button class="btn-success" onclick="approveMaid(${maid.id}, '${maid.name}')">
+                <button class="btn-success" onclick="approveMaid('${maidId}', '${escapeHtmlAdmin(name)}')">
                     <i class="fas fa-check"></i> Approve
                 </button>
             </div>
         `;
         approvalList.appendChild(card);
     });
+}
+
+/**
+ * Escape HTML for admin panel
+ */
+function escapeHtmlAdmin(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 /**
@@ -382,21 +700,22 @@ async function approveMaid(maidId, maidName) {
     // Handle both old style (maidName only) and new style (maidId, maidName)
     if (typeof maidId === 'string' && !maidName) {
         maidName = maidId;
-        // Find maid ID from pendingMaidsData or use static approach
-        const maid = pendingMaidsData.find(m => m.name === maidName);
-        maidId = maid ? maid.id : null;
+        // Find maid ID from pendingMaidsData
+        const maid = pendingMaidsData.find(m => (m.user_id?.name || m.name) === maidName);
+        maidId = maid ? maid._id : null;
     }
     
-    if (!confirm(`Approve ${maidName} as a maid?\n\nThey will be able to receive job requests immediately.`)) {
+    if (!confirm(`Approve ${maidName} as a maid?\n\nThey will receive an approval email and can start accepting jobs immediately.`)) {
         return;
     }
     
     try {
         if (maidId) {
-            await apiApproveMaid(maidId);
+            const result = await apiApproveMaid(maidId);
+            console.log('Approval result:', result);
         }
         
-        alert(`✓ ${maidName} has been approved!\n\nAn approval email has been sent to them.`);
+        alert(`✅ ${maidName} has been approved!\n\n${maidId ? 'An approval email has been sent to them.' : ''}`);
         
         // Remove the approval card with animation
         const approvalCard = event.target.closest('.approval-card');
@@ -424,9 +743,9 @@ async function rejectMaid(maidId, maidName) {
     // Handle both old style (maidName only) and new style (maidId, maidName)
     if (typeof maidId === 'string' && !maidName) {
         maidName = maidId;
-        // Find maid ID from pendingMaidsData or use static approach
-        const maid = pendingMaidsData.find(m => m.name === maidName);
-        maidId = maid ? maid.id : null;
+        // Find maid ID from pendingMaidsData
+        const maid = pendingMaidsData.find(m => (m.user_id?.name || m.name) === maidName);
+        maidId = maid ? maid._id : null;
     }
     
     const reason = prompt(`Please provide a reason for rejecting ${maidName}:`);
@@ -434,17 +753,17 @@ async function rejectMaid(maidId, maidName) {
         try {
             if (maidId) {
                 // Call API to reject maid
-                await apiRequest('/api/admin/maids/reject', {
+                await apiRequest('/admin/maids/reject', {
                     method: 'POST',
                     body: JSON.stringify({ maidId, reason })
                 });
             }
             
-            showApiSuccess(`${maidName} has been rejected.
+            alert(`❌ ${maidName} has been rejected.
 
 Reason: ${reason || 'No reason provided'}
 
-A notification email has been sent.`);
+A rejection email has been sent.`);
             
             // Remove the approval card
             const approvalCard = event.target.closest('.approval-card');
@@ -463,111 +782,13 @@ A notification email has been sent.`);
                 }, 300);
             }
         } catch (error) {
-            showApiError('Error rejecting maid: ' + (error.message || 'Unknown error'));
+            alert('Error rejecting maid: ' + (error.message || 'Unknown error'));
         }
     }
 }
 
 function viewDocument(docType) {
     alert(`Viewing ${docType} document...\n\n(In production, this would open a document viewer/PDF)`);
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-    initTooltips();
-    
-    // Check if we're on the admin page (index.html)
-    const isAdminPage = window.location.pathname.includes('index.html') || 
-                        (window.location.pathname.endsWith('/') && !window.location.pathname.includes('home'));
-    
-    if (isAdminPage && !window.location.pathname.includes('home.html')) {
-        // Check authentication
-        if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
-            // Not logged in, redirect to login
-            window.location.href = 'login.html';
-            return;
-        }
-        
-        // Check if user is admin
-        const user = typeof getUser === 'function' ? getUser() : null;
-        if (!user) {
-            window.location.href = 'login.html';
-            return;
-        }
-        
-        if (user.role !== 'admin') {
-            // Wrong role, redirect to appropriate dashboard
-            if (typeof redirectToDashboard === 'function') {
-                redirectToDashboard();
-            } else {
-                alert('Unauthorized: Admin access required');
-                window.location.href = 'login.html';
-            }
-            return;
-        }
-        
-        // User is admin, load dashboard data
-        loadAdminDashboard();
-    }
-    
-    console.log('Home Maid Tracking System Loaded!');
-});
-
-/**
- * Load admin dashboard data from API
- */
-async function loadAdminDashboard() {
-    try {
-        // Load pending maids count
-        const pendingResponse = await apiGetPendingMaids();
-        const pendingMaids = pendingResponse.data || pendingResponse || [];
-        
-        // Update pending approval badge
-        const alertCard = document.querySelector('.alert-card.warning');
-        if (alertCard) {
-            if (pendingMaids.length > 0) {
-                alertCard.style.display = 'flex';
-                const strongEl = alertCard.querySelector('strong');
-                if (strongEl) {
-                    strongEl.textContent = `${pendingMaids.length} maid registration${pendingMaids.length > 1 ? 's' : ''}`;
-                }
-            } else {
-                alertCard.style.display = 'none';
-            }
-        }
-        
-        // Store pending maids for later use
-        pendingMaidsData = pendingMaids;
-        
-    } catch (error) {
-        console.error('Error loading admin dashboard:', error);
-    }
-}
-
-/**
- * Update dashboard statistics
- */
-async function updateDashboardStats() {
-    try {
-        const stats = await apiRequest('/api/dashboard/my', { method: 'GET' });
-        
-        // Update stat cards
-        const statCards = document.querySelectorAll('.stat-card .stat-details h3');
-        if (statCards.length >= 6) {
-            statCards[0].textContent = stats.totalMaids || 0;
-            statCards[1].textContent = stats.pendingApprovals || 0;
-            statCards[2].textContent = stats.completedJobs || 0;
-            statCards[3].textContent = stats.totalHomeowners || 0;
-            statCards[4].textContent = stats.activeJobs || 0;
-            statCards[5].textContent = `$${stats.todayRevenue || 0}`;
-        }
-        
-        // Update recent activity
-        // In a real implementation, this would fetch actual recent activity
-    } catch (error) {
-        console.error('Error updating dashboard stats:', error);
-        // Keep showing existing static data
-    }
 }
 
 /**
@@ -583,8 +804,43 @@ function handleLogout() {
     }
 }
 
-// Add logout handler to sidebar
+// Initialize on page load - Admin authentication and dashboard
 document.addEventListener('DOMContentLoaded', () => {
+    initTooltips();
+    
+    // Check if we're on the admin page (index.html)
+    const isAdminPage = window.location.pathname.includes('index.html') || 
+                        (window.location.pathname.endsWith('/') && !window.location.pathname.includes('home'));
+    
+    if (isAdminPage && !window.location.pathname.includes('home.html')) {
+        // Check authentication
+        if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        // Check if user is admin
+        const user = typeof getUser === 'function' ? getUser() : null;
+        if (!user) {
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        if (user.role !== 'admin') {
+            if (typeof redirectToDashboard === 'function') {
+                redirectToDashboard();
+            } else {
+                alert('Unauthorized: Admin access required');
+                window.location.href = 'login.html';
+            }
+            return;
+        }
+        
+        // User is admin, load dashboard data
+        loadAdminDashboard();
+    }
+    
+    // Add logout handler to sidebar
     const logoutLink = document.querySelector('a[href="#logout"]');
     if (logoutLink) {
         logoutLink.addEventListener('click', (e) => {
@@ -592,4 +848,6 @@ document.addEventListener('DOMContentLoaded', () => {
             handleLogout();
         });
     }
+    
+    console.log('Home Maid Tracking System Loaded!');
 });

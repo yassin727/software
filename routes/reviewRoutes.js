@@ -11,8 +11,8 @@ router.post(
   '/',
   auth(['homeowner']),
   validate([
-    body('jobId').notEmpty().withMessage('jobId is required').isInt().withMessage('jobId must be an integer'),
-    body('revieweeId').notEmpty().withMessage('revieweeId is required').isInt().withMessage('revieweeId must be an integer'),
+    body('jobId').notEmpty().withMessage('jobId is required'),
+    body('revieweeId').notEmpty().withMessage('revieweeId is required'),
     body('rating')
       .notEmpty()
       .withMessage('rating is required')

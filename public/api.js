@@ -3,7 +3,8 @@
  * Centralized API communication layer for MaidTrack application
  */
 
-const API_BASE_URL = 'http://localhost:4000/api';
+// Use relative URL so it works in both development and production
+const API_BASE_URL = '/api';
 
 // ============================================================
 // Token Management
@@ -393,23 +394,40 @@ async function apiUpdateProfile(profileData) {
 // ============================================================
 
 /**
- * Get notifications for current user
- * @returns {Promise<Object>} Notifications data
+ * Get notifications for current user (paginated)
+ * @param {Object} options - Query options
+ * @returns {Promise<Object>} Notifications data with unreadCount
  */
-async function apiGetNotifications() {
-    return await apiRequest('/notifications/my', {
+async function apiGetNotifications(options = {}) {
+    const params = new URLSearchParams();
+    if (options.page) params.append('page', options.page);
+    if (options.limit) params.append('limit', options.limit);
+    if (options.unreadOnly) params.append('unreadOnly', 'true');
+    
+    const queryString = params.toString();
+    return await apiRequest(`/notifications${queryString ? '?' + queryString : ''}`, {
+        method: 'GET',
+    });
+}
+
+/**
+ * Get unread notification count
+ * @returns {Promise<Object>} Object with unreadCount
+ */
+async function apiGetUnreadCount() {
+    return await apiRequest('/notifications/unread-count', {
         method: 'GET',
     });
 }
 
 /**
  * Mark notification as read
- * @param {number} notificationId - Notification ID
+ * @param {string} notificationId - Notification ID
  * @returns {Promise<Object>} Response
  */
 async function apiMarkNotificationRead(notificationId) {
     return await apiRequest(`/notifications/${notificationId}/read`, {
-        method: 'POST',
+        method: 'PUT',
     });
 }
 
@@ -419,7 +437,224 @@ async function apiMarkNotificationRead(notificationId) {
  */
 async function apiMarkAllNotificationsRead() {
     return await apiRequest('/notifications/read-all', {
+        method: 'PUT',
+    });
+}
+
+/**
+ * Connect to notification stream (SSE)
+ * @param {Function} onNotification - Callback for new notifications
+ * @param {Function} onUnreadCount - Callback for unread count updates
+ * @returns {EventSource} The SSE connection
+ */
+function connectNotificationStream(onNotification, onUnreadCount) {
+    const token = getToken();
+    if (!token) return null;
+    
+    // Use polling as fallback since SSE requires special handling
+    let pollInterval = null;
+    let lastUnreadCount = -1;
+    
+    const poll = async () => {
+        try {
+            const data = await apiGetUnreadCount();
+            if (data.unreadCount !== lastUnreadCount) {
+                lastUnreadCount = data.unreadCount;
+                if (onUnreadCount) onUnreadCount(data.unreadCount);
+            }
+        } catch (error) {
+            console.error('Notification poll error:', error);
+        }
+    };
+    
+    // Initial poll
+    poll();
+    
+    // Poll every 30 seconds
+    pollInterval = setInterval(poll, 30000);
+    
+    // Return cleanup function
+    return {
+        close: () => {
+            if (pollInterval) clearInterval(pollInterval);
+        }
+    };
+}
+
+// ============================================================
+// Homeowner API
+// ============================================================
+
+/**
+ * Get homeowner dashboard data (stats, schedule, activity)
+ * @returns {Promise<Object>} Dashboard data
+ */
+async function apiGetHomeownerDashboard() {
+    return await apiRequest('/homeowner/dashboard', {
+        method: 'GET',
+    });
+}
+
+/**
+ * Search maids with filters
+ * @param {Object} filters - Search filters (location, specialization, availability, minRating)
+ * @returns {Promise<Object>} List of maids
+ */
+async function apiSearchMaids(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.location) params.append('location', filters.location);
+    if (filters.specialization) params.append('specialization', filters.specialization);
+    if (filters.availability) params.append('availability', filters.availability);
+    if (filters.minRating) params.append('minRating', filters.minRating);
+    
+    const queryString = params.toString();
+    return await apiRequest(`/homeowner/maids${queryString ? '?' + queryString : ''}`, {
+        method: 'GET',
+    });
+}
+
+/**
+ * Get maid profile details
+ * @param {string} maidId - Maid ID
+ * @returns {Promise<Object>} Maid profile
+ */
+async function apiGetMaidProfile(maidId) {
+    return await apiRequest(`/homeowner/maids/${maidId}`, {
+        method: 'GET',
+    });
+}
+
+/**
+ * Get homeowner bookings with optional status filter
+ * @param {string} status - Filter by status (all, upcoming, active, completed, cancelled)
+ * @returns {Promise<Object>} List of bookings
+ */
+async function apiGetHomeownerBookings(status = 'all') {
+    return await apiRequest(`/homeowner/bookings?status=${status}`, {
+        method: 'GET',
+    });
+}
+
+/**
+ * Get single booking details
+ * @param {string} bookingId - Booking ID
+ * @returns {Promise<Object>} Booking details
+ */
+async function apiGetBookingDetails(bookingId) {
+    return await apiRequest(`/homeowner/bookings/${bookingId}`, {
+        method: 'GET',
+    });
+}
+
+/**
+ * Get service history
+ * @param {string} startDate - Start date filter (optional)
+ * @param {string} endDate - End date filter (optional)
+ * @returns {Promise<Object>} Service history
+ */
+async function apiGetServiceHistory(startDate, endDate) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    const queryString = params.toString();
+    return await apiRequest(`/homeowner/history${queryString ? '?' + queryString : ''}`, {
+        method: 'GET',
+    });
+}
+
+/**
+ * Submit a review for a completed job
+ * @param {Object} reviewData - Review data (jobId, rating, comment)
+ * @returns {Promise<Object>} Review response
+ */
+async function apiSubmitReview(reviewData) {
+    return await apiRequest('/reviews', {
         method: 'POST',
+        body: JSON.stringify(reviewData),
+    });
+}
+
+// ============================================================
+// Maid API
+// ============================================================
+
+/**
+ * Get maid dashboard data
+ * @returns {Promise<Object>} Dashboard data (stats, schedule, reviews)
+ */
+async function apiGetMaidDashboard() {
+    return await apiRequest('/maid/dashboard', { method: 'GET' });
+}
+
+/**
+ * Get pending job requests
+ * @returns {Promise<Object>} Job requests
+ */
+async function apiGetJobRequests() {
+    return await apiRequest('/maid/job-requests', { method: 'GET' });
+}
+
+/**
+ * Get maid's jobs with optional status filter
+ * @param {string} status - Filter by status (active, upcoming, completed)
+ * @returns {Promise<Object>} Jobs list
+ */
+async function apiGetMaidJobs(status = '') {
+    const query = status ? `?status=${status}` : '';
+    return await apiRequest(`/maid/jobs${query}`, { method: 'GET' });
+}
+
+/**
+ * Update maid availability (online/offline)
+ * @param {boolean} isOnline - Online status
+ * @returns {Promise<Object>} Response
+ */
+async function apiUpdateAvailability(isOnline) {
+    return await apiRequest('/maid/availability', {
+        method: 'PUT',
+        body: JSON.stringify({ isOnline })
+    });
+}
+
+/**
+ * Get maid earnings
+ * @param {string} range - Time range (week, month, all)
+ * @returns {Promise<Object>} Earnings data
+ */
+async function apiGetMaidEarnings(range = 'month') {
+    return await apiRequest(`/maid/earnings?range=${range}`, { method: 'GET' });
+}
+
+/**
+ * Get maid reviews
+ * @returns {Promise<Object>} Reviews data
+ */
+async function apiGetMaidReviews() {
+    return await apiRequest('/maid/reviews', { method: 'GET' });
+}
+
+/**
+ * Accept a job request
+ * @param {string} jobId - Job ID
+ * @returns {Promise<Object>} Response
+ */
+async function apiAcceptJob(jobId) {
+    return await apiRequest('/maid/jobs/accept', {
+        method: 'POST',
+        body: JSON.stringify({ jobId })
+    });
+}
+
+/**
+ * Decline a job request
+ * @param {string} jobId - Job ID
+ * @returns {Promise<Object>} Response
+ */
+async function apiDeclineJob(jobId) {
+    return await apiRequest('/maid/jobs/decline', {
+        method: 'POST',
+        body: JSON.stringify({ jobId })
     });
 }
 
@@ -541,5 +776,92 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// ============================================================
+// Admin API
+// ============================================================
+
+/**
+ * Get admin dashboard data
+ * @returns {Promise<Object>} Dashboard stats and data
+ */
+async function apiGetAdminDashboard() {
+    return await apiRequest('/admin/dashboard', { method: 'GET' });
+}
+
+/**
+ * Get reports summary
+ * @param {string} range - 'week' or 'month'
+ * @returns {Promise<Object>} Reports summary
+ */
+async function apiGetReportsSummary(range = 'month') {
+    return await apiRequest(`/admin/reports/summary?range=${range}`, { method: 'GET' });
+}
+
+/**
+ * Get performance data for charts
+ * @param {number} days - Number of days
+ * @returns {Promise<Object>} Performance data
+ */
+async function apiGetPerformanceData(days = 30) {
+    return await apiRequest(`/admin/reports/performance?days=${days}`, { method: 'GET' });
+}
+
+/**
+ * Get schedule/calendar events
+ * @param {string} from - Start date (YYYY-MM-DD)
+ * @param {string} to - End date (YYYY-MM-DD)
+ * @returns {Promise<Object>} Schedule events
+ */
+async function apiGetAdminSchedule(from, to) {
+    const params = new URLSearchParams();
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    const query = params.toString();
+    return await apiRequest(`/admin/schedule${query ? '?' + query : ''}`, { method: 'GET' });
+}
+
+/**
+ * Get attendance records
+ * @param {string} date - Date (YYYY-MM-DD)
+ * @returns {Promise<Object>} Attendance records
+ */
+async function apiGetAdminAttendance(date) {
+    const query = date ? `?date=${date}` : '';
+    return await apiRequest(`/admin/attendance${query}`, { method: 'GET' });
+}
+
+/**
+ * Get admin profile
+ * @returns {Promise<Object>} Admin profile
+ */
+async function apiGetAdminProfile() {
+    return await apiRequest('/admin/settings/profile', { method: 'GET' });
+}
+
+/**
+ * Update admin profile
+ * @param {Object} data - Profile data
+ * @returns {Promise<Object>} Response
+ */
+async function apiUpdateAdminProfile(data) {
+    return await apiRequest('/admin/settings/profile', {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    });
+}
+
+/**
+ * Change admin password
+ * @param {string} currentPassword - Current password
+ * @param {string} newPassword - New password
+ * @returns {Promise<Object>} Response
+ */
+async function apiChangeAdminPassword(currentPassword, newPassword) {
+    return await apiRequest('/admin/settings/password', {
+        method: 'PUT',
+        body: JSON.stringify({ currentPassword, newPassword })
+    });
+}
 
 console.log('API Service Module loaded');

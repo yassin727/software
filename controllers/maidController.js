@@ -1,8 +1,7 @@
 const MaidService = require('../services/maidService');
 const RecommendationService = require('../services/recommendationService');
 const NotificationService = require('../services/notificationService');
-const MaidModel = require('../models/maidModel');
-
+const Maid = require('../models/Maid');
 
 /**
  * Admin: list all maids with pending approval.
@@ -43,7 +42,7 @@ const approveMaid = async (req, res) => {
     }
 
     // Get maid details before approval
-    const maid = await MaidModel.getById(maidId);
+    const maid = await Maid.findById(maidId).populate('user_id', 'name email');
     if (!maid) {
       return res.status(404).json({ message: 'Maid not found' });
     }
@@ -59,7 +58,12 @@ const approveMaid = async (req, res) => {
     }
 
     // Send approval notification
-    const notificationResult = await NotificationService.sendMaidApprovalNotification(maid);
+    const maidData = {
+      user_id: maid.user_id._id,
+      name: maid.user_id.name,
+      email: maid.user_id.email
+    };
+    const notificationResult = await NotificationService.sendMaidApprovalNotification(maidData);
 
     return res.json({ 
       message: 'Maid approved successfully',
@@ -72,7 +76,7 @@ const approveMaid = async (req, res) => {
 };
 
 /**
- * Admin: reject a maid.
+ * Admin: reject a maid (POST body).
  */
 const rejectMaid = async (req, res) => {
   try {
@@ -82,19 +86,23 @@ const rejectMaid = async (req, res) => {
     }
 
     // Get maid details before rejection
-    const maid = await MaidModel.getById(maidId);
+    const maid = await Maid.findById(maidId).populate('user_id', 'name email');
     if (!maid) {
       return res.status(404).json({ message: 'Maid not found' });
     }
 
     // Reject the maid
-    const affected = await MaidModel.reject(maidId, reason || '');
-    if (!affected) {
-      return res.status(404).json({ message: 'Failed to reject maid' });
-    }
+    maid.approval_status = 'rejected';
+    maid.rejection_reason = reason || '';
+    await maid.save();
 
     // Send rejection notification
-    const notificationResult = await NotificationService.sendMaidRejectionNotification(maid, reason);
+    const maidData = {
+      user_id: maid.user_id._id,
+      name: maid.user_id.name,
+      email: maid.user_id.email
+    };
+    const notificationResult = await NotificationService.sendMaidRejectionNotification(maidData, reason);
 
     return res.json({ 
       message: 'Maid rejected',
@@ -106,9 +114,88 @@ const rejectMaid = async (req, res) => {
   }
 };
 
+/**
+ * Admin: approve a maid by ID (URL param).
+ */
+const approveMaidById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const maid = await Maid.findById(id).populate('user_id', 'name email');
+    if (!maid) {
+      return res.status(404).json({ message: 'Maid not found' });
+    }
+
+    if (maid.approval_status === 'approved') {
+      return res.status(400).json({ message: 'Maid is already approved' });
+    }
+
+    // Approve the maid
+    maid.approval_status = 'approved';
+    maid.is_verified = true;
+    await maid.save();
+
+    // Send approval notification (in-app + email)
+    const maidData = {
+      user_id: maid.user_id._id,
+      name: maid.user_id.name,
+      email: maid.user_id.email
+    };
+    const notificationResult = await NotificationService.sendMaidApprovalNotification(maidData);
+
+    return res.json({ 
+      message: 'Maid approved successfully',
+      emailSent: notificationResult.success,
+      emailMethod: notificationResult.method || 'none'
+    });
+  } catch (err) {
+    console.error('Approve maid by ID error', err);
+    return res.status(500).json({ message: 'Failed to approve maid' });
+  }
+};
+
+/**
+ * Admin: reject a maid by ID (URL param).
+ */
+const rejectMaidById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    const maid = await Maid.findById(id).populate('user_id', 'name email');
+    if (!maid) {
+      return res.status(404).json({ message: 'Maid not found' });
+    }
+
+    // Reject the maid
+    maid.approval_status = 'rejected';
+    maid.rejection_reason = reason || '';
+    await maid.save();
+
+    // Send rejection notification (in-app + email)
+    const maidData = {
+      user_id: maid.user_id._id,
+      name: maid.user_id.name,
+      email: maid.user_id.email
+    };
+    const notificationResult = await NotificationService.sendMaidRejectionNotification(maidData, reason);
+
+    return res.json({ 
+      message: 'Maid rejected',
+      emailSent: notificationResult.success,
+      emailMethod: notificationResult.method || 'none'
+    });
+  } catch (err) {
+    console.error('Reject maid by ID error', err);
+    return res.status(500).json({ message: 'Failed to reject maid' });
+  }
+};
+
 module.exports = {
   listPendingMaids,
   approveMaid,
+  approveMaidById,
   rejectMaid,
+  rejectMaidById,
   recommendMaids,
 };

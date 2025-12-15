@@ -1,4 +1,7 @@
 const ReviewService = require('../services/reviewService');
+const NotificationService = require('../services/notificationService');
+const User = require('../models/User');
+const Job = require('../models/Job');
 
 /**
  * (Optional) List reviews for a maid by maid user_id.
@@ -43,6 +46,23 @@ const createReview = async (req, res) => {
       rating: parsedRating,
       comments,
     });
+
+    // Notify maid of new review
+    try {
+      const [reviewer, job] = await Promise.all([
+        User.findById(reviewerId),
+        Job.findById(jobId)
+      ]);
+      
+      await NotificationService.notifyNewReview(
+        revieweeId,
+        { _id: reviewId, rating: parsedRating, job_id: jobId },
+        reviewer?.name || 'A client',
+        job?.title || 'Service'
+      );
+    } catch (notifError) {
+      console.error('Failed to send review notification:', notifError);
+    }
 
     return res
       .status(201)

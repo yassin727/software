@@ -1,8 +1,8 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
-const User = require('../models/userModel');
-const Maid = require('../models/maidModel');
+const User = require('../models/User');
+const Maid = require('../models/Maid');
 
 dotenv.config();
 
@@ -11,7 +11,7 @@ class UserService {
    * Register a new user (homeowner or maid).
    */
   static async register({ name, email, phone, password, role }) {
-    const existingUser = await User.findByEmail(email);
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       const err = new Error('Email already registered');
       err.status = 409;
@@ -20,20 +20,26 @@ class UserService {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const userId = await User.create({
+    const user = new User({
       name,
       email,
       phone,
-      passwordHash,
+      password_hash: passwordHash,
       role,
     });
 
+    const savedUser = await user.save();
+
     // If this is a maid, create maid profile with pending approval
     if (role === 'maid') {
-      await Maid.create(userId);
+      const maid = new Maid({
+        user_id: savedUser._id,
+        approval_status: 'pending'
+      });
+      await maid.save();
     }
 
-    return { id: userId, name, email, role };
+    return { id: savedUser._id, name, email, role };
   }
 
   /**
@@ -41,7 +47,7 @@ class UserService {
    * For maids, check approval status before allowing login.
    */
   static async login({ email, password }) {
-    const user = await User.findByEmail(email);
+    const user = await User.findOne({ email });
     if (!user) {
       const err = new Error('Invalid credentials');
       err.status = 401;
@@ -57,7 +63,7 @@ class UserService {
 
     // Check maid approval status
     if (user.role === 'maid') {
-      const maidProfile = await Maid.getByUserId(user.user_id);
+      const maidProfile = await Maid.findOne({ user_id: user._id });
       if (!maidProfile) {
         const err = new Error('Maid profile not found');
         err.status = 500;
@@ -78,14 +84,14 @@ class UserService {
     }
 
     const token = jwt.sign(
-      { userId: user.user_id, role: user.role },
+      { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '8h' }
     );
 
     return {
       token,
-      user: { id: user.user_id, name: user.name, role: user.role },
+      user: { id: user._id, name: user.name, role: user.role },
     };
   }
 }

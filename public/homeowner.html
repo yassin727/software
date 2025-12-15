@@ -41,11 +41,11 @@
             </a>
         </nav>
         <div class="sidebar-footer">
-            <a href="#profile" class="nav-item">
+            <a href="#profile" class="nav-item" onclick="showSection('profile')">
                 <i class="fas fa-user-circle"></i>
                 <span>Profile</span>
             </a>
-            <a href="index.html" class="nav-item">
+            <a href="#" class="nav-item" onclick="handleHomeownerLogout()">
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Logout</span>
             </a>
@@ -67,10 +67,24 @@
                     <i class="fas fa-search"></i>
                     <input type="text" placeholder="Search...">
                 </div>
-                <button class="notification-btn" onclick="showNotifications()">
-                    <i class="fas fa-bell"></i>
-                    <span class="badge">2</span>
-                </button>
+                <div class="notification-wrapper">
+                    <button class="notification-btn" onclick="toggleNotificationPanel()">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge notification-badge" id="notificationBadge">0</span>
+                    </button>
+                    <div class="notification-panel" id="notificationPanel">
+                        <div class="notification-header">
+                            <h3>Notifications</h3>
+                            <button class="mark-all-read" onclick="markAllNotificationsRead()">Mark all read</button>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>No notifications</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="user-profile">
                     <img src="https://via.placeholder.com/40" alt="User">
                     <span>John Doe</span>
@@ -680,6 +694,73 @@
                 </div>
             </div>
         </section>
+
+        <!-- Profile Section -->
+        <section id="profile" class="content-section">
+            <div class="profile-container">
+                <div class="card profile-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-circle"></i> My Profile</h3>
+                    </div>
+                    <div class="profile-content">
+                        <div class="avatar-section">
+                            <div class="avatar-wrapper">
+                                <img id="profileAvatar" src="https://via.placeholder.com/120" alt="Profile Photo">
+                                <label for="avatarInput" class="avatar-upload-btn">
+                                    <i class="fas fa-camera"></i>
+                                </label>
+                                <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="uploadAvatar(event)">
+                            </div>
+                            <p class="avatar-hint">Click camera to change photo</p>
+                        </div>
+                        <form id="profileForm" class="profile-form" onsubmit="updateProfile(event)">
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" id="profileName" placeholder="Your name" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="profileEmail" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone (optional)</label>
+                                <input type="tel" id="profilePhone" placeholder="Your phone number">
+                            </div>
+                            <div class="form-group">
+                                <label>Member Since</label>
+                                <input type="text" id="profileMemberSince" disabled>
+                            </div>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card password-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-lock"></i> Change Password</h3>
+                    </div>
+                    <form id="passwordForm" class="password-form" onsubmit="changePassword(event)">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <input type="password" id="currentPassword" placeholder="Enter current password" required>
+                        </div>
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" id="newPassword" placeholder="Enter new password (min 6 chars)" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="confirmPassword" placeholder="Confirm new password" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-key"></i> Change Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
     </div>
 
     <!-- Booking Modal -->
@@ -689,61 +770,55 @@
                 <h2>Book a Maid Service</h2>
                 <button class="close-btn" onclick="closeModal('bookingModal')">&times;</button>
             </div>
-            <form class="form" onsubmit="submitBooking(event)">
+            <form id="bookingForm" class="form" onsubmit="submitBooking(event)">
                 <div class="form-group">
                     <label>Select Maid *</label>
                     <select id="maidSelect" required>
                         <option value="">Choose a maid...</option>
-                        <option value="1">Maria Garcia - $15/hr</option>
-                        <option value="2">Sarah Johnson - $18/hr</option>
-                        <option value="3">Lisa Brown - $16/hr</option>
                     </select>
+                    <p id="maidRateDisplay" class="form-hint" style="margin-top: 4px; color: var(--text-light);"></p>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Date *</label>
-                        <input type="date" required>
+                        <input type="date" id="bookingDate" required>
                     </div>
                     <div class="form-group">
                         <label>Start Time *</label>
-                        <input type="time" required>
+                        <input type="time" id="bookingTime" required>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Duration (hours) *</label>
-                        <input type="number" min="1" max="8" value="4" required>
+                        <input type="number" id="bookingDuration" min="1" max="8" value="4" required>
                     </div>
                     <div class="form-group">
                         <label>Service Type *</label>
-                        <select required>
+                        <select id="bookingServiceType" required>
                             <option value="">Select service...</option>
-                            <option>General Cleaning</option>
-                            <option>Deep Cleaning</option>
-                            <option>Kitchen Specialist</option>
-                            <option>Laundry Service</option>
-                            <option>Other</option>
+                            <option value="General Cleaning">General Cleaning</option>
+                            <option value="Deep Cleaning">Deep Cleaning</option>
+                            <option value="Kitchen Specialist">Kitchen Specialist</option>
+                            <option value="Laundry Service">Laundry Service</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Location *</label>
-                    <input type="text" value="Sector 1, Building A, Apt 301" required>
+                    <label>Address *</label>
+                    <input type="text" id="bookingAddress" placeholder="Enter your address" required>
                 </div>
                 <div class="form-group">
-                    <label>Special Instructions</label>
-                    <textarea rows="3" placeholder="Any specific requirements or instructions..."></textarea>
+                    <label>Hourly Rate ($) *</label>
+                    <input type="number" id="bookingHourlyRate" min="1" step="0.01" required>
                 </div>
                 <div class="form-group">
-                    <label>Task List</label>
-                    <div class="task-checkboxes">
-                        <label><input type="checkbox" checked> Living Room</label>
-                        <label><input type="checkbox" checked> Kitchen</label>
-                        <label><input type="checkbox" checked> Bathroom</label>
-                        <label><input type="checkbox" checked> Bedrooms</label>
-                        <label><input type="checkbox"> Laundry</label>
-                        <label><input type="checkbox"> Windows</label>
-                    </div>
+                    <label>Special Instructions (optional)</label>
+                    <textarea id="bookingInstructions" rows="3" placeholder="Any specific requirements or instructions..."></textarea>
+                </div>
+                <div class="booking-summary" style="background: var(--bg-light); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+                    <p><strong>Estimated Total:</strong> <span id="estimatedTotal">$0.00</span></p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" onclick="closeModal('bookingModal')">Cancel</button>

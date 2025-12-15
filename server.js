@@ -2,9 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const connectDB = require('./config/mongodb');
 
 // Load environment variables
 dotenv.config();
+
+// Connect to MongoDB
+connectDB();
 
 const authRoutes = require('./routes/authRoutes');
 const maidRoutes = require('./routes/maidRoutes');
@@ -16,6 +20,8 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const homeownerRoutes = require('./routes/homeownerRoutes');
+const maidDashboardRoutes = require('./routes/maidDashboardRoutes');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -29,16 +35,6 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Route mounting
-console.log('authRoutes type:', typeof authRoutes);
-console.log('jobRoutes type:', typeof jobRoutes);
-console.log('maidRoutes type:', typeof maidRoutes);
-console.log('reviewRoutes type:', typeof reviewRoutes);
-console.log('menuRoutes type:', typeof menuRoutes);
-console.log('adminRoutes type:', typeof adminRoutes);
-console.log('dashboardRoutes type:', typeof dashboardRoutes);
-console.log('locationRoutes type:', typeof locationRoutes);
-console.log('profileRoutes type:', typeof profileRoutes);
-console.log('notificationRoutes type:', typeof notificationRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
@@ -50,6 +46,8 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/location', locationRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/homeowner', homeownerRoutes);
+app.use('/api/maid', maidDashboardRoutes);
 
 // Serve homepage (landing page)
 app.get('/', (_req, res) => {
@@ -71,8 +69,10 @@ app.use((err, _req, res, _next) => {
 
 // Start server ONLY if not testing
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server listening on port ${PORT}`);
+    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🔗 Database: ${process.env.MONGO_URL ? 'MongoDB Connected' : 'No Database'}`);
   });
 }
 

@@ -1,48 +1,29 @@
-const db = require('../config/db');
+const User = require('../models/User');
+const Maid = require('../models/Maid');
+const Job = require('../models/Job');
+const Review = require('../models/Review');
 
 class DashboardService {
   /**
    * Get admin dashboard statistics
    */
   static async getAdminStats() {
-    // Total maids
-    const [maidsResult] = await db.execute(
-      'SELECT COUNT(*) as count FROM maids'
-    );
-    const totalMaids = maidsResult[0].count;
+    const totalMaids = await Maid.countDocuments();
+    const pendingApprovals = await Maid.countDocuments({ approval_status: 'pending' });
+    const completedJobs = await Job.countDocuments({ status: 'completed' });
+    const totalHomeowners = await User.countDocuments({ role: 'homeowner' });
+    const activeJobs = await Job.countDocuments({ status: { $in: ['in_progress', 'accepted'] } });
 
-    // Pending approvals
-    const [pendingResult] = await db.execute(
-      "SELECT COUNT(*) as count FROM maids WHERE approval_status = 'pending'"
-    );
-    const pendingApprovals = pendingResult[0].count;
-
-    // Completed jobs
-    const [jobsResult] = await db.execute(
-      "SELECT COUNT(*) as count FROM jobs WHERE status = 'completed'"
-    );
-    const completedJobs = jobsResult[0].count;
-
-    // Total homeowners
-    const [homeownersResult] = await db.execute(
-      "SELECT COUNT(*) as count FROM users WHERE role = 'homeowner'"
-    );
-    const totalHomeowners = homeownersResult[0].count;
-
-    // Active jobs
-    const [activeJobsResult] = await db.execute(
-      "SELECT COUNT(*) as count FROM jobs WHERE status IN ('in_progress', 'accepted')"
-    );
-    const activeJobs = activeJobsResult[0].count;
-
-    // Today's revenue (sum of completed jobs today)
-    const [revenueResult] = await db.execute(
-      `SELECT COALESCE(SUM(hourly_rate * COALESCE(actual_duration, 4)), 0) as revenue 
-       FROM jobs 
-       WHERE status = 'completed' 
-       AND DATE(updated_at) = CURDATE()`
-    );
-    const todayRevenue = revenueResult[0].revenue || 0;
+    // Today's revenue
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayJobs = await Job.find({
+      status: 'completed',
+      updatedAt: { $gte: today }
+    });
+    const todayRevenue = todayJobs.reduce((sum, job) => {
+      return sum + (job.hourly_rate * (job.actual_duration || 4));
+    }, 0);
 
     return {
       totalMaids,
@@ -58,46 +39,44 @@ class DashboardService {
    * Get homeowner dashboard statistics
    */
   static async getHomeownerStats(userId) {
-    // Active bookings
-    const [activeResult] = await db.execute(
-      "SELECT COUNT(*) as count FROM jobs WHERE homeowner_id = ? AND status IN ('in_progress', 'accepted', 'requested')",
-      [userId]
-    );
-    const activeBookings = activeResult[0].count;
+    const activeBookings = await Job.countDocuments({
+      homeowner_id: userId,
+      status: { $in: ['in_progress', 'accepted', 'requested'] }
+    });
 
-    // Upcoming jobs
-    const [upcomingResult] = await db.execute(
-      "SELECT COUNT(*) as count FROM jobs WHERE homeowner_id = ? AND status IN ('accepted', 'requested') AND scheduled_datetime > NOW()",
-      [userId]
-    );
-    const upcomingJobs = upcomingResult[0].count;
+    const upcomingJobs = await Job.countDocuments({
+      homeowner_id: userId,
+      status: { $in: ['accepted', 'requested'] },
+      scheduled_datetime: { $gt: new Date() }
+    });
 
-    // Pending reviews (completed jobs without reviews)
-    const [pendingReviewsResult] = await db.execute(
-      `SELECT COUNT(*) as count FROM jobs j 
-       WHERE j.homeowner_id = ? 
-       AND j.status = 'completed' 
-       AND NOT EXISTS (SELECT 1 FROM reviews r WHERE r.job_id = j.job_id)`,
-      [userId]
-    );
-    const pendingReviews = pendingReviewsResult[0].count;
+    // Get completed jobs without reviews
+    const completedJobIds = await Job.find({
+      homeowner_id: userId,
+      status: 'completed'
+    }).select('_id');
+    
+    const reviewedJobIds = await Review.find({
+      job_id: { $in: completedJobIds.map(j => j._id) }
+    }).select('job_id');
+    
+    const pendingReviews = completedJobIds.length - reviewedJobIds.length;
 
     // Total spent
-    const [spentResult] = await db.execute(
-      `SELECT COALESCE(SUM(hourly_rate * COALESCE(actual_duration, 4)), 0) as total 
-       FROM jobs 
-       WHERE homeowner_id = ? AND status = 'completed'`,
-      [userId]
-    );
-    const totalSpent = spentResult[0].total || 0;
+    const completedJobs = await Job.find({
+      homeowner_id: userId,
+      status: 'completed'
+    });
+    const totalSpent = completedJobs.reduce((sum, job) => {
+      return sum + (job.hourly_rate * (job.actual_duration || 4));
+    }, 0);
 
     // Favorite maids count
-    const [favoritesResult] = await db.execute(
-      `SELECT COUNT(DISTINCT maid_id) as count FROM jobs 
-       WHERE homeowner_id = ? AND status = 'completed'`,
-      [userId]
-    );
-    const favoriteMaids = favoritesResult[0].count;
+    const uniqueMaids = await Job.distinct('maid_id', {
+      homeowner_id: userId,
+      status: 'completed'
+    });
+    const favoriteMaids = uniqueMaids.length;
 
     return {
       activeBookings,
@@ -112,81 +91,66 @@ class DashboardService {
    * Get maid dashboard statistics
    */
   static async getMaidStats(userId) {
-    // First get maid_id from user_id
-    const [maidResult] = await db.execute(
-      'SELECT maid_id FROM maids WHERE user_id = ?',
-      [userId]
-    );
+    const maid = await Maid.findOne({ user_id: userId });
     
-    if (!maidResult.length) {
+    if (!maid) {
       return {
         todayJobs: 0,
         completedJobs: 0,
         totalHours: 0,
         earnings: 0,
         rating: 0,
-        reviewCount: 0
+        reviewCount: 0,
+        activeJobs: 0
       };
     }
+
+    const maidId = maid._id;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayJobs = await Job.countDocuments({
+      maid_id: maidId,
+      scheduled_datetime: { $gte: today }
+    });
+
+    const completedJobs = await Job.countDocuments({
+      maid_id: maidId,
+      status: 'completed'
+    });
+
+    // Total hours and earnings
+    const completedJobsList = await Job.find({
+      maid_id: maidId,
+      status: 'completed'
+    });
     
-    const maidId = maidResult[0].maid_id;
-
-    // Today's jobs
-    const [todayResult] = await db.execute(
-      "SELECT COUNT(*) as count FROM jobs WHERE maid_id = ? AND DATE(scheduled_datetime) = CURDATE()",
-      [maidId]
-    );
-    const todayJobs = todayResult[0].count;
-
-    // Completed jobs
-    const [completedResult] = await db.execute(
-      "SELECT COUNT(*) as count FROM jobs WHERE maid_id = ? AND status = 'completed'",
-      [maidId]
-    );
-    const completedJobs = completedResult[0].count;
-
-    // Total hours worked
-    const [hoursResult] = await db.execute(
-      `SELECT COALESCE(SUM(COALESCE(actual_duration, 4)), 0) as hours 
-       FROM jobs 
-       WHERE maid_id = ? AND status = 'completed'`,
-      [maidId]
-    );
-    const totalHours = hoursResult[0].hours || 0;
-
-    // Total earnings
-    const [earningsResult] = await db.execute(
-      `SELECT COALESCE(SUM(hourly_rate * COALESCE(actual_duration, 4)), 0) as earnings 
-       FROM jobs 
-       WHERE maid_id = ? AND status = 'completed'`,
-      [maidId]
-    );
-    const earnings = earningsResult[0].earnings || 0;
+    const totalHours = completedJobsList.reduce((sum, job) => {
+      return sum + (job.actual_duration || 4);
+    }, 0);
+    
+    const earnings = completedJobsList.reduce((sum, job) => {
+      return sum + (job.hourly_rate * (job.actual_duration || 4));
+    }, 0);
 
     // Average rating
-    const [ratingResult] = await db.execute(
-      `SELECT AVG(r.rating) as avgRating, COUNT(*) as count 
-       FROM reviews r 
-       INNER JOIN jobs j ON r.job_id = j.job_id 
-       WHERE j.maid_id = ?`,
-      [maidId]
-    );
-    const rating = ratingResult[0].avgRating || 0;
-    const reviewCount = ratingResult[0].count || 0;
+    const reviews = await Review.find({ reviewee_id: userId });
+    const rating = reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+      : 0;
+    const reviewCount = reviews.length;
 
-    // Active/pending jobs
-    const [activeResult] = await db.execute(
-      "SELECT COUNT(*) as count FROM jobs WHERE maid_id = ? AND status IN ('in_progress', 'accepted', 'requested')",
-      [maidId]
-    );
-    const activeJobs = activeResult[0].count;
+    const activeJobs = await Job.countDocuments({
+      maid_id: maidId,
+      status: { $in: ['in_progress', 'accepted', 'requested'] }
+    });
 
     return {
       todayJobs,
       completedJobs,
       totalHours,
       earnings,
-      rating: parseFloat(rating).toFixed(1),
+      rating,
       reviewCount,
       activeJobs
     };

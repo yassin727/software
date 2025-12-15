@@ -1,66 +1,123 @@
 /**
- * Simple test script to verify backend APIs
- * Run with: node test-apis.js
+ * API Test Script
+ * Usage: node test-apis.js
+ * 
+ * Tests the main API endpoints to verify they're working.
+ * Requires the server to be running.
  */
 
-const bcrypt = require('bcrypt');
-const db = require('./config/db');
+const http = require('http');
 
-async function testApis() {
-  console.log('Testing backend APIs...\n');
-  
-  try {
-    // Test database connection
-    console.log('1. Testing database connection...');
-    const [rows] = await db.execute('SELECT 1 as test');
-    console.log('   ✓ Database connection successful\n');
-    
-    // Test user creation
-    console.log('2. Testing user creation...');
-    const passwordHash = await bcrypt.hash('test123', 10);
-    const [result] = await db.execute(
-      'INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, ?)',
-      ['Test User', 'test@example.com', '1234567890', passwordHash, 'admin']
-    );
-    console.log('   ✓ User created with ID:', result.insertId);
-    
-    // Clean up test user
-    await db.execute('DELETE FROM users WHERE user_id = ?', [result.insertId]);
-    console.log('   ✓ Test user cleaned up\n');
-    
-    // Test multer installation
-    console.log('3. Testing multer installation...');
-    const multer = require('multer');
-    console.log('   ✓ Multer installed successfully\n');
-    
-    // Test API routes registration
-    console.log('4. Testing API routes...');
-    const fs = require('fs');
-    const path = require('path');
-    
-    const routesDir = path.join(__dirname, 'routes');
-    if (fs.existsSync(routesDir)) {
-      const routeFiles = fs.readdirSync(routesDir);
-      console.log('   ✓ Routes directory found with', routeFiles.length, 'files');
-      
-      const expectedRoutes = ['authRoutes.js', 'maidRoutes.js', 'jobRoutes.js', 'reviewRoutes.js', 'menuRoutes.js', 'adminRoutes.js', 'dashboardRoutes.js', 'locationRoutes.js', 'profileRoutes.js', 'notificationRoutes.js'];
-      const missingRoutes = expectedRoutes.filter(route => !routeFiles.includes(route));
-      
-      if (missingRoutes.length === 0) {
-        console.log('   ✓ All expected route files present');
-      } else {
-        console.log('   ⚠ Missing route files:', missingRoutes);
+const BASE_URL = process.env.API_URL || 'http://localhost:4000';
+
+async function makeRequest(method, path, data = null, token = null) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(path, BASE_URL);
+    const options = {
+      hostname: url.hostname,
+      port: url.port || 80,
+      path: url.pathname,
+      method: method,
+      headers: {
+        'Content-Type': 'application/json'
       }
-    } else {
-      console.log('   ✗ Routes directory not found');
+    };
+
+    if (token) {
+      options.headers['Authorization'] = `Bearer ${token}`;
     }
-    
-    console.log('\n✅ All tests passed! Backend APIs are ready.');
-    
-  } catch (error) {
-    console.error('❌ Test failed:', error.message);
-    process.exit(1);
-  }
+
+    const req = http.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          resolve({ status: res.statusCode, data: JSON.parse(body) });
+        } catch {
+          resolve({ status: res.statusCode, data: body });
+        }
+      });
+    });
+
+    req.on('error', reject);
+
+    if (data) {
+      req.write(JSON.stringify(data));
+    }
+    req.end();
+  });
 }
 
-testApis();
+async function testApis() {
+  console.log('🧪 Testing HMTS APIs...');
+  console.log('Base URL:', BASE_URL);
+  console.log('');
+
+  let token = null;
+
+  // Test 1: Health check (root)
+  console.log('1️⃣ Testing root endpoint...');
+  try {
+    const res = await makeRequest('GET', '/');
+    console.log('   Status:', res.status);
+    console.log('   ✅ Root endpoint working');
+  } catch (err) {
+    console.log('   ❌ Failed:', err.message);
+  }
+
+  // Test 2: Login
+  console.log('');
+  console.log('2️⃣ Testing login...');
+  try {
+    const res = await makeRequest('POST', '/api/auth/login', {
+      email: 'admin@hmts.com',
+      password: 'admin123'
+    });
+    console.log('   Status:', res.status);
+    if (res.data.token) {
+      token = res.data.token;
+      console.log('   ✅ Login successful, got token');
+    } else {
+      console.log('   ⚠️ Login response:', res.data);
+    }
+  } catch (err) {
+    console.log('   ❌ Failed:', err.message);
+  }
+
+  // Test 3: Get menu (requires auth)
+  if (token) {
+    console.log('');
+    console.log('3️⃣ Testing menu endpoint...');
+    try {
+      const res = await makeRequest('GET', '/api/menu/my', null, token);
+      console.log('   Status:', res.status);
+      if (Array.isArray(res.data)) {
+        console.log('   ✅ Got', res.data.length, 'menu items');
+      } else {
+        console.log('   Response:', res.data);
+      }
+    } catch (err) {
+      console.log('   ❌ Failed:', err.message);
+    }
+
+    // Test 4: Get pending maids (admin only)
+    console.log('');
+    console.log('4️⃣ Testing pending maids endpoint...');
+    try {
+      const res = await makeRequest('GET', '/api/maids/pending', null, token);
+      console.log('   Status:', res.status);
+      if (Array.isArray(res.data)) {
+        console.log('   ✅ Got', res.data.length, 'pending maids');
+      } else {
+        console.log('   Response:', res.data);
+      }
+    } catch (err) {
+      console.log('   ❌ Failed:', err.message);
+    }
+  }
+
+  console.log('');
+  console.log('🏁 API tests complete!');
+}
+
+testApis().catch(console.error);

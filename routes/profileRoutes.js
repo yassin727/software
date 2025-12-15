@@ -8,8 +8,14 @@ const router = express.Router();
 // GET /api/profile - Get current user profile
 router.get('/', auth(['admin', 'homeowner', 'maid']), ProfileController.getProfile);
 
+// GET /api/profile/maid - Get maid-specific profile details
+router.get('/maid', auth(['maid']), ProfileController.getMaidProfile);
+
 // PUT /api/profile - Update profile
 router.put('/', auth(['admin', 'homeowner', 'maid']), ProfileController.updateProfile);
+
+// PUT /api/profile/password - Change password
+router.put('/password', auth(['admin', 'homeowner', 'maid']), ProfileController.changePassword);
 
 // POST /api/profile/photo - Upload profile photo
 router.post('/photo', auth(['admin', 'homeowner', 'maid']), uploadProfile, ProfileController.uploadPhoto);

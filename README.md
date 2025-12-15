@@ -1,263 +1,293 @@
-# Home Maid Tracking System - Phase 1 Prototype
+# Home Maid Tracking System (HMTS)
 
-## 📋 Overview
-A comprehensive web-based platform for managing home maid services with three distinct user roles: Homeowners, Maids, and Administrators. This prototype aligns with the Software Requirements Specification (SRS) document and demonstrates all key features defined in Phase 1.
+A comprehensive web-based platform for managing home maid services with three distinct user roles: Homeowners, Maids, and Administrators. This system implements MVC architecture, automated testing, data validation, and role-based authentication.
 
-## ✨ Key Features Implemented
+## 🚀 Quick Start
 
-### 👥 For Homeowners
-- **Search & Discovery**: Search maids by location, specialization, availability, and ratings
-- **Smart Booking**: Book maid services with detailed task lists and special instructions
-- **Real-time Tracking**: 
-  - Live location tracking with geo-fence verification
-  - Task progress monitoring with completion updates
-  - Check-in/check-out notifications
-- **Communication**: Direct messaging with maids
-- **Review System**: Rate and review maids after service completion
-- **History Management**: View complete service history with invoices
-- **Dashboard**: Quick overview of active bookings, pending tasks, and spending
+### Prerequisites
+- Node.js 16+ and npm
+- MySQL 8.0+
+- Git
 
-### 🏠 For Maids
-- **Registration & Approval**: Register with document uploads, wait for admin approval
-- **Availability Control**: Toggle online/offline status in real-time
-- **Job Management**:
-  - View incoming job requests with full details
-  - Accept or decline jobs
-  - View schedule and upcoming jobs
-- **Check-in/Check-out**: Location-verified attendance tracking
-- **Task Updates**: Update task completion status in real-time
-- **Earnings Dashboard**: Track daily, weekly, and monthly earnings
-- **Review Management**: View all client reviews and ratings
-- **Calendar**: Visual schedule with weekly/monthly views
+### Installation & Setup
 
-### 🔐 For Administrators
-- **Maid Approval System**: 
-  - Review pending maid registrations
-  - View uploaded documents (ID, certificates, health records)
-  - Approve or reject applications with reasons
-- **User Management**: Monitor and manage all users and maids
-- **Analytics Dashboard**: 
-  - System-wide statistics
-  - Performance metrics
-  - Revenue tracking
-- **Reports Generation**: Generate comprehensive reports
-- **Task Monitoring**: Oversee all active jobs and tasks
-- **Payment Oversight**: Track all transactions and payments
-
-## 📁 Files Structure
-```
-/workspace/
-├── index.html              # Admin Dashboard (Main entry point for admins)
-├── homeowner.html          # Homeowner Interface
-├── maid.html              # Maid Interface
-├── styles.css             # Shared stylesheet (45KB - comprehensive styling)
-├── script.js              # Main JavaScript functions
-├── homeowner-script.js    # Homeowner-specific functions
-├── maid-script.js         # Maid-specific functions
-└── README.md              # This documentation
+1. **Clone the repository**
+```bash
+git clone <repository-url>
+cd software
 ```
 
-## 🚀 How to Use
+2. **Install dependencies**
+```bash
+npm install
+```
 
-### Quick Start
-1. **For Admin Dashboard**: Open `index.html` in your web browser
-2. **For Homeowner Interface**: Open `homeowner.html` in your web browser
-3. **For Maid Interface**: Open `maid.html` in your web browser
+3. **Configure environment**
+```bash
+# Copy .env file and update with your database credentials
+cp .env.example .env
+# Edit .env with your MySQL credentials
+```
 
-### Demo Scenarios
+4. **Setup database**
+```bash
+# Create database and run migrations
+npm run setup
 
-#### Scenario 1: Homeowner Books a Maid
-1. Open `homeowner.html`
-2. Navigate to "Search Maids" section
-3. Filter by location, specialization, or rating
-4. Click "Book Now" on a maid card
-5. Fill in the booking form with date, time, and tasks
-6. Submit booking and wait for maid acceptance
+# Create admin user
+npm run seed-admin
 
-#### Scenario 2: Maid Accepts Job & Completes Tasks
-1. Open `maid.html`
-2. Toggle "Availability" switch to go Online
-3. Navigate to "Job Requests" section
-4. Review job details and click "Accept Job"
-5. On job day, use "Check In" button
-6. Mark tasks as completed one by one
-7. Click "Complete & Check Out" when finished
+# Seed menu items
+npm run seed-menu
+```
 
-#### Scenario 3: Admin Approves Maid
-1. Open `index.html`
-2. Click "Review Now" on the pending approvals alert
-3. Review maid's documents and information
-4. Click "View" to see uploaded documents
-5. Click "Approve" or "Reject" with reason
+5. **Start the server**
+```bash
+npm start
+# Server will run on http://localhost:4000
+```
 
-## 🎨 UI/UX Features
+6. **Run tests**
+```bash
+npm test
+```
 
-### Modern Design
-- **Gradient Sidebar**: Purple gradient with smooth animations
-- **Card-based Layout**: Clean, organized content cards
-- **Responsive Design**: Works on desktop, tablet, and mobile
-- **Smooth Transitions**: Fade-in animations and hover effects
-- **Color-coded Status**: Visual indicators for different states
-  - Green: Active/Online/Completed
-  - Orange: Pending/Upcoming
-  - Red: Urgent/Payment
-  - Blue: Information
-  - Gray: Inactive/Offline
+## 📁 Project Structure
 
-### Interactive Elements
-- **Real-time Notifications**: Toast notifications for user actions
-- **Modal Forms**: Popup forms for booking, reviews, and data entry
-- **Star Rating**: Interactive star rating system
-- **Progress Bars**: Visual task completion indicators
-- **Timeline**: Activity timeline with color-coded markers
-- **Toggle Switches**: Modern availability toggle for maids
+```
+├── config/           # Database configuration
+├── controllers/      # HTTP request handlers (MVC Controllers)
+├── middleware/       # Authentication, validation, file upload
+├── models/          # Data access layer (Repository Pattern)
+├── services/        # Business logic layer (Service Pattern)
+├── routes/          # Express route definitions
+├── public/          # Frontend files (HTML, CSS, JS)
+├── tests/           # Automated unit tests (Jest + Supertest)
+├── migrations/      # Database migration scripts
+├── docs/           # Documentation (patterns.md)
+├── database/       # Database schema
+└── deploy.md       # Production deployment guide
+```
 
-## 🔧 Technical Implementation
+## 🏗️ Architecture & Design Patterns
 
-### Technology Stack
-- **HTML5**: Semantic markup with accessibility features
-- **CSS3**: 
-  - CSS Grid and Flexbox for layouts
-  - CSS Variables for theming
-  - Animations and transitions
-  - Responsive media queries
-- **Vanilla JavaScript**: 
-  - No external frameworks required
-  - Modular function organization
-  - Event-driven architecture
-- **Font Awesome 6.4.0**: Icon library
-- **Placeholder Images**: Via placeholder.com
+### MVC Architecture
+- **Models** (`models/`): Data access using Repository pattern
+- **Views** (`public/`): Frontend HTML/CSS/JS files  
+- **Controllers** (`controllers/`): HTTP request/response handling
 
-### Code Organization
-- **Separation of Concerns**: Separate JS files for each user role
-- **Reusable Components**: Shared styles and functions
-- **Clean Code**: Well-commented and organized
-- **Consistent Naming**: Clear variable and function names
+### Service Layer Pattern
+- Business logic encapsulated in `services/` directory
+- Clean separation between controllers and data access
+- Reusable business operations
 
-## 📊 Features Mapping to SRS
+### Repository Pattern
+- Database operations abstracted in model classes
+- Consistent data access interface
+- Easy to mock for testing
 
-### Functional User Requirements ✅
-- ✅ Homeowner registration, login, booking, tracking, and reviews
-- ✅ Maid registration with approval workflow
-- ✅ Maid online/offline status control
-- ✅ Admin approval/rejection of maids
-- ✅ Task viewing and status updates
+See [docs/patterns.md](docs/patterns.md) for detailed pattern documentation.
 
-### Functional System Requirements ✅
-- ✅ User credential management (simulated)
-- ✅ Check-in/check-out timestamp logging (simulated)
-- ✅ Admin approval workflow for maids
-- ✅ Dashboard for all user roles
-- ✅ Notification system (simulated)
-- ✅ Real-time task synchronization (simulated)
+## 🔐 Authentication & Authorization
 
-### Non-functional Requirements ✅
-- ✅ **Performance**: Lightweight, fast loading
-- ✅ **Usability**: Intuitive, mobile-friendly UI
-- ✅ **Maintainability**: Modular code structure
-- ✅ **Scalability**: Organized for future expansion
-- ✅ **Portability**: Web-based, cross-platform
+### Role-Based Access Control
+- **Admin**: Manage maids, view all data, approve registrations
+- **Homeowner**: Create jobs, review maids, manage bookings
+- **Maid**: Accept jobs, check-in/out, update location
 
-### Prototype Pages ✅
-- ✅ Maid registration and status control
-- ✅ Admin dashboard with approval system
-- ✅ Homeowner maid search and booking
-- ✅ Task tracking and progress sharing
-- ✅ Rating and review system
+### JWT Authentication
+- Secure token-based authentication
+- Role-based route protection
+- Session management
 
-## 🎯 Key Interactions Demonstrated
+## 📊 Key Features
 
-1. **Maid Approval Flow**: Admin reviews documents → Approves/Rejects → Maid notified
-2. **Booking Flow**: Homeowner searches → Selects maid → Books → Maid accepts
-3. **Job Execution**: Maid checks in → Completes tasks → Updates status → Checks out
-4. **Review Flow**: Job completes → Homeowner rates → Review visible to all
-5. **Real-time Updates**: Status changes reflected across dashboards
+### ✅ Implemented Features
 
-## 📱 Responsive Breakpoints
-- **Desktop**: > 768px (Full sidebar, multi-column layouts)
-- **Tablet**: 481px - 768px (Responsive grid, collapsible sidebar)
-- **Mobile**: < 480px (Single column, hamburger menu)
+1. **User Management**
+   - Registration with role selection
+   - JWT-based authentication
+   - Profile management with photo upload
+   - Identity verification system
 
-## ⚠️ Prototype Limitations
+2. **Maid Approval System**
+   - Admin approval workflow
+   - Pending maid notifications
+   - Approval/rejection with reasons
+   - Email notifications
 
-### What This IS:
-- ✅ Complete UI/UX prototype
-- ✅ Interactive frontend demonstration
-- ✅ Visual representation of all features
-- ✅ User flow demonstration
-- ✅ Responsive design showcase
+3. **Job Management**
+   - Job creation by homeowners
+   - Job assignment to maids
+   - Status tracking (requested → in_progress → completed)
+   - Check-in/check-out system
 
-### What This IS NOT:
-- ❌ No backend server or database
-- ❌ No real authentication
-- ❌ No data persistence
-- ❌ No actual payment processing
-- ❌ No real GPS/location tracking
-- ❌ No email notifications
+4. **Review System**
+   - Rating system (1-5 stars)
+   - Comments and feedback
+   - Maid rating aggregation
 
-### Simulated Features:
-- User authentication (alerts instead of actual login)
-- Database operations (in-memory only)
-- Real-time notifications (JavaScript alerts/toasts)
-- Payment processing (UI only)
-- Location tracking (placeholder map)
-- File uploads (no actual file handling)
+5. **Dashboard Analytics**
+   - Role-specific dashboards
+   - Real-time statistics
+   - Performance metrics
 
-## 🔮 Future Enhancements (Phase 2+)
+6. **Location Tracking**
+   - Maid location updates
+   - Job-based location sharing
+   - Privacy controls
 
-### Backend Integration
-- Node.js/Express or Django backend
-- PostgreSQL/MongoDB database
-- RESTful API architecture
-- JWT authentication
-- WebSocket for real-time updates
+7. **Notification System**
+   - Email notifications
+   - In-app notifications
+   - Admin notification management
 
-### Additional Features
-- Push notifications (Firebase Cloud Messaging)
-- Real GPS tracking (Google Maps API)
-- Payment gateway integration (Stripe/PayPal)
-- SMS/Email notifications (Twilio/SendGrid)
-- Document verification (OCR/AI)
-- Chat with file sharing
-- Advanced analytics and reporting
-- Multi-language support
-- Dark mode theme
+8. **Dynamic Menu System**
+   - Role-based navigation
+   - Self-referencing menu structure
+   - Hierarchical menu items
 
-## 👨‍💻 Development Team
+9. **AI/ML Recommendation**
+   - Rule-based maid recommendations
+   - Scoring algorithm based on ratings and history
+   - Homeowner-specific suggestions
 
-**Course**: Software Engineering  
-**Date**: October 2025
+### 🧪 Testing & Quality Assurance
 
-**Team Members**:
-- Yassin Wefky
-- Mayar Hossam
-- Shahd Ahmed
-- Elie George
-- Jana Tarek
+- **Automated Unit Tests**: Jest + Supertest
+- **Data Validation**: express-validator middleware
+- **Error Handling**: Centralized error management
+- **Code Quality**: Consistent naming, JSDoc documentation
 
-## 📝 Documentation
+## 🌐 API Endpoints
 
-This prototype is accompanied by:
-- Software Requirements Specification (SRS) document
-- Use case diagrams
-- Form specifications
-- Tabular specifications
-- System scenarios
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
 
-## 🎓 Academic Context
+### Jobs
+- `POST /api/jobs` - Create job (homeowner)
+- `GET /api/jobs/my` - Get user's jobs
+- `POST /api/jobs/checkin` - Maid check-in
+- `POST /api/jobs/checkout` - Maid check-out
 
-This project is developed as part of a Software Engineering course to demonstrate:
-- Requirements analysis and specification
-- User interface design principles
-- User experience considerations
-- Responsive web design
-- Software prototyping
-- Agile development practices
+### Maids
+- `GET /api/maids/pending` - Get pending approvals (admin)
+- `POST /api/maids/approve` - Approve maid (admin)
+- `GET /api/maids/recommend` - Get recommended maids
+
+### Dashboard
+- `GET /api/dashboard/my` - Get dashboard stats
+
+### Reviews
+- `POST /api/reviews` - Create review
+- `GET /api/reviews/maid/:id` - Get maid reviews
+
+## 🔧 Configuration
+
+### Environment Variables
+```bash
+PORT=4000
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=hmts
+JWT_SECRET=your_jwt_secret
+```
+
+### Database Configuration
+- MySQL 8.0+ required
+- UTF8MB4 character set
+- Automated migrations included
+
+## 🚀 Deployment
+
+See [deploy.md](deploy.md) for comprehensive production deployment guide including:
+- PM2 process management
+- Nginx reverse proxy configuration
+- SSL/HTTPS setup with Let's Encrypt
+- Database optimization
+- Security best practices
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test file
+npm test tests/auth.test.js
+
+# Run tests with coverage
+npm test -- --coverage
+```
+
+### Test Coverage
+- Authentication endpoints
+- Job management
+- Data validation
+- Error handling
+
+## 📋 Commands Reference
+
+```bash
+# Development
+npm start              # Start server
+npm run dev           # Start server (alias)
+npm test              # Run tests
+
+# Database
+npm run setup         # Setup database & migrations
+npm run seed-admin    # Create admin user
+npm run seed-menu     # Seed menu items
+
+# Production
+npm run start         # Production server start
+```
+
+## 🔍 Troubleshooting
+
+### Database Connection Issues
+1. Ensure MySQL server is running
+2. Check credentials in `.env` file
+3. Verify database exists: `npm run setup`
+
+### Authentication Issues
+1. Check JWT_SECRET in `.env`
+2. Clear browser localStorage
+3. Verify user roles in database
+
+### File Upload Issues
+1. Check `public/uploads/` directory permissions
+2. Verify multer configuration
+3. Check file size limits
+
+## 📈 Performance Considerations
+
+- Database indexing on frequently queried columns
+- JWT token expiration (8 hours)
+- File upload size limits (5MB profiles, 10MB verification)
+- Connection pooling for database
+- Gzip compression in production
+
+## 🔒 Security Features
+
+- Password hashing with bcrypt
+- JWT token authentication
+- Role-based access control
+- Input validation and sanitization
+- File upload restrictions
+- SQL injection prevention
+- XSS protection headers
+
+## 🤝 Contributing
+
+1. Follow MVC architecture patterns
+2. Add tests for new features
+3. Use JSDoc for documentation
+4. Follow existing code style
+5. Update README for new features
 
 ## 📄 License
 
-This is an academic project for educational purposes.
-
----
-
-**Note**: This is a Phase 1 prototype demonstrating the user interface and user experience. For production use, backend development, security implementation, and thorough testing are required.
+This project is licensed under the ISC License.

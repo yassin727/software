@@ -1,5 +1,6 @@
-const LocationModel = require('../models/locationModel');
-const MaidModel = require('../models/maidModel');
+const Location = require('../models/Location');
+const Maid = require('../models/Maid');
+const Job = require('../models/Job');
 
 /**
  * Maid updates their location
@@ -14,13 +15,18 @@ const updateLocation = async (req, res) => {
       return res.status(400).json({ message: 'Latitude and longitude are required' });
     }
     
-    // Get maid_id from user_id
-    const maid = await MaidModel.getByUserId(userId);
+    // Get maid from user_id
+    const maid = await Maid.findOne({ user_id: userId });
     if (!maid) {
       return res.status(404).json({ message: 'Maid profile not found' });
     }
     
-    await LocationModel.updateLocation(maid.maid_id, latitude, longitude);
+    // Update or create location
+    await Location.findOneAndUpdate(
+      { maid_id: maid._id },
+      { latitude, longitude },
+      { upsert: true, new: true }
+    );
     
     return res.json({ 
       message: 'Location updated successfully',
@@ -40,26 +46,36 @@ const getMaidLocation = async (req, res) => {
     const { jobId } = req.params;
     const homeownerId = req.user.userId;
     
-    const location = await LocationModel.getLocationByJobId(jobId, homeownerId);
+    // Find the job and verify ownership
+    const job = await Job.findOne({ _id: jobId, homeowner_id: homeownerId })
+      .populate({
+        path: 'maid_id',
+        populate: { path: 'user_id', select: 'name' }
+      });
     
-    if (!location) {
+    if (!job) {
       return res.status(404).json({ message: 'Job not found or location unavailable' });
     }
     
-    if (!location.latitude || !location.longitude) {
+    // Get maid's location
+    const location = await Location.findOne({ maid_id: job.maid_id._id });
+    
+    const maidName = job.maid_id.user_id ? job.maid_id.user_id.name : 'Unknown';
+    
+    if (!location || !location.latitude || !location.longitude) {
       return res.json({ 
         message: 'Maid has not shared location yet',
-        maidName: location.maidName,
+        maidName: maidName,
         location: null
       });
     }
     
     return res.json({
-      maidName: location.maidName,
+      maidName: maidName,
       location: {
         latitude: location.latitude,
         longitude: location.longitude,
-        updatedAt: location.updated_at
+        updatedAt: location.updatedAt
       }
     });
   } catch (error) {

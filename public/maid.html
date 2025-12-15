@@ -42,7 +42,7 @@
             </a>
         </nav>
         <div class="sidebar-footer">
-            <a href="#profile" class="nav-item">
+            <a href="#profile" class="nav-item" onclick="showSection('profile')">
                 <i class="fas fa-user-circle"></i>
                 <span>Profile</span>
             </a>
@@ -72,10 +72,24 @@
                     </label>
                     <span id="availabilityText">You are Offline</span>
                 </div>
-                <button class="notification-btn" onclick="showMaidNotifications()">
-                    <i class="fas fa-bell"></i>
-                    <span class="badge">4</span>
-                </button>
+                <div class="notification-wrapper">
+                    <button class="notification-btn" onclick="toggleNotificationPanel()">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge notification-badge" id="notificationBadge">0</span>
+                    </button>
+                    <div class="notification-panel" id="notificationPanel">
+                        <div class="notification-header">
+                            <h3>Notifications</h3>
+                            <button class="mark-all-read" onclick="markAllNotificationsRead()">Mark all read</button>
+                        </div>
+                        <div class="notification-list" id="notificationList">
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>No notifications</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="user-profile">
                     <img src="https://via.placeholder.com/40" alt="User">
                     <span>Maria Garcia</span>
@@ -730,6 +744,107 @@
                         </div>
                     </div>
                     <!-- Add more days as needed -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="profile" class="content-section">
+            <div class="profile-grid">
+                <!-- Profile Card -->
+                <div class="card profile-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar-container">
+                            <img id="profileAvatar" src="https://via.placeholder.com/120" alt="Profile" class="profile-avatar">
+                            <label for="avatarUpload" class="avatar-upload-btn">
+                                <i class="fas fa-camera"></i>
+                            </label>
+                            <input type="file" id="avatarUpload" accept="image/*" onchange="uploadMaidAvatar(event)" style="display: none;">
+                        </div>
+                        <h2 id="profileName">Maria Garcia</h2>
+                        <p class="profile-role">Professional Maid</p>
+                        <div class="profile-rating">
+                            <i class="fas fa-star"></i>
+                            <span id="profileRating">4.8</span>
+                            <span class="rating-count">(<span id="profileReviewCount">127</span> reviews)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-user-edit"></i> Edit Profile</h3>
+                    </div>
+                    <form class="form" onsubmit="updateMaidProfile(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="profileFullName">Full Name</label>
+                                <input type="text" id="profileFullName" placeholder="Your full name">
+                            </div>
+                            <div class="form-group">
+                                <label for="profileEmail">Email</label>
+                                <input type="email" id="profileEmail" placeholder="your@email.com" disabled>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="profilePhone">Phone Number</label>
+                                <input type="tel" id="profilePhone" placeholder="Your phone number">
+                            </div>
+                            <div class="form-group">
+                                <label for="profileLocation">Location/Area</label>
+                                <input type="text" id="profileLocation" placeholder="e.g., Sector 1">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="profileSpecialization">Specialization</label>
+                                <select id="profileSpecialization">
+                                    <option value="General Cleaning">General Cleaning</option>
+                                    <option value="Deep Cleaning">Deep Cleaning</option>
+                                    <option value="Kitchen Specialist">Kitchen Specialist</option>
+                                    <option value="Laundry Specialist">Laundry Specialist</option>
+                                    <option value="Window Cleaning">Window Cleaning</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="profileHourlyRate">Hourly Rate ($)</label>
+                                <input type="number" id="profileHourlyRate" placeholder="15" min="10" max="100">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileBio">Bio</label>
+                            <textarea id="profileBio" rows="3" placeholder="Tell clients about yourself and your experience..."></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Change Password -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-lock"></i> Change Password</h3>
+                    </div>
+                    <form class="form" onsubmit="changeMaidPassword(event)">
+                        <div class="form-group">
+                            <label for="currentPassword">Current Password</label>
+                            <input type="password" id="currentPassword" placeholder="Enter current password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">New Password</label>
+                            <input type="password" id="newPassword" placeholder="Enter new password" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm New Password</label>
+                            <input type="password" id="confirmPassword" placeholder="Confirm new password" required>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-key"></i> Update Password
+                        </button>
+                    </form>
                 </div>
             </div>
         </section>

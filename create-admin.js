@@ -1,60 +1,69 @@
 /**
- * Admin User Creation Script
- * Run this once to create an admin account in the database
+ * Create Admin User Script
  * Usage: node create-admin.js
+ * 
+ * This script creates an admin user for the HMTS system.
+ * Uses MongoDB for storage.
  */
 
+const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-const db = require('./config/db');
+
+// Load environment variables
+require('dotenv').config();
+
+const User = require('./models/User');
 
 async function createAdmin() {
   try {
-    console.log('Creating admin user...\n');
+    // Connect to MongoDB
+    const mongoUrl = process.env.MONGO_URL || 'mongodb://localhost:27017/hmts';
+    console.log('🔌 Connecting to MongoDB...');
+    await mongoose.connect(mongoUrl);
+    console.log('✅ Connected to MongoDB');
 
-    const adminData = {
-      name: 'Administrator',
-      email: 'admin@maidtrack.com',
-      phone: '1234567890',
-      password: 'admin123',
-      role: 'admin'
-    };
+    // Admin credentials
+    const adminEmail = 'admin@hmts.com';
+    const adminPassword = 'admin123';
 
     // Check if admin already exists
-    const [existingUsers] = await db.execute(
-      'SELECT * FROM users WHERE email = ?',
-      [adminData.email]
-    );
-
-    if (existingUsers.length > 0) {
-      console.log('❌ Admin user already exists with email:', adminData.email);
-      console.log('   User ID:', existingUsers[0].user_id);
-      console.log('   Name:', existingUsers[0].name);
-      console.log('   Role:', existingUsers[0].role);
-      console.log('\nIf you need to reset the password, delete this user from the database first.');
-      process.exit(0);
+    const existingAdmin = await User.findOne({ email: adminEmail });
+    if (existingAdmin) {
+      console.log('⚠️ Admin user already exists with email:', adminEmail);
+      console.log('   Use these credentials to login:');
+      console.log('   Email:', adminEmail);
+      console.log('   Password: admin123');
+      await mongoose.disconnect();
+      return;
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(adminData.password, 10);
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
 
-    // Insert admin user
-    const [result] = await db.execute(
-      'INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, ?)',
-      [adminData.name, adminData.email, adminData.phone, passwordHash, adminData.role]
-    );
+    // Create admin user
+    const admin = await User.create({
+      name: 'System Administrator',
+      email: adminEmail,
+      phone: '0000000000',
+      password_hash: passwordHash,
+      role: 'admin',
+      verification_status: 'verified'
+    });
 
-    console.log('✅ Admin user created successfully!\n');
-    console.log('Login Credentials:');
-    console.log('==================');
-    console.log('Email:   ', adminData.email);
-    console.log('Password:', adminData.password);
-    console.log('\nUser ID:', result.insertId);
-    console.log('\n⚠️  IMPORTANT: Change this password after first login!');
-    console.log('You can now login at: http://localhost:4000/login.html\n');
+    console.log('');
+    console.log('✅ Admin user created successfully!');
+    console.log('═'.repeat(40));
+    console.log('   Email:', adminEmail);
+    console.log('   Password:', adminPassword);
+    console.log('   User ID:', admin._id);
+    console.log('═'.repeat(40));
+    console.log('');
+    console.log('⚠️ Please change the password after first login!');
 
-    process.exit(0);
+    await mongoose.disconnect();
+    console.log('✅ Disconnected from MongoDB');
   } catch (error) {
-    console.error('❌ Error creating admin user:', error.message);
+    console.error('❌ Error creating admin:', error.message);
     process.exit(1);
   }
 }

@@ -14,7 +14,7 @@ router.post(
   '/approve',
   auth(['admin']),
   validate([
-    body('maidId').notEmpty().withMessage('maidId is required').isInt().withMessage('maidId must be an integer'),
+    body('maidId').notEmpty().withMessage('maidId is required'),
   ]),
   MaidController.approveMaid
 );

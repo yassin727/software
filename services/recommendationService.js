@@ -1,6 +1,6 @@
-const MaidModel = require('../models/maidModel');
-const JobModel = require('../models/jobModel');
-const ReviewModel = require('../models/reviewModel');
+const Maid = require('../models/Maid');
+const Job = require('../models/Job');
+const Review = require('../models/Review');
 
 class RecommendationService {
   /**
@@ -9,8 +9,10 @@ class RecommendationService {
    * and can later be replaced by a real ML model.
    */
   static async getRecommendedMaidsForHomeowner(homeownerId, limit = 5) {
-    // 1) get all approved maids
-    const maids = await MaidModel.getApprovedWithUserData();
+    // 1) get all approved maids with user data
+    const maids = await Maid.find({ approval_status: 'approved' })
+      .populate('user_id', 'name email')
+      .lean();
 
     // 2) for each maid, compute:
     //    - avg rating
@@ -18,27 +20,29 @@ class RecommendationService {
     const scores = [];
 
     for (const maid of maids) {
-      const maidUserId = maid.user_id;
+      const maidUserId = maid.user_id?._id;
 
-      const reviews = await ReviewModel.getForMaid(maidUserId);
+      // Get reviews for this maid
+      const reviews = await Review.find({ reviewee_id: maidUserId }).lean();
       const avgRating =
         reviews.length === 0
           ? 0
           : reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
 
-      const completedJobs = await JobModel.countCompletedJobsForMaid(
-        maid.maid_id,
-        homeownerId
-      );
+      // Count completed jobs
+      const completedJobs = await Job.countDocuments({
+        maid_id: maid._id,
+        status: 'completed'
+      });
 
       // Simple scoring formula (you can mention this in the report)
       const score = avgRating * 2 + completedJobs;
 
       scores.push({
-        maidId: maid.maid_id,
+        maidId: maid._id,
         maidUserId,
-        name: maid.name,
-        email: maid.email,
+        name: maid.user_id?.name || 'Unknown',
+        email: maid.user_id?.email || '',
         avgRating,
         completedJobs,
         score,

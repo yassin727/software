@@ -11,7 +11,7 @@ router.post(
   '/',
   auth(['homeowner']),
   validate([
-    body('maidId').notEmpty().withMessage('maidId is required').isInt().withMessage('maidId must be an integer'),
+    body('maidId').notEmpty().withMessage('maidId is required'),
     body('title').notEmpty().withMessage('title is required'),
     body('address').notEmpty().withMessage('address is required'),
     body('scheduledDatetime').notEmpty().withMessage('scheduledDatetime is required').isISO8601().withMessage('scheduledDatetime must be ISO date/time'),
@@ -28,7 +28,7 @@ router.post(
   '/checkin',
   auth(['maid']),
   validate([
-    body('jobId').notEmpty().withMessage('jobId is required').isInt().withMessage('jobId must be an integer'),
+    body('jobId').notEmpty().withMessage('jobId is required'),
   ]),
   JobController.checkIn
 );
@@ -38,8 +38,8 @@ router.post(
   '/checkout',
   auth(['maid']),
   validate([
-    body('attendanceId').notEmpty().withMessage('attendanceId is required').isInt().withMessage('attendanceId must be an integer'),
-    body('jobId').notEmpty().withMessage('jobId is required').isInt().withMessage('jobId must be an integer'),
+    body('attendanceId').notEmpty().withMessage('attendanceId is required'),
+    body('jobId').notEmpty().withMessage('jobId is required'),
   ]),
   JobController.checkOut
 );
