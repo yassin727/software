@@ -83,7 +83,7 @@ function goBackToUserType() {
 }
 
 // Form submissions
-function submitHomeownerSignup(event) {
+async function submitHomeownerSignup(event) {
     event.preventDefault();
     
     const formData = new FormData(event.target);
@@ -91,25 +91,46 @@ function submitHomeownerSignup(event) {
     
     // Basic validation
     if (data.password !== data.confirmPassword) {
-        alert('Passwords do not match!');
+        showNotification('Passwords do not match!', 'error');
         return;
     }
     
     if (data.age < 18) {
-        alert('You must be at least 18 years old to sign up.');
+        showNotification('You must be at least 18 years old to sign up.', 'error');
         return;
     }
     
-    // Simulate form submission
-    showNotification('Account created successfully! Redirecting to homeowner dashboard...', 'success');
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+    submitBtn.disabled = true;
     
-    setTimeout(() => {
-        closeModal('signupModal');
-        window.location.href = 'homeowner.html';
-    }, 2000);
+    try {
+        // Call API to register homeowner
+        const response = await apiRegister({
+            name: data.fullName,
+            email: data.email,
+            phone: data.phone,
+            password: data.password,
+            role: 'homeowner',
+            address: data.address
+        });
+        
+        showNotification('Account created successfully! Redirecting to dashboard...', 'success');
+        
+        setTimeout(() => {
+            closeModal('signupModal');
+            window.location.href = 'homeowner.html';
+        }, 1500);
+    } catch (error) {
+        showNotification(error.message || 'Registration failed. Please try again.', 'error');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
 }
 
-function submitMaidSignup(event) {
+async function submitMaidSignup(event) {
     event.preventDefault();
     
     const formData = new FormData(event.target);
@@ -117,45 +138,82 @@ function submitMaidSignup(event) {
     
     // Basic validation
     if (data.password !== data.confirmPassword) {
-        alert('Passwords do not match!');
+        showNotification('Passwords do not match!', 'error');
         return;
     }
     
     if (data.age < 18) {
-        alert('You must be at least 18 years old to sign up.');
+        showNotification('You must be at least 18 years old to sign up.', 'error');
         return;
     }
     
     // Check if at least one specialization is selected
     const specializations = formData.getAll('specializations');
     if (specializations.length === 0) {
-        alert('Please select at least one specialization.');
+        showNotification('Please select at least one specialization.', 'error');
         return;
     }
     
-    // Simulate form submission
-    showNotification('Account created successfully! Redirecting to maid dashboard...', 'success');
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+    submitBtn.disabled = true;
     
-    setTimeout(() => {
-        closeModal('signupModal');
-        window.location.href = 'maid.html';
-    }, 2000);
+    try {
+        // Call API to register maid
+        const response = await apiRegister({
+            name: data.fullName,
+            email: data.email,
+            phone: data.phone,
+            password: data.password,
+            role: 'maid',
+            experience: data.experience,
+            specializations: specializations.join(',')
+        });
+        
+        showNotification('Account created successfully! Your account is pending approval.', 'success');
+        
+        setTimeout(() => {
+            closeModal('signupModal');
+            // Maids go to their dashboard but may need to wait for approval
+            window.location.href = 'maid.html';
+        }, 1500);
+    } catch (error) {
+        showNotification(error.message || 'Registration failed. Please try again.', 'error');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
 }
 
-function submitLogin(event) {
+async function submitLogin(event) {
     event.preventDefault();
     
     const formData = new FormData(event.target);
     const data = Object.fromEntries(formData);
     
-    // Simulate login
-    showNotification('Login successful! Redirecting to dashboard...', 'success');
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+    submitBtn.disabled = true;
     
-    setTimeout(() => {
-        closeModal('loginModal');
-        // In a real app, this would determine user type and redirect accordingly
-        window.location.href = 'homeowner.html';
-    }, 1500);
+    try {
+        // Call API to login
+        const response = await apiLogin(data.email, data.password);
+        
+        showNotification('Login successful! Redirecting to dashboard...', 'success');
+        
+        setTimeout(() => {
+            closeModal('loginModal');
+            // Redirect based on user role
+            redirectToDashboard();
+        }, 1000);
+    } catch (error) {
+        showNotification(error.message || 'Login failed. Please check your credentials.', 'error');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
 }
 
 // Notification system
@@ -369,6 +427,15 @@ function initHeaderAnimations() {
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if user has "remember me" enabled and is authenticated
+    if (typeof isAuthenticated === 'function' && isAuthenticated() && localStorage.getItem('rememberMe') === 'true') {
+        // User has remember me enabled and is authenticated, redirect to dashboard
+        if (typeof redirectToDashboard === 'function') {
+            redirectToDashboard();
+            return;
+        }
+    }
+    
     // Initialize animations
     initStarRatings();
     initScrollAnimations();

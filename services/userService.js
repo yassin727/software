@@ -38,6 +38,7 @@ class UserService {
 
   /**
    * Login: validate credentials and return JWT + user info.
+   * For maids, check approval status before allowing login.
    */
   static async login({ email, password }) {
     const user = await User.findByEmail(email);
@@ -52,6 +53,28 @@ class UserService {
       const err = new Error('Invalid credentials');
       err.status = 401;
       throw err;
+    }
+
+    // Check maid approval status
+    if (user.role === 'maid') {
+      const maidProfile = await Maid.getByUserId(user.user_id);
+      if (!maidProfile) {
+        const err = new Error('Maid profile not found');
+        err.status = 500;
+        throw err;
+      }
+      
+      if (maidProfile.approval_status === 'pending') {
+        const err = new Error('Your account is pending admin approval. Please wait for approval.');
+        err.status = 403;
+        throw err;
+      }
+      
+      if (maidProfile.approval_status === 'rejected') {
+        const err = new Error('Your account was rejected. Please contact support for more information.');
+        err.status = 403;
+        throw err;
+      }
     }
 
     const token = jwt.sign(

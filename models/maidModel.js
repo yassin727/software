@@ -9,10 +9,43 @@ class MaidModel {
     return result.insertId;
   }
 
+  /**
+   * Get maid profile by user ID
+   */
+  static async getByUserId(userId) {
+    const [rows] = await db.execute(
+      'SELECT * FROM maids WHERE user_id = ?',
+      [userId]
+    );
+    return rows[0];
+  }
+
+  /**
+   * Get maid with user data by maid_id
+   */
+  static async getById(maidId) {
+    const [rows] = await db.execute(
+      `SELECT m.*, u.name, u.email, u.phone
+       FROM maids m
+       INNER JOIN users u ON m.user_id = u.user_id
+       WHERE m.maid_id = ?`,
+      [maidId]
+    );
+    return rows[0];
+  }
+
   static async approve(maidId) {
     const [result] = await db.execute(
       'UPDATE maids SET approval_status = ? WHERE maid_id = ?',
       ['approved', maidId]
+    );
+    return result.affectedRows;
+  }
+
+  static async reject(maidId, reason = '') {
+    const [result] = await db.execute(
+      'UPDATE maids SET approval_status = ?, rejection_reason = ? WHERE maid_id = ?',
+      ['rejected', reason, maidId]
     );
     return result.affectedRows;
   }

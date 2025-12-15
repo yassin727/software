@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page</title>
+</head>
+<body>
+    <h1>Test Page</h1>
+    <p>If you see this, the server is working correctly.</p>
+    <p>Current URL: <span id="current-url"></span></p>
+    <p>Redirect test: <span id="redirect-status">Not redirected</span></p>
+    
+    <script>
+        document.getElementById('current-url').textContent = window.location.href;
+        
+        // Check if there's an immediate redirect
+        setTimeout(() => {
+            document.getElementById('redirect-status').textContent = 'No redirect detected';
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -2,6 +2,9 @@
 
 let isOnline = false;
 let currentJobStartTime = null;
+let myMaidJobs = [];
+let currentAttendanceId = null;
+let currentActiveJobId = null;
 
 // Availability Toggle
 function toggleAvailability() {
@@ -91,18 +94,26 @@ function declineRequest(requestId) {
 }
 
 // Check-in/Check-out
-function checkIn(jobId) {
+async function checkIn(jobId) {
     // Check geo-location (simulated)
     showMaidNotification('Verifying your location...', 'info');
     
-    setTimeout(() => {
+    try {
+        const response = await apiCheckIn(jobId);
+        
         currentJobStartTime = new Date();
+        currentActiveJobId = jobId;
+        currentAttendanceId = response.attendance ? response.attendance.id : response.attendanceId;
+        
         showMaidNotification('Checked in successfully! You can now start working.', 'success');
         startWorkTimer();
         
-        // Update UI to show active job
+        // Reload jobs to update UI
+        await loadMaidJobs();
         showSection('my-jobs');
-    }, 1500);
+    } catch (error) {
+        showMaidNotification(error.message || 'Check-in failed. Please try again.', 'error');
+    }
 }
 
 function checkOut() {
@@ -113,21 +124,51 @@ function completeJob() {
     document.getElementById('checkoutModal').classList.add('active');
 }
 
-function submitCheckout(event) {
+async function submitCheckout(event) {
     event.preventDefault();
     
-    showMaidNotification('Processing check-out...', 'info');
+    if (!currentAttendanceId && !currentActiveJobId) {
+        // Fallback for demo mode
+        showMaidNotification('Processing check-out...', 'info');
+        setTimeout(() => {
+            stopWorkTimer();
+            showMaidNotification('Job completed successfully! Payment is being processed.', 'success');
+            closeModal('checkoutModal');
+            setTimeout(() => {
+                showSection('dashboard');
+            }, 1000);
+        }, 1500);
+        return;
+    }
     
-    setTimeout(() => {
+    // Show loading state
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    submitBtn.disabled = true;
+    
+    try {
+        await apiCheckOut(currentAttendanceId, currentActiveJobId);
+        
         stopWorkTimer();
         showMaidNotification('Job completed successfully! Payment is being processed.', 'success');
         closeModal('checkoutModal');
         
-        // Refresh dashboard
+        // Reset state
+        currentAttendanceId = null;
+        currentActiveJobId = null;
+        
+        // Reload jobs and refresh dashboard
+        await loadMaidJobs();
+        
         setTimeout(() => {
             showSection('dashboard');
         }, 1000);
-    }, 1500);
+    } catch (error) {
+        showMaidNotification(error.message || 'Check-out failed. Please try again.', 'error');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
 }
 
 // Task Management
@@ -291,14 +332,130 @@ function showMaidNotification(message, type = 'info') {
 }
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('Maid Dashboard Loaded');
+    
+    // Check authentication
+    if (typeof isAuthenticated === 'function' && !isAuthenticated()) {
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Verify user role
+    const user = typeof getUser === 'function' ? getUser() : null;
+    if (!user) {
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    if (user.role !== 'maid') {
+        if (typeof redirectToDashboard === 'function') {
+            redirectToDashboard();
+        } else {
+            window.location.href = 'login.html';
+        }
+        return;
+    }
+    
+    // Update user display
+    const userNameEl = document.querySelector('.user-profile span');
+    if (userNameEl) {
+        userNameEl.textContent = user.name || 'Maid';
+    }
+    
+    // Load maid's jobs
+    await loadMaidJobs();
+    
+    // Update dashboard stats
+    await updateMaidDashboardStats();
     
     // Start work timer if there's an active job
     const activeJob = document.querySelector('.active-job-card');
     if (activeJob) {
         startWorkTimer();
     }
+});
+
+/**
+ * Load maid's jobs from API
+ */
+async function loadMaidJobs() {
+    try {
+        const response = await apiGetMyJobs();
+        myMaidJobs = response.data || response || [];
+        
+        // Update dashboard stats
+        updateMaidDashboardStats();
+        
+        // Find any active job and set attendance ID
+        const activeJob = myMaidJobs.find(j => j.status === 'in_progress');
+        if (activeJob) {
+            currentActiveJobId = activeJob.id;
+            if (activeJob.attendanceId) {
+                currentAttendanceId = activeJob.attendanceId;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading maid jobs:', error);
+    }
+}
+
+/**
+ * Update maid dashboard statistics
+ */
+async function updateMaidDashboardStats() {
+    try {
+        const stats = await apiRequest('/api/dashboard/my', { method: 'GET' });
+        
+        // Update stat cards
+        const statCards = document.querySelectorAll('.stat-card .stat-details h3');
+        if (statCards.length >= 5) {
+            statCards[0].textContent = stats.activeJobs || 0;
+            statCards[1].textContent = stats.completedJobs || 0;
+            statCards[2].textContent = stats.todayJobs || 0;
+            statCards[3].textContent = `$${stats.earnings || 0}`;
+            statCards[4].innerHTML = `${stats.rating || 0} <small>(${stats.reviewCount || 0})</small>`;
+        }
+        
+        // Update hours worked if element exists
+        const hoursEl = document.getElementById('totalHours');
+        if (hoursEl) {
+            hoursEl.textContent = stats.totalHours || 0;
+        }
+    } catch (error) {
+        console.error('Error updating maid stats:', error);
+        // Keep showing existing static data
+    }
+}
+
+/**
+ * Handle logout for maid page
+ */
+function handleMaidLogout() {
+    // Stop any running timers
+    stopWorkTimer();
+    
+    if (typeof logout === 'function') {
+        logout();
+    } else {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('rememberMe');
+        window.location.href = 'home.html';
+    }
+}
+
+// Add logout handler
+document.addEventListener('DOMContentLoaded', () => {
+    const logoutLinks = document.querySelectorAll('a[href="index.html"]');
+    logoutLinks.forEach(link => {
+        if (link.querySelector('.fa-sign-out-alt') || link.textContent.toLowerCase().includes('logout')) {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleMaidLogout();
+            });
+        }
+    });
 });
 
 // Cleanup on page unload

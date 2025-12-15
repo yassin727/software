@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>Debug Test</h1>
+    <p>Checking authentication status...</p>
+    <div id="result"></div>
+    
+    <script src="api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultDiv = document.getElementById('result');
+            
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            resultDiv.innerHTML = `
+                <p>Token exists: ${!!token}</p>
+                <p>Token value: ${token || 'None'}</p>
+                <p>User exists: ${!!user}</p>
+                <p>User value: ${user || 'None'}</p>
+                <p>isAuthenticated(): ${isAuthenticated()}</p>
+            `;
+            
+            if (typeof getUser === 'function') {
+                const userData = getUser();
+                resultDiv.innerHTML += `<p>User data: ${JSON.stringify(userData || 'None')}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
