@@ -752,18 +752,11 @@ async function rejectMaid(maidId, maidName) {
     if (reason !== null) { // Allow empty reason
         try {
             if (maidId) {
-                // Call API to reject maid
-                await apiRequest('/admin/maids/reject', {
-                    method: 'POST',
-                    body: JSON.stringify({ maidId, reason })
-                });
+                // Use the apiRejectMaid function
+                await apiRejectMaid(maidId, reason);
             }
             
-            alert(`❌ ${maidName} has been rejected.
-
-Reason: ${reason || 'No reason provided'}
-
-A rejection email has been sent.`);
+            alert(`❌ ${maidName} has been rejected.\n\nReason: ${reason || 'No reason provided'}\n\nA rejection email has been sent.`);
             
             // Remove the approval card
             const approvalCard = event.target.closest('.approval-card');

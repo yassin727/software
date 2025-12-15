@@ -266,20 +266,32 @@ async function apiCheckOut(attendanceId, jobId) {
  * @returns {Promise<Object>} List of pending maids
  */
 async function apiGetPendingMaids() {
-    return await apiRequest('/maids/pending', {
+    return await apiRequest('/admin/maids/pending', {
         method: 'GET',
     });
 }
 
 /**
  * Approve a maid (admin only)
- * @param {number} maidId - Maid user ID
+ * @param {string} maidId - Maid ID
  * @returns {Promise<Object>} Approval response
  */
 async function apiApproveMaid(maidId) {
-    return await apiRequest('/maids/approve', {
-        method: 'POST',
-        body: JSON.stringify({ maidId }),
+    return await apiRequest(`/admin/maids/${maidId}/approve`, {
+        method: 'PUT',
+    });
+}
+
+/**
+ * Reject a maid (admin only)
+ * @param {string} maidId - Maid ID
+ * @param {string} reason - Rejection reason
+ * @returns {Promise<Object>} Rejection response
+ */
+async function apiRejectMaid(maidId, reason = '') {
+    return await apiRequest(`/admin/maids/${maidId}/reject`, {
+        method: 'PUT',
+        body: JSON.stringify({ reason }),
     });
 }
 
