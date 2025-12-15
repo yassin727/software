@@ -22,11 +22,10 @@ if (process.env.MONGO_URL) {
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(connectionString, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    // Mongoose 6+ doesn't need useNewUrlParser/useUnifiedTopology
+    await mongoose.connect(connectionString);
     console.log('✅ MongoDB connected successfully');
+    console.log(`📊 Database: ${mongoose.connection.name}`);
   } catch (error) {
     console.error('❌ MongoDB connection failed:', error.message);
     process.exit(1);

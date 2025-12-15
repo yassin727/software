@@ -31,8 +31,21 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from public folder (CSS, JS, HTML, images)
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from public folder with cache control
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    // Disable caching for HTML files to always get latest
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+    // Short cache for JS/CSS (1 hour) to allow updates
+    else if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+  }
+}));
 
 // Route mounting
 
@@ -54,9 +67,18 @@ app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
-// Health check route (fixed)
+// Health check route
 app.get('/health', (_req, res) => {
   res.json({ message: 'HMTS API is running' });
+});
+
+// Version endpoint for cache verification
+app.get('/api/version', (_req, res) => {
+  res.json({ 
+    version: '2.0.0',
+    deployed: new Date().toISOString(),
+    features: ['real-api', 'notifications', 'maid-approval', 'admin-dashboard']
+  });
 });
 
 // Centralized error handler
