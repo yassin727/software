@@ -23,6 +23,39 @@ class MaidService {
       .sort({ createdAt: -1 })
       .lean();
   }
+
+  /**
+   * Get maid profile by user ID
+   */
+  static async getMaidByUserId(userId) {
+    return await Maid.findOne({ user_id: userId });
+  }
+
+  /**
+   * Update maid profile with detailed information
+   */
+  static async updateMaidProfile(maidId, profileData) {
+    const {
+      specializations,
+      hourly_rate,
+      experience_years,
+      location,
+      bio
+    } = profileData;
+
+    const updateData = {};
+    if (specializations) updateData.specializations = specializations;
+    if (hourly_rate !== undefined) updateData.hourly_rate = hourly_rate;
+    if (experience_years !== undefined) updateData.experience_years = experience_years;
+    if (location) updateData.location = location;
+    if (bio) updateData.bio = bio;
+
+    return await Maid.findByIdAndUpdate(
+      maidId,
+      { $set: updateData },
+      { new: true }
+    );
+  }
 }
 
 module.exports = MaidService;

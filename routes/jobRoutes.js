@@ -44,6 +44,20 @@ router.post(
   JobController.checkOut
 );
 
+// GET /api/jobs/:jobId - Get job details with tasks and progress
+router.get('/:jobId', auth(['homeowner', 'maid', 'admin']), JobController.getJobDetails);
+
+// PUT /api/jobs/:jobId/progress - Update job tasks and progress (maid can update progress, homeowner can edit tasks)
+router.put(
+  '/:jobId/progress',
+  auth(['maid', 'homeowner']),
+  validate([
+    body('progress_percentage').optional().isInt({ min: 0, max: 100 }).withMessage('Progress must be between 0 and 100'),
+    body('progress_note').optional().isString().trim(),
+  ]),
+  JobController.updateJobProgress
+);
+
 // Optional: admin update job status
 router.patch('/:jobId/status', auth(['admin']), JobController.updateJobStatus);
 

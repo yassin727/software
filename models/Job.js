@@ -46,6 +46,42 @@ const jobSchema = new mongoose.Schema({
   actual_duration: {
     type: Number,
     default: null
+  },
+  tasks: [{
+    name: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    completed: {
+      type: Boolean,
+      default: false
+    },
+    completed_at: {
+      type: Date,
+      default: null
+    },
+    notes: {
+      type: String,
+      trim: true
+    }
+  }],
+  progress_notes: [{
+    note: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  progress_percentage: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
   }
 }, {
   timestamps: true

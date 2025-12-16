@@ -211,26 +211,30 @@ const getBookings = async (req, res) => {
     }).select('job_id');
     const reviewedIds = new Set(reviews.map(r => r.job_id.toString()));
 
-    const bookingList = bookings.map(booking => ({
-      id: booking._id,
-      title: booking.title,
-      description: booking.description,
-      address: booking.address,
-      scheduledDatetime: booking.scheduled_datetime,
-      status: booking.status,
-      hourlyRate: booking.hourly_rate,
-      estimatedDuration: booking.estimated_duration,
-      actualDuration: booking.actual_duration,
-      estimatedTotal: booking.hourly_rate * (booking.estimated_duration || 4),
-      maid: {
-        id: booking.maid_id?._id,
-        name: booking.maid_id?.user_id?.name || 'Unknown',
-        photo: booking.maid_id?.user_id?.photo_url || null,
-        rating: booking.maid_id?.average_rating || 0
-      },
-      hasReview: reviewedIds.has(booking._id.toString()),
-      createdAt: booking.createdAt
-    }));
+    const bookingList = bookings.map(booking => {
+      const progressPercent = booking.progress_percentage || 0;
+      return {
+        id: booking._id,
+        title: booking.title,
+        description: booking.description,
+        address: booking.address,
+        scheduledDatetime: booking.scheduled_datetime,
+        status: booking.status,
+        hourlyRate: booking.hourly_rate,
+        estimatedDuration: booking.estimated_duration,
+        actualDuration: booking.actual_duration,
+        estimatedTotal: booking.hourly_rate * (booking.estimated_duration || 4),
+        progressPercentage: progressPercent,
+        maid: {
+          id: booking.maid_id?._id,
+          name: booking.maid_id?.user_id?.name || 'Unknown',
+          photo: booking.maid_id?.user_id?.photo_url || null,
+          rating: booking.maid_id?.average_rating || 0
+        },
+        hasReview: reviewedIds.has(booking._id.toString()),
+        createdAt: booking.createdAt
+      };
+    });
 
     return res.json({
       count: bookingList.length,

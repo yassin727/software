@@ -118,7 +118,12 @@ async function apiRequest(endpoint, options = {}) {
                 // This is a protected endpoint - session actually expired
                 removeToken();
                 removeUser();
-                showApiError('Session expired. Please login again.');
+                // Show error before redirect (use showToast if available for admin panel)
+                if (typeof showToast === 'function') {
+                    showToast('Session expired. Please login again.', 'error');
+                } else {
+                    showApiError('Session expired. Please login again.');
+                }
                 window.location.href = 'login.html';
                 throw new Error('Unauthorized');
             }
@@ -129,6 +134,17 @@ async function apiRequest(endpoint, options = {}) {
         
         // Handle other errors
         if (!response.ok) {
+            // Check for validation errors array (from express-validator)
+            if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+                // Create detailed error message with field-specific errors
+                const errorDetails = data.errors.map(e => {
+                    const fieldName = e.field || e.param || 'Field';
+                    const fieldLabel = fieldName.charAt(0).toUpperCase() + fieldName.slice(1).replace(/_/g, ' ');
+                    return `${fieldLabel}: ${e.message}`;
+                }).join(' | ');
+                throw new Error(errorDetails);
+            }
+            // Fallback to message or error field
             const errorMessage = data.message || data.error || 'An error occurred';
             throw new Error(errorMessage);
         }
@@ -137,8 +153,10 @@ async function apiRequest(endpoint, options = {}) {
     } catch (error) {
         // Network error or fetch failure
         if (error.message === 'Failed to fetch') {
-            showApiError('Unable to connect to server. Please check your connection.');
+            // Don't show error here - let the caller handle it to avoid duplicate messages
+            // The error will be caught by the calling function which will display it
         }
+        // Re-throw the error so calling functions can handle it
         throw error;
     }
 }
@@ -644,6 +662,28 @@ async function apiGetMaidJobs(status = '') {
 }
 
 /**
+ * Get job details with tasks and progress
+ * @param {string} jobId - Job ID
+ * @returns {Promise<Object>} Job details
+ */
+async function apiGetJobDetails(jobId) {
+    return await apiRequest(`/jobs/${jobId}`, { method: 'GET' });
+}
+
+/**
+ * Update job tasks and progress
+ * @param {string} jobId - Job ID
+ * @param {Object} progressData - Progress data (tasks, progress_percentage, progress_note)
+ * @returns {Promise<Object>} Response
+ */
+async function apiUpdateJobProgress(jobId, progressData) {
+    return await apiRequest(`/jobs/${jobId}/progress`, {
+        method: 'PUT',
+        body: JSON.stringify(progressData)
+    });
+}
+
+/**
  * Update maid availability (online/offline)
  * @param {boolean} isOnline - Online status
  * @returns {Promise<Object>} Response
@@ -705,8 +745,12 @@ async function apiDeclineJob(jobId) {
  * @param {string} message - Error message
  */
 function showApiError(message) {
+    // Check if showToast exists (for admin panel)
+    if (typeof showToast === 'function') {
+        showToast(message, 'error');
+    }
     // Check if showNotification exists (from other scripts)
-    if (typeof showNotification === 'function') {
+    else if (typeof showNotification === 'function') {
         showNotification(message, 'error');
     } else if (typeof showMaidNotification === 'function') {
         showMaidNotification(message, 'error');

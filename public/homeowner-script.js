@@ -273,8 +273,12 @@ function renderBookings(bookings) {
         return;
     }
     
-    bookingsList.innerHTML = bookings.map(booking => `
-        <div class="booking-card ${booking.status === 'in_progress' ? 'active-card' : ''}">
+    bookingsList.innerHTML = bookings.map(booking => {
+        const isInProgress = booking.status === 'in_progress';
+        const progressPercent = booking.progressPercentage || 0;
+        
+        return `
+        <div class="booking-card ${isInProgress ? 'active-card' : ''}">
             <div class="booking-header">
                 <h3>Booking #${booking.id.slice(-6).toUpperCase()}</h3>
                 <span class="status-badge ${getStatusClass(booking.status)}">${formatStatus(booking.status)}</span>
@@ -287,6 +291,25 @@ function renderBookings(bookings) {
                         <p class="rating"><i class="fas fa-star"></i> ${booking.maid.rating.toFixed(1)}</p>
                     </div>
                 </div>
+                ${isInProgress ? `
+                    <div style="margin: 16px 0; padding: 16px; background: var(--bg-light); border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <strong><i class="fas fa-tasks"></i> Work Progress</strong>
+                            <strong style="color: var(--primary-color);">${progressPercent}%</strong>
+                        </div>
+                        <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin-bottom: 8px;">
+                            <div style="width: ${progressPercent}%; height: 100%; background: var(--success-color); transition: width 0.3s;"></div>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 8px;">
+                            <button class="btn-secondary" onclick="viewHomeownerJobProgress('${booking.id}')" style="flex: 1;">
+                                <i class="fas fa-eye"></i> View Progress
+                            </button>
+                            <button class="btn-secondary" onclick="editHomeownerJobTasks('${booking.id}')" style="flex: 1;">
+                                <i class="fas fa-edit"></i> Edit Tasks
+                            </button>
+                        </div>
+                    </div>
+                ` : ''}
                 <div class="booking-details">
                     <p><i class="fas fa-calendar"></i> <strong>Date:</strong> ${formatDate(booking.scheduledDatetime)}</p>
                     <p><i class="fas fa-clock"></i> <strong>Time:</strong> ${formatTime(booking.scheduledDatetime)}</p>
@@ -299,7 +322,7 @@ function renderBookings(bookings) {
                 ${renderBookingActions(booking)}
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 /**
@@ -641,6 +664,15 @@ async function submitBooking(event) {
         submitBtn.disabled = true;
     }
     
+    // Collect tasks
+    const tasks = [];
+    document.querySelectorAll('#tasksContainer .task-item').forEach(item => {
+        const taskName = item.querySelector('.task-name')?.textContent.trim();
+        if (taskName) {
+            tasks.push({ name: taskName });
+        }
+    });
+    
     try {
         const response = await apiCreateJob({
             maidId: maidId,
@@ -649,7 +681,8 @@ async function submitBooking(event) {
             address: address,
             scheduledDatetime: scheduledDatetime,
             hourlyRate: parseFloat(hourlyRate),
-            estimatedDuration: parseFloat(duration) || 4
+            estimatedDuration: parseFloat(duration) || 4,
+            tasks: tasks
         });
         
         showNotification('Booking created successfully!', 'success');
@@ -842,6 +875,109 @@ function showSection(sectionId) {
 // ============================================================
 // Modal Functions
 // ============================================================
+
+/**
+ * View job progress for homeowner
+ */
+async function viewHomeownerJobProgress(jobId) {
+    try {
+        const data = await apiGetJobDetails(jobId);
+        const job = data.job;
+        
+        // Create or update progress modal
+        let modal = document.getElementById('homeownerJobProgressModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'homeownerJobProgressModal';
+            modal.className = 'modal';
+            document.body.appendChild(modal);
+        }
+        
+        const tasks = job.tasks || [];
+        const progressPercent = job.progress_percentage || 0;
+        const progressNotes = job.progress_notes || [];
+        const completedTasks = tasks.filter(t => t.completed).length;
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-tasks"></i> Job Progress: ${job.title}</h2>
+                    <button class="modal-close" onclick="closeModal('homeownerJobProgressModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <!-- Progress Bar -->
+                    <div style="margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <h3>Overall Progress</h3>
+                            <span style="font-size: 18px; font-weight: 600; color: var(--primary-color);">${progressPercent}%</span>
+                        </div>
+                        <div style="width: 100%; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                            <div style="width: ${progressPercent}%; height: 100%; background: var(--success-color); transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tasks List -->
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 16px;">
+                            <i class="fas fa-list-check"></i> Tasks 
+                            <span style="font-size: 14px; font-weight: normal; color: var(--text-light);">
+                                (${completedTasks} of ${tasks.length} completed)
+                            </span>
+                        </h3>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            ${tasks.length === 0 ? '<p style="color: var(--text-light);">No tasks defined yet.</p>' : ''}
+                            ${tasks.map((task, index) => `
+                                <div class="task-item" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-light); border-radius: 8px;">
+                                    <i class="fas ${task.completed ? 'fa-check-circle' : 'fa-circle'}" 
+                                       style="color: ${task.completed ? 'var(--success-color)' : '#ccc'}; font-size: 20px;"></i>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500; ${task.completed ? 'text-decoration: line-through; color: var(--text-light);' : ''}">${task.name}</div>
+                                        ${task.notes ? `<div style="font-size: 12px; color: var(--text-light); margin-top: 4px;">${task.notes}</div>` : ''}
+                                        ${task.completed_at ? `<div style="font-size: 11px; color: var(--success-color); margin-top: 4px;">Completed: ${new Date(task.completed_at).toLocaleString()}</div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Notes -->
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 16px;"><i class="fas fa-sticky-note"></i> Progress Updates</h3>
+                        <div style="display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;">
+                            ${progressNotes.length === 0 ? '<p style="color: var(--text-light);">No progress updates yet.</p>' : ''}
+                            ${progressNotes.slice().reverse().map(note => `
+                                <div style="padding: 12px; background: var(--bg-light); border-radius: 8px; border-left: 3px solid var(--primary-color);">
+                                    <div style="font-size: 14px;">${note.note}</div>
+                                    <div style="font-size: 11px; color: var(--text-light); margin-top: 4px;">
+                                        ${new Date(note.timestamp).toLocaleString()}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Maid Info -->
+                    <div style="padding: 16px; background: var(--bg-light); border-radius: 8px;">
+                        <h4 style="margin-bottom: 12px;"><i class="fas fa-user"></i> Maid Information</h4>
+                        <p><strong>Name:</strong> ${job.maid?.name || 'N/A'}</p>
+                        <p><strong>Phone:</strong> ${job.maid?.phone || 'N/A'}</p>
+                        ${job.attendance ? `
+                            <p><strong>Checked In:</strong> ${new Date(job.attendance.check_in_time).toLocaleString()}</p>
+                            ${job.attendance.check_out_time ? `<p><strong>Checked Out:</strong> ${new Date(job.attendance.check_out_time).toLocaleString()}</p>` : '<p><strong>Status:</strong> Currently working</p>'}
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+    } catch (error) {
+        console.error('Error loading job progress:', error);
+        showNotification(error.message || 'Failed to load job progress', 'error');
+    }
+}
 
 function closeModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -1271,6 +1407,181 @@ function formatNotificationTime(dateStr) {
 /**
  * Escape HTML to prevent XSS
  */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * Edit tasks for an existing booking (homeowner)
+ */
+async function editHomeownerJobTasks(jobId) {
+    try {
+        const data = await apiGetJobDetails(jobId);
+        const job = data.job;
+        
+        // Create or update tasks edit modal
+        let modal = document.getElementById('editTasksModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'editTasksModal';
+            modal.className = 'modal';
+            document.body.appendChild(modal);
+        }
+        
+        const tasks = job.tasks || [];
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-edit"></i> Edit Tasks: ${job.title}</h2>
+                    <button class="modal-close" onclick="closeModal('editTasksModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <p style="color: var(--text-light); margin-bottom: 16px;">
+                        Edit the tasks for this job. The maid will see these tasks when they check in.
+                    </p>
+                    
+                    <div id="editTasksContainer" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+                        ${tasks.map((task, index) => `
+                            <div class="task-item" style="display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--bg-light); border-radius: 6px;">
+                                <input type="text" value="${escapeHtml(task.name)}" 
+                                       class="task-name-input" 
+                                       data-index="${index}"
+                                       style="flex: 1; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+                                <button type="button" class="btn-icon" onclick="removeEditTask(this)" style="color: var(--danger-color);">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <input type="text" id="newEditTaskInput" placeholder="Add new task..." 
+                               style="flex: 1; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px;">
+                        <button type="button" class="btn-secondary" onclick="addEditTask()">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal('editTasksModal')">Cancel</button>
+                    <button type="button" class="btn-primary" onclick="saveHomeownerTasks('${jobId}')">
+                        <i class="fas fa-save"></i> Save Tasks
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+    } catch (error) {
+        console.error('Error loading job for editing:', error);
+        showNotification(error.message || 'Failed to load job', 'error');
+    }
+}
+
+/**
+ * Add task in edit modal
+ */
+function addEditTask() {
+    const taskInput = document.getElementById('newEditTaskInput');
+    const taskName = taskInput.value.trim();
+    
+    if (!taskName) {
+        showNotification('Please enter a task name', 'warning');
+        return;
+    }
+    
+    const container = document.getElementById('editTasksContainer');
+    const taskItem = document.createElement('div');
+    taskItem.className = 'task-item';
+    taskItem.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--bg-light); border-radius: 6px;';
+    taskItem.innerHTML = `
+        <input type="text" value="${escapeHtml(taskName)}" 
+               class="task-name-input" 
+               style="flex: 1; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+        <button type="button" class="btn-icon" onclick="removeEditTask(this)" style="color: var(--danger-color);">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    container.appendChild(taskItem);
+    taskInput.value = '';
+}
+
+/**
+ * Remove task in edit modal
+ */
+function removeEditTask(button) {
+    button.closest('.task-item').remove();
+}
+
+/**
+ * Save tasks for homeowner
+ */
+async function saveHomeownerTasks(jobId) {
+    try {
+        const taskInputs = document.querySelectorAll('#editTasksContainer .task-name-input');
+        const tasks = [];
+        
+        taskInputs.forEach(input => {
+            const taskName = input.value.trim();
+            if (taskName) {
+                tasks.push({ name: taskName });
+            }
+        });
+        
+        await apiUpdateJobProgress(jobId, { tasks: tasks });
+        
+        showNotification('Tasks updated successfully!', 'success');
+        closeModal('editTasksModal');
+        
+        // Reload bookings to show updated progress
+        await loadBookings();
+    } catch (error) {
+        console.error('Error saving tasks:', error);
+        showNotification(error.message || 'Failed to save tasks', 'error');
+    }
+}
+
+/**
+ * Add task to booking form
+ */
+function addBookingTask() {
+    const taskInput = document.getElementById('newTaskInput');
+    const taskName = taskInput.value.trim();
+    
+    if (!taskName) {
+        showNotification('Please enter a task name', 'warning');
+        return;
+    }
+    
+    const tasksContainer = document.getElementById('tasksContainer');
+    const taskItem = document.createElement('div');
+    taskItem.className = 'task-item';
+    taskItem.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 8px; background: var(--bg-light); border-radius: 6px;';
+    taskItem.innerHTML = `
+        <span class="task-name" style="flex: 1;">${escapeHtml(taskName)}</span>
+        <button type="button" class="btn-icon" onclick="removeBookingTask(this)" style="color: var(--danger-color);">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    tasksContainer.appendChild(taskItem);
+    taskInput.value = '';
+}
+
+/**
+ * Remove task from booking form
+ */
+function removeBookingTask(button) {
+    button.closest('.task-item').remove();
+}
+
 function escapeHtml(text) {
     if (!text) return '';
     const div = document.createElement('div');

@@ -817,6 +817,25 @@
                     <label>Special Instructions (optional)</label>
                     <textarea id="bookingInstructions" rows="3" placeholder="Any specific requirements or instructions..."></textarea>
                 </div>
+                
+                <!-- Tasks Section -->
+                <div class="form-group">
+                    <label>Tasks/Checklist <small style="color: var(--text-light);">(Add tasks for the maid to complete)</small></label>
+                    <div id="tasksContainer" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;">
+                        <!-- Tasks will be added here dynamically -->
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="newTaskInput" placeholder="Enter task (e.g., Living Room - Dusting, vacuuming)" 
+                               style="flex: 1; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px;">
+                        <button type="button" class="btn-secondary" onclick="addBookingTask()">
+                            <i class="fas fa-plus"></i> Add Task
+                        </button>
+                    </div>
+                    <small style="color: var(--text-light); display: block; margin-top: 4px;">
+                        Tasks can be edited later from your booking details
+                    </small>
+                </div>
+                
                 <div class="booking-summary" style="background: var(--bg-light); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                     <p><strong>Estimated Total:</strong> <span id="estimatedTotal">$0.00</span></p>
                 </div>

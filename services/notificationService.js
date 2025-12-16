@@ -366,6 +366,23 @@ class NotificationService {
       .sort({ createdAt: -1 })
       .populate('user_id', 'name email');
   }
+  
+  /**
+   * Notify homeowner of job progress update
+   */
+  static async notifyJobProgressUpdate(homeownerId, job, progressPercent) {
+    return this.create({
+      userId: homeownerId,
+      type: 'job_progress',
+      title: 'Job Progress Update',
+      message: `${job.title} is now ${progressPercent}% complete`,
+      data: {
+        jobId: job._id,
+        progressPercent,
+        jobTitle: job.title
+      }
+    });
+  }
 }
 
 module.exports = NotificationService;

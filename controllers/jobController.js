@@ -28,7 +28,7 @@ const listJobs = async (req, res) => {
 const createJob = async (req, res) => {
   try {
     const homeownerId = req.user.userId;
-    const { maidId, title, description, address, scheduledDatetime, hourlyRate } = req.body;
+    const { maidId, title, description, address, scheduledDatetime, hourlyRate, tasks, estimatedDuration } = req.body;
 
     // Validate required fields
     const errors = [];
@@ -50,6 +50,8 @@ const createJob = async (req, res) => {
       address,
       scheduledDatetime,
       hourlyRate: parseFloat(hourlyRate),
+      tasks: tasks || [],
+      estimatedDuration: parseFloat(estimatedDuration) || 4
     });
 
     // Send notification to maid about new job request
@@ -187,10 +189,172 @@ const checkOut = async (req, res) => {
   }
 };
 
+/**
+ * Get a single job with full details including tasks and progress
+ */
+const getJobDetails = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { userId, role } = req.user;
+
+    const job = await Job.findById(jobId)
+      .populate('homeowner_id', 'name phone photo_url email')
+      .populate('maid_id')
+      .lean();
+
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    // Check authorization
+    if (role === 'homeowner' && job.homeowner_id._id.toString() !== userId) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    if (role === 'maid') {
+      const maid = await require('../models/Maid').findOne({ user_id: userId });
+      if (!maid || job.maid_id._id.toString() !== maid._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
+    }
+
+    // Get attendance record if exists
+    const Attendance = require('../models/Attendance');
+    const attendance = await Attendance.findOne({ job_id: jobId })
+      .sort({ check_in_time: -1 })
+      .lean();
+
+    return res.json({
+      job: {
+        id: job._id,
+        title: job.title,
+        description: job.description,
+        address: job.address,
+        scheduled_datetime: job.scheduled_datetime,
+        status: job.status,
+        hourly_rate: job.hourly_rate,
+        estimated_duration: job.estimated_duration,
+        actual_duration: job.actual_duration,
+        tasks: job.tasks || [],
+        progress_notes: job.progress_notes || [],
+        progress_percentage: job.progress_percentage || 0,
+        homeowner: {
+          name: job.homeowner_id?.name,
+          phone: job.homeowner_id?.phone,
+          photo: job.homeowner_id?.photo_url,
+          email: job.homeowner_id?.email
+        },
+        maid: job.maid_id ? {
+          name: job.maid_id?.user_id?.name || 'Unknown',
+          phone: job.maid_id?.user_id?.phone
+        } : null,
+        attendance: attendance ? {
+          check_in_time: attendance.check_in_time,
+          check_out_time: attendance.check_out_time,
+          duration: attendance.duration
+        } : null
+      }
+    });
+  } catch (err) {
+    console.error('Get job details error', err);
+    return res.status(500).json({ message: 'Failed to get job details' });
+  }
+};
+
+/**
+ * Update job tasks and progress
+ * Can be called by maid (to update progress) or homeowner (to edit tasks)
+ */
+const updateJobProgress = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { tasks, progress_percentage, progress_note } = req.body;
+    const { userId, role } = req.user;
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    // Verify authorization
+    if (role === 'maid') {
+      const maid = await require('../models/Maid').findOne({ user_id: userId });
+      if (!maid) {
+        return res.status(404).json({ message: 'Maid profile not found' });
+      }
+      if (job.maid_id.toString() !== maid._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to update this job' });
+      }
+      if (job.status !== 'in_progress') {
+        return res.status(400).json({ message: 'Job must be in progress to update tasks' });
+      }
+    } else if (role === 'homeowner') {
+      // Homeowner can edit tasks for their bookings
+      if (job.homeowner_id.toString() !== userId) {
+        return res.status(403).json({ message: 'Not authorized to update this job' });
+      }
+      // Homeowner can only update tasks, not progress percentage
+      if (progress_percentage !== undefined) {
+        return res.status(403).json({ message: 'Homeowners cannot update progress percentage' });
+      }
+    } else {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    // Update tasks if provided
+    if (tasks && Array.isArray(tasks)) {
+      job.tasks = tasks;
+    }
+
+    // Update progress percentage if provided
+    if (progress_percentage !== undefined) {
+      job.progress_percentage = Math.max(0, Math.min(100, progress_percentage));
+    }
+
+    // Add progress note if provided
+    if (progress_note && progress_note.trim()) {
+      if (!job.progress_notes) {
+        job.progress_notes = [];
+      }
+      job.progress_notes.push({
+        note: progress_note.trim(),
+        timestamp: new Date()
+      });
+    }
+
+    await job.save();
+
+    // Notify homeowner of progress update
+    try {
+      const NotificationService = require('../services/notificationService');
+      await NotificationService.notifyJobProgressUpdate(
+        job.homeowner_id,
+        job,
+        progress_percentage || job.progress_percentage
+      );
+    } catch (notifError) {
+      console.error('Failed to send progress notification:', notifError);
+    }
+
+    return res.json({
+      message: 'Job progress updated successfully',
+      job: {
+        tasks: job.tasks,
+        progress_percentage: job.progress_percentage,
+        progress_notes: job.progress_notes
+      }
+    });
+  } catch (err) {
+    console.error('Update job progress error', err);
+    return res.status(500).json({ message: 'Failed to update job progress' });
+  }
+};
+
 module.exports = {
   listJobs,
   createJob,
   updateJobStatus,
   checkIn,
   checkOut,
+  getJobDetails,
+  updateJobProgress,
 };

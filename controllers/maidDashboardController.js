@@ -225,7 +225,9 @@ const getMyJobs = async (req, res) => {
       hourlyRate: job.hourly_rate,
       estimatedDuration: job.estimated_duration || 4,
       actualDuration: job.actual_duration,
-      estimatedPay: job.hourly_rate * (job.estimated_duration || 4)
+      estimatedPay: job.hourly_rate * (job.estimated_duration || 4),
+      progressPercentage: job.progress_percentage || 0,
+      tasks: job.tasks || []
     }));
     
     return res.json({

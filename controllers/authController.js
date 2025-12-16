@@ -1,10 +1,11 @@
 const UserService = require('../services/userService');
+const MaidService = require('../services/maidService');
 
 const ALLOWED_ROLES = ['homeowner', 'maid'];
 
 const register = async (req, res) => {
   try {
-    const { name, email, phone, password, role } = req.body;
+    const { name, email, phone, password, role, ...maidDetails } = req.body;
 
     // Basic input checks (validation middleware will handle details)
     if (!name || !email || !password) {
@@ -20,6 +21,16 @@ const register = async (req, res) => {
     }
 
     const user = await UserService.register({ name, email, phone, password, role });
+    
+    // If this is a maid, update the maid profile with additional details
+    if (role === 'maid' && user.id) {
+      // Get the maid profile that was created during registration
+      const maidProfile = await MaidService.getMaidByUserId(user.id);
+      if (maidProfile && maidProfile._id) {
+        const updatedMaidProfile = await MaidService.updateMaidProfile(maidProfile._id, maidDetails);
+        user.maidProfile = updatedMaidProfile;
+      }
+    }
 
     return res.status(201).json({ user });
   } catch (err) {

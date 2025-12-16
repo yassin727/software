@@ -901,6 +901,299 @@ body {
     border-top: 1px solid var(--border-color);
 }
 
+/* Notifications Modal Styles */
+.notifications-modal {
+    max-width: 500px;
+    max-height: 80vh;
+}
+
+.notifications-body {
+    padding: 0;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.empty-notifications {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-light);
+}
+
+.empty-notifications i {
+    font-size: 64px;
+    margin-bottom: 20px;
+    opacity: 0.3;
+}
+
+.empty-notifications p {
+    font-size: 16px;
+}
+
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.3s ease;
+    position: relative;
+}
+
+.notification-item:hover {
+    background-color: var(--bg-light);
+}
+
+.notification-item.unread {
+    background-color: #f0f8ff;
+    border-left: 3px solid var(--info-color);
+}
+
+.notification-item.unread::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 100%;
+    background: var(--info-color);
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+    color: white;
+}
+
+.notification-icon.blue {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.notification-icon.green {
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+}
+
+.notification-icon.orange {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.notification-icon.red {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.notification-icon.yellow {
+    background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-content h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+}
+
+.notification-content p {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.notification-time {
+    font-size: 12px;
+    color: var(--text-light);
+    opacity: 0.7;
+}
+
+.mark-read-btn {
+    background: none;
+    border: none;
+    color: var(--success-color);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.mark-read-btn:hover {
+    background: rgba(46, 204, 113, 0.1);
+    transform: scale(1.1);
+}
+
+.notifications-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.notifications-footer .btn-secondary {
+    width: 100%;
+}
+
+/* Custom Confirm Dialog Styles */
+.confirm-dialog {
+    max-width: 480px;
+}
+
+.confirm-body {
+    padding: 30px 24px;
+    text-align: center;
+}
+
+.confirm-message {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.confirm-description {
+    font-size: 14px;
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+/* Custom Prompt Dialog Styles */
+.prompt-dialog {
+    max-width: 500px;
+}
+
+.prompt-body {
+    padding: 24px;
+}
+
+.prompt-message {
+    font-size: 15px;
+    color: var(--text-dark);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.prompt-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.prompt-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(26, 55, 77, 0.1);
+}
+
+/* Toast Notification Styles */
+.toast-container {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+    width: auto;
+    max-width: 90%;
+}
+
+.toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 24px;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+    min-width: 380px;
+    max-width: 650px;
+    opacity: 0;
+    transform: translateY(-120px) scale(0.95);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: auto;
+    border-left: 5px solid;
+    word-wrap: break-word;
+    backdrop-filter: blur(10px);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.toast i {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.toast span {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dark);
+    line-height: 1.6;
+    flex: 1;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    margin-top: 2px;
+}
+
+.toast-success {
+    border-left-color: var(--success-color);
+    background: linear-gradient(to right, rgba(46, 204, 113, 0.1) 0%, white 20%);
+}
+
+.toast-success i {
+    color: var(--success-color);
+}
+
+.toast-error {
+    border-left-color: var(--danger-color);
+    background: linear-gradient(to right, rgba(231, 76, 60, 0.08) 0%, rgba(255, 255, 255, 0.98) 15%);
+    border-top: 1px solid rgba(231, 76, 60, 0.1);
+    border-right: 1px solid rgba(231, 76, 60, 0.1);
+    border-bottom: 1px solid rgba(231, 76, 60, 0.1);
+}
+
+.toast-error i {
+    color: var(--danger-color);
+    font-size: 22px;
+    margin-top: 1px;
+}
+
+.toast-warning {
+    border-left-color: var(--warning-color);
+    background: linear-gradient(to right, rgba(244, 208, 63, 0.1) 0%, white 20%);
+}
+
+.toast-warning i {
+    color: #f39c12;
+}
+
+.toast-info {
+    border-left-color: var(--info-color);
+    background: linear-gradient(to right, rgba(105, 152, 171, 0.1) 0%, white 20%);
+}
+
+.toast-info i {
+    color: var(--info-color);
+}
+
 .date-picker input {
     padding: 10px 12px;
     border: 1px solid var(--border-color);

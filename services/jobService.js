@@ -33,7 +33,15 @@ class JobService {
       .lean();
   }
 
-  static async createJob({ homeownerId, maidId, title, description, address, scheduledDatetime, hourlyRate }) {
+  static async createJob({ homeownerId, maidId, title, description, address, scheduledDatetime, hourlyRate, tasks, estimatedDuration }) {
+    // Convert tasks array to proper format if provided
+    const formattedTasks = tasks && Array.isArray(tasks) ? tasks.map(task => ({
+      name: task.name || task,
+      completed: false,
+      completed_at: null,
+      notes: task.notes || ''
+    })) : [];
+    
     const job = new Job({
       homeowner_id: homeownerId,
       maid_id: maidId,
@@ -42,6 +50,9 @@ class JobService {
       address,
       scheduled_datetime: scheduledDatetime,
       hourly_rate: hourlyRate,
+      estimated_duration: estimatedDuration || 4,
+      tasks: formattedTasks,
+      progress_percentage: 0
     });
 
     const savedJob = await job.save();

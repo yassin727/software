@@ -376,7 +376,12 @@ async function checkIn(jobId) {
         
         showMaidNotification('Checked in successfully!', 'success');
         startWorkTimer();
+        
+        // Reload dashboard and jobs
         await loadMaidDashboard();
+        await loadMyJobs('active'); // This will render the active job card
+        
+        // Switch to my-jobs section to show the active job
         showSection('my-jobs');
     } catch (error) {
         showMaidNotification(error.message || 'Check-in failed', 'error');
@@ -388,7 +393,11 @@ function checkOut() {
 }
 
 function completeJob() {
-    document.getElementById('checkoutModal')?.classList.add('active');
+    if (currentActiveJobId) {
+        completeJobAndCheckout(currentActiveJobId);
+    } else {
+        document.getElementById('checkoutModal')?.classList.add('active');
+    }
 }
 
 async function submitCheckout(event) {
@@ -511,6 +520,23 @@ async function loadMyJobs(status = '') {
     try {
         const data = await apiGetMaidJobs(status);
         myMaidJobs = data.jobs || [];
+        
+        // Render active job card if there's an in_progress job
+        const inProgressJob = myMaidJobs.find(j => j.status === 'in_progress');
+        const activeJobCard = document.querySelector('#activeJobCardContainer') || document.querySelector('.active-job-card');
+        
+        if (inProgressJob) {
+            await renderActiveJobCard(inProgressJob);
+            if (activeJobCard) {
+                activeJobCard.style.display = 'block';
+            }
+        } else {
+            // Hide active job card if no in_progress job
+            if (activeJobCard) {
+                activeJobCard.style.display = 'none';
+            }
+        }
+        
         renderMyJobs(myMaidJobs);
     } catch (error) {
         console.error('Error loading jobs:', error);
@@ -518,38 +544,181 @@ async function loadMyJobs(status = '') {
     }
 }
 
+/**
+ * Render active job card with tasks (replaces hardcoded HTML)
+ */
+async function renderActiveJobCard(job) {
+    try {
+        // Get full job details with tasks
+        const jobDetails = await apiGetJobDetails(job.id);
+        const fullJob = jobDetails.job;
+        
+        const activeJobCard = document.querySelector('.active-job-card');
+        if (!activeJobCard) return;
+        
+        activeJobCard.style.display = 'block';
+        
+        const tasks = fullJob.tasks || [];
+        const completedTasks = tasks.filter(t => t.completed).length;
+        const progressPercent = fullJob.progress_percentage || 0;
+        
+        // Calculate elapsed time
+        let elapsedTime = '0h 0m';
+        if (fullJob.attendance && fullJob.attendance.check_in_time) {
+            const checkInTime = new Date(fullJob.attendance.check_in_time);
+            const now = new Date();
+            const diffMs = now - checkInTime;
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            elapsedTime = `${diffHours}h ${diffMinutes}m`;
+        }
+        
+        // Format check-in time
+        const checkInTime = fullJob.attendance?.check_in_time 
+            ? new Date(fullJob.attendance.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+            : 'Not checked in';
+        
+        activeJobCard.innerHTML = `
+            <div class="job-card-header">
+                <h3>Current Job - In Progress</h3>
+                <span class="status-badge active">Active</span>
+            </div>
+            <div class="job-card-body">
+                <div class="job-info-grid">
+                    <div class="info-item">
+                        <label>Client</label>
+                        <p><img src="${fullJob.homeowner?.photo || 'https://via.placeholder.com/30'}" alt="Client" class="inline-avatar"> ${fullJob.homeowner?.name || 'Unknown'}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Service</label>
+                        <p>${fullJob.title}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Check-in</label>
+                        <p class="success-text"><i class="fas fa-check-circle"></i> ${checkInTime}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Duration</label>
+                        <p id="workingTime">${elapsedTime}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Location</label>
+                        <p>${fullJob.address}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Expected Payment</label>
+                        <p class="highlight-text">$${(fullJob.hourly_rate * (fullJob.estimated_duration || 4)).toFixed(2)}</p>
+                    </div>
+                </div>
+
+                <!-- Task Checklist -->
+                <div class="task-update-section">
+                    <h4><i class="fas fa-tasks"></i> Task Checklist (${completedTasks}/${tasks.length} completed)</h4>
+                    <div class="task-checklist-maid" id="activeJobTasksList">
+                        ${tasks.length === 0 ? '<p style="color: var(--text-light); padding: 16px;">No tasks defined for this job.</p>' : ''}
+                        ${tasks.map((task, index) => {
+                            const completed = task.completed;
+                            const completedAt = task.completed_at ? new Date(task.completed_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '';
+                            return `
+                                <label class="task-checkbox ${completed ? 'completed' : ''}">
+                                    <input type="checkbox" ${completed ? 'checked' : ''} 
+                                           onchange="toggleTask('${fullJob.id}', ${index}, this.checked)"
+                                           ${completed ? 'disabled' : ''}>
+                                    <span>${task.name}</span>
+                                    ${completed && completedAt ? `<small>Completed at ${completedAt}</small>` : ''}
+                                    ${!completed ? `<button class="mark-done-btn" onclick="markTaskDone('${fullJob.id}', ${index})">Mark Done</button>` : ''}
+                                </label>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="job-action-buttons">
+                    <button class="btn-secondary" onclick="contactClient('${fullJob.homeowner?.phone || ''}')">
+                        <i class="fas fa-phone"></i> Contact Client
+                    </button>
+                    <button class="btn-secondary" onclick="reportIssue()">
+                        <i class="fas fa-exclamation-circle"></i> Report Issue
+                    </button>
+                    <button class="btn-primary large" onclick="completeJobAndCheckout('${fullJob.id}')">
+                        <i class="fas fa-check-circle"></i> Complete & Check Out
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Start/update work timer
+        if (fullJob.attendance && fullJob.attendance.check_in_time) {
+            currentJobStartTime = new Date(fullJob.attendance.check_in_time);
+            currentActiveJobId = fullJob.id;
+            startWorkTimer();
+        }
+    } catch (error) {
+        console.error('Error rendering active job:', error);
+    }
+}
+
 function renderMyJobs(jobs) {
     const upcomingList = document.querySelector('.upcoming-jobs-list');
     if (!upcomingList) return;
     
-    const upcoming = jobs.filter(j => j.status === 'accepted');
+    // Show both accepted and in_progress jobs
+    const activeJobs = jobs.filter(j => j.status === 'accepted' || j.status === 'in_progress');
     
-    if (upcoming.length === 0) {
-        upcomingList.innerHTML = '<div class="empty-state"><p>No upcoming jobs</p></div>';
+    if (activeJobs.length === 0) {
+        upcomingList.innerHTML = '<div class="empty-state"><p>No active jobs</p></div>';
         return;
     }
     
-    upcomingList.innerHTML = upcoming.map(job => `
-        <div class="upcoming-job-item">
+    upcomingList.innerHTML = activeJobs.map(job => {
+        const isInProgress = job.status === 'in_progress';
+        const progressPercent = job.progressPercentage || 0;
+        
+        return `
+        <div class="upcoming-job-item ${isInProgress ? 'in-progress-job' : ''}">
             <div class="job-time">
-                <div class="time-badge">
+                <div class="time-badge ${isInProgress ? 'active' : ''}">
                     <span class="time">${formatTime(job.scheduledDate)}</span>
                     <span class="date">${formatShortDate(job.scheduledDate)}</span>
                 </div>
             </div>
             <div class="job-details">
-                <h4>${job.title}</h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h4>${job.title}</h4>
+                    <span class="status-badge ${isInProgress ? 'active' : 'pending'}">${isInProgress ? 'In Progress' : 'Accepted'}</span>
+                </div>
+                ${isInProgress ? `
+                    <div style="margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                            <small style="color: var(--text-light);">Progress</small>
+                            <small style="font-weight: 600;">${progressPercent}%</small>
+                        </div>
+                        <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
+                            <div style="width: ${progressPercent}%; height: 100%; background: var(--success-color); transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                ` : ''}
                 <p><i class="fas fa-user"></i> ${job.clientName}</p>
                 <p><i class="fas fa-map-marker-alt"></i> ${job.address}</p>
                 <p><i class="fas fa-dollar-sign"></i> $${job.estimatedPay.toFixed(2)} (${job.estimatedDuration} hours)</p>
             </div>
             <div class="job-actions-compact">
-                <button class="btn-icon-text" onclick="checkIn('${job.id}')">
-                    <i class="fas fa-sign-in-alt"></i> Check In
-                </button>
+                ${isInProgress ? `
+                    <button class="btn-primary" onclick="viewJobProgress('${job.id}')" style="margin-bottom: 8px;">
+                        <i class="fas fa-tasks"></i> View Tasks
+                    </button>
+                    <button class="btn-secondary" onclick="checkOut()">
+                        <i class="fas fa-sign-out-alt"></i> Check Out
+                    </button>
+                ` : `
+                    <button class="btn-icon-text" onclick="checkIn('${job.id}')">
+                        <i class="fas fa-sign-in-alt"></i> Check In
+                    </button>
+                `}
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 function filterJobs(status) {
@@ -697,13 +866,299 @@ function getDirections(jobId) {
     showMaidNotification('Opening navigation...', 'info');
 }
 
-function contactClient(clientId) {
-    showMaidNotification('Opening chat...', 'info');
+function contactClient(phone) {
+    if (phone) {
+        window.location.href = `tel:${phone}`;
+    } else {
+        showMaidNotification('Phone number not available', 'warning');
+    }
 }
 
 function reportIssue() {
     const issue = prompt('Describe the issue:');
     if (issue?.trim()) showMaidNotification('Issue reported to support', 'success');
+}
+
+/**
+ * View and update job progress with tasks
+ */
+async function viewJobProgress(jobId) {
+    try {
+        const data = await apiGetJobDetails(jobId);
+        const job = data.job;
+        
+        // Create or update progress modal
+        let modal = document.getElementById('jobProgressModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'jobProgressModal';
+            modal.className = 'modal';
+            document.body.appendChild(modal);
+        }
+        
+        const tasks = job.tasks || [];
+        const progressPercent = job.progress_percentage || 0;
+        const progressNotes = job.progress_notes || [];
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-tasks"></i> Job Progress: ${job.title}</h2>
+                    <button class="modal-close" onclick="closeModal('jobProgressModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <!-- Progress Bar -->
+                    <div style="margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <h3>Overall Progress</h3>
+                            <span style="font-size: 18px; font-weight: 600; color: var(--primary-color);">${progressPercent}%</span>
+                        </div>
+                        <div style="width: 100%; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                            <div id="progressBar" style="width: ${progressPercent}%; height: 100%; background: var(--success-color); transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tasks List -->
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 16px;"><i class="fas fa-list-check"></i> Tasks</h3>
+                        <div id="tasksList" style="display: flex; flex-direction: column; gap: 12px;">
+                            ${tasks.length === 0 ? '<p style="color: var(--text-light);">No tasks defined yet. Add tasks below.</p>' : ''}
+                            ${tasks.map((task, index) => `
+                                <div class="task-item" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-light); border-radius: 8px;">
+                                    <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                                           onchange="toggleTask('${jobId}', ${index}, this.checked)"
+                                           style="width: 20px; height: 20px; cursor: pointer;">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 500; ${task.completed ? 'text-decoration: line-through; color: var(--text-light);' : ''}">${task.name}</div>
+                                        ${task.notes ? `<div style="font-size: 12px; color: var(--text-light); margin-top: 4px;">${task.notes}</div>` : ''}
+                                        ${task.completed_at ? `<div style="font-size: 11px; color: var(--success-color); margin-top: 4px;">Completed: ${new Date(task.completed_at).toLocaleString()}</div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <!-- Add Task -->
+                        <div style="margin-top: 16px; display: flex; gap: 8px;">
+                            <input type="text" id="newTaskName" placeholder="Add new task..." 
+                                   style="flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px;">
+                            <button class="btn-primary" onclick="addTask('${jobId}')">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Notes -->
+                    <div style="margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 16px;"><i class="fas fa-sticky-note"></i> Progress Notes</h3>
+                        <div id="progressNotesList" style="display: flex; flex-direction: column; gap: 12px; max-height: 200px; overflow-y: auto;">
+                            ${progressNotes.length === 0 ? '<p style="color: var(--text-light);">No progress notes yet.</p>' : ''}
+                            ${progressNotes.slice().reverse().map(note => `
+                                <div style="padding: 12px; background: var(--bg-light); border-radius: 8px; border-left: 3px solid var(--primary-color);">
+                                    <div style="font-size: 14px;">${note.note}</div>
+                                    <div style="font-size: 11px; color: var(--text-light); margin-top: 4px;">
+                                        ${new Date(note.timestamp).toLocaleString()}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <!-- Add Progress Note -->
+                        <div style="margin-top: 16px;">
+                            <textarea id="newProgressNote" placeholder="Add progress update..." 
+                                      rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; resize: vertical;"></textarea>
+                            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                <input type="range" id="progressSlider" min="0" max="100" value="${progressPercent}" 
+                                       oninput="document.getElementById('progressValue').textContent = this.value + '%'"
+                                       style="flex: 1;">
+                                <span id="progressValue" style="min-width: 50px; font-weight: 600;">${progressPercent}%</span>
+                                <button class="btn-primary" onclick="addProgressNote('${jobId}')">
+                                    <i class="fas fa-save"></i> Update
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+    } catch (error) {
+        console.error('Error loading job progress:', error);
+        showMaidNotification(error.message || 'Failed to load job progress', 'error');
+    }
+}
+
+/**
+ * Complete job and checkout
+ */
+async function completeJobAndCheckout(jobId) {
+    try {
+        // First, check if all tasks are completed
+        const jobDetails = await apiGetJobDetails(jobId);
+        const tasks = jobDetails.job.tasks || [];
+        const incompleteTasks = tasks.filter(t => !t.completed);
+        
+        if (incompleteTasks.length > 0) {
+            const confirmMsg = `You have ${incompleteTasks.length} incomplete task(s). Do you want to complete and checkout anyway?`;
+            if (!confirm(confirmMsg)) return;
+        }
+        
+        // Update progress to 100%
+        await apiUpdateJobProgress(jobId, {
+            progress_percentage: 100
+        });
+        
+        // Then checkout
+        if (currentAttendanceId && jobId) {
+            await apiCheckOut(currentAttendanceId, jobId);
+            showMaidNotification('Job completed and checked out successfully!', 'success');
+            
+            // Clear active job variables
+            currentJobStartTime = null;
+            currentActiveJobId = null;
+            currentAttendanceId = null;
+            stopWorkTimer();
+            
+            // Reload everything
+            await loadMaidDashboard();
+            await loadMyJobs('active');
+        } else {
+            showMaidNotification('Unable to checkout. Please try again.', 'error');
+        }
+    } catch (error) {
+        console.error('Error completing job:', error);
+        showMaidNotification(error.message || 'Failed to complete job', 'error');
+    }
+}
+
+/**
+ * Mark task as done (from active job card)
+ */
+async function markTaskDone(jobId, taskIndex) {
+    try {
+        await toggleTask(jobId, taskIndex, true);
+        // Reload active job card to reflect changes
+        const job = myMaidJobs.find(j => j.id === jobId);
+        if (job && job.status === 'in_progress') {
+            await renderActiveJobCard(job);
+        }
+    } catch (error) {
+        console.error('Error marking task done:', error);
+        showMaidNotification(error.message || 'Failed to mark task', 'error');
+    }
+}
+
+/**
+ * Toggle task completion
+ */
+async function toggleTask(jobId, taskIndex, completed) {
+    try {
+        const data = await apiGetJobDetails(jobId);
+        const job = data.job;
+        const tasks = job.tasks || [];
+        
+        if (tasks[taskIndex]) {
+            tasks[taskIndex].completed = completed;
+            tasks[taskIndex].completed_at = completed ? new Date() : null;
+            
+            // Calculate progress based on completed tasks
+            const completedCount = tasks.filter(t => t.completed).length;
+            const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+            
+            await apiUpdateJobProgress(jobId, {
+                tasks: tasks,
+                progress_percentage: progressPercent
+            });
+            
+            // Reload active job card if this is the current active job
+            if (currentActiveJobId === jobId) {
+                const job = myMaidJobs.find(j => j.id === jobId);
+                if (job && job.status === 'in_progress') {
+                    await renderActiveJobCard(job);
+                }
+            }
+            
+            // Reload the modal if it's open
+            const modal = document.getElementById('jobProgressModal');
+            if (modal && modal.classList.contains('active')) {
+                await viewJobProgress(jobId);
+            }
+            
+            await loadMyJobs('active'); // Refresh job list
+            showMaidNotification('Task updated successfully', 'success');
+        }
+    } catch (error) {
+        console.error('Error updating task:', error);
+        showMaidNotification(error.message || 'Failed to update task', 'error');
+    }
+}
+
+/**
+ * Add new task
+ */
+async function addTask(jobId) {
+    const taskInput = document.getElementById('newTaskName');
+    const taskName = taskInput.value.trim();
+    
+    if (!taskName) {
+        showMaidNotification('Please enter a task name', 'warning');
+        return;
+    }
+    
+    try {
+        const data = await apiGetJobDetails(jobId);
+        const job = data.job;
+        const tasks = job.tasks || [];
+        
+        tasks.push({
+            name: taskName,
+            completed: false,
+            completed_at: null,
+            notes: ''
+        });
+        
+        await apiUpdateJobProgress(jobId, { tasks: tasks });
+        
+        taskInput.value = '';
+        await viewJobProgress(jobId);
+        await loadMyJobs('active');
+        showMaidNotification('Task added successfully', 'success');
+    } catch (error) {
+        console.error('Error adding task:', error);
+        showMaidNotification(error.message || 'Failed to add task', 'error');
+    }
+}
+
+/**
+ * Add progress note and update progress percentage
+ */
+async function addProgressNote(jobId) {
+    const noteInput = document.getElementById('newProgressNote');
+    const progressSlider = document.getElementById('progressSlider');
+    const note = noteInput.value.trim();
+    const progressPercent = parseInt(progressSlider.value);
+    
+    if (!note && progressPercent === 0) {
+        showMaidNotification('Please add a note or update progress', 'warning');
+        return;
+    }
+    
+    try {
+        await apiUpdateJobProgress(jobId, {
+            progress_percentage: progressPercent,
+            progress_note: note || undefined
+        });
+        
+        noteInput.value = '';
+        await viewJobProgress(jobId);
+        await loadMyJobs('active');
+        showMaidNotification('Progress updated successfully', 'success');
+    } catch (error) {
+        console.error('Error updating progress:', error);
+        showMaidNotification(error.message || 'Failed to update progress', 'error');
+    }
 }
 
 function updateJobStatus() {

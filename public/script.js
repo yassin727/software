@@ -86,6 +86,8 @@ async function loadAdminDashboard() {
         await loadActiveMaids();
     } catch (error) {
         console.error('Error loading admin dashboard:', error);
+        const errorMessage = error.message || 'Unable to load dashboard data. Please refresh the page.';
+        showToast(`Dashboard Error: ${errorMessage}`, 'error');
     }
 }
 
@@ -207,10 +209,12 @@ async function loadActiveMaids() {
         renderActiveMaidsTable(maids || []);
     } catch (error) {
         console.error('Error loading active maids:', error);
+        const errorMessage = error.message || 'Unable to load maids list. Please try again.';
+        showToast(`Maids List Error: ${errorMessage}`, 'error');
         // Show error in UI
         const tbody = document.querySelector('#maids .data-table tbody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Error loading maids. Check console.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Error loading maids. Please refresh the page.</td></tr>';
         }
     }
 }
@@ -274,17 +278,25 @@ function renderActiveMaidsTable(maids) {
 
 // Placeholder functions for maid actions
 function viewMaidDetails(maidId) {
-    alert(`Viewing details for maid ID: ${maidId}\n(This feature will be implemented)`);
+    showToast('Viewing maid details - this feature will be implemented', 'info');
 }
 
 function editMaid(maidId) {
-    alert(`Editing maid ID: ${maidId}\n(This feature will be implemented)`);
+    showToast('Editing maid - this feature will be implemented', 'info');
 }
 
 function suspendMaid(maidId, name) {
-    if (confirm(`Are you sure you want to suspend ${name}?`)) {
-        alert(`Maid ${name} suspended.\n(This feature will be implemented)`);
-    }
+    showConfirmDialog(
+        'Suspend Maid',
+        `Are you sure you want to suspend <strong>${name}</strong>?`,
+        'This action can be reversed later.',
+        'Suspend',
+        'Cancel'
+    ).then(confirmed => {
+        if (confirmed) {
+            showToast(`Maid ${name} suspended`, 'warning');
+        }
+    });
 }
 
 // Load attendance data
@@ -294,6 +306,8 @@ async function loadAttendanceData(date) {
         renderAttendanceTable(data.records || []);
     } catch (error) {
         console.error('Error loading attendance:', error);
+        const errorMessage = error.message || 'Unable to load attendance records. Please try again.';
+        showToast(`Attendance Error: ${errorMessage}`, 'error');
     }
 }
 
@@ -346,6 +360,8 @@ async function loadScheduleData() {
         console.log('Schedule loaded:', data.events?.length || 0, 'events');
     } catch (error) {
         console.error('Error loading schedule:', error);
+        const errorMessage = error.message || 'Unable to load schedule data. Please try again.';
+        showToast(`Schedule Error: ${errorMessage}`, 'error');
     }
 }
 
@@ -357,6 +373,8 @@ async function loadTasksData() {
         renderTasksBoard(data.jobs || data || []);
     } catch (error) {
         console.error('Error loading tasks:', error);
+        const errorMessage = error.message || 'Unable to load tasks. Please try again.';
+        showToast(`Tasks Error: ${errorMessage}`, 'error');
         // Fallback to empty state
         renderTasksBoard([]);
     }
@@ -451,6 +469,8 @@ async function loadPaymentsData() {
         renderPaymentStats(completedJobs);
     } catch (error) {
         console.error('Error loading payments:', error);
+        const errorMessage = error.message || 'Unable to load payment records. Please try again.';
+        showToast(`Payments Error: ${errorMessage}`, 'error');
         // Show empty state on error
         renderPaymentsTable([]);
         renderPaymentStats([]);
@@ -519,6 +539,8 @@ async function loadReportsData() {
         renderReportsSummary(summary);
     } catch (error) {
         console.error('Error loading reports:', error);
+        const errorMessage = error.message || 'Unable to load reports. Please try again.';
+        showToast(`Reports Error: ${errorMessage}`, 'error');
     }
 }
 
@@ -543,6 +565,8 @@ async function loadAdminSettings() {
         renderAdminSettings(profile);
     } catch (error) {
         console.error('Error loading admin settings:', error);
+        const errorMessage = error.message || 'Unable to load settings. Please try again.';
+        showToast(`Settings Error: ${errorMessage}`, 'error');
     }
 }
 
@@ -584,6 +608,8 @@ function openAddMaidModal() {
 async function handleAddMaid(event) {
     event.preventDefault();
     
+    console.log('handleAddMaid function called');
+    
     const form = event.target;
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalText = submitBtn.textContent;
@@ -609,13 +635,18 @@ async function handleAddMaid(event) {
         
         console.log('Submitting maid data:', formData);
         
+        // Validate required fields
+        if (!formData.name || !formData.email || !formData.phone || !formData.password) {
+            throw new Error('Please fill in all required fields');
+        }
+        
         // Call API to register maid
         const result = await apiRegister(formData);
         
         console.log('Maid registered successfully:', result);
         
         // Show success message
-        alert(`✅ Maid "${formData.name}" has been added successfully!\n\nThe maid account is now pending admin approval.`);
+        showToast(`Maid "${formData.name}" has been added successfully! The maid account is now pending admin approval.`, 'success');
         
         // Close modal and reset form
         closeModal('addMaidModal');
@@ -631,7 +662,92 @@ async function handleAddMaid(event) {
         
     } catch (error) {
         console.error('Error adding maid:', error);
-        alert(`❌ Error adding maid: ${error.message}\n\nPlease check the form and try again.`);
+        
+        // Handle specific error cases with clear, user-friendly messages
+        let errorMessage = 'Unable to add maid. Please check the form and try again.';
+        
+        if (error.message) {
+            const msg = error.message;
+            
+            // Check for email already registered
+            if (msg.includes('Email already registered') || msg.toLowerCase().includes('email already')) {
+                errorMessage = '❌ Email already taken. Please use a different email address.';
+            }
+            // Check for validation errors with field names (format: "Field: message")
+            else if (msg.includes(':')) {
+                // Parse field-specific errors and format them nicely
+                const errors = msg.split(' | ');
+                if (errors.length === 1) {
+                    // Single error - format it nicely
+                    const [field, message] = errors[0].split(':').map(s => s.trim());
+                    if (field && message) {
+                        // Map common field names to user-friendly labels
+                        const fieldMap = {
+                            'Email': 'Email',
+                            'Password': 'Password',
+                            'Name': 'Name',
+                            'Phone': 'Phone number',
+                            'Specialization': 'Specialization'
+                        };
+                        const friendlyField = fieldMap[field] || field;
+                        
+                        // Map common messages to user-friendly versions
+                        if (message.includes('must be valid')) {
+                            errorMessage = `❌ ${friendlyField}: Invalid format. Please enter a valid ${friendlyField.toLowerCase()}.`;
+                        } else if (message.includes('at least 8 characters') && field.toLowerCase() === 'password') {
+                            errorMessage = `❌ Password: Must be at least 8 characters long.`;
+                        } else if (message.includes('at least 3 characters') && field.toLowerCase() === 'name') {
+                            errorMessage = `❌ Name: Must be at least 3 characters long.`;
+                        } else if (message.includes('at least 8 characters')) {
+                            errorMessage = `❌ ${friendlyField}: Must be at least 8 characters long.`;
+                        } else if (message.includes('at least 3 characters')) {
+                            errorMessage = `❌ ${friendlyField}: Must be at least 3 characters long.`;
+                        } else {
+                            errorMessage = `❌ ${friendlyField}: ${message}`;
+                        }
+                    } else {
+                        errorMessage = `❌ ${msg}`;
+                    }
+                } else {
+                    // Multiple errors - show first one clearly
+                    const firstError = errors[0].split(':').map(s => s.trim());
+                    if (firstError.length === 2) {
+                        const [field, message] = firstError;
+                        const fieldMap = {
+                            'Email': 'Email',
+                            'Password': 'Password',
+                            'Name': 'Name',
+                            'Phone': 'Phone number'
+                        };
+                        const friendlyField = fieldMap[field] || field;
+                        errorMessage = `❌ ${friendlyField}: ${message}${errors.length > 1 ? ` (and ${errors.length - 1} more issue${errors.length > 2 ? 's' : ''})` : ''}`;
+                    } else {
+                        errorMessage = `❌ ${errors[0]}${errors.length > 1 ? ` (and ${errors.length - 1} more issue${errors.length > 2 ? 's' : ''})` : ''}`;
+                    }
+                }
+            }
+            // Check for network errors
+            else if (msg.includes('Failed to fetch') || msg.includes('Network')) {
+                errorMessage = '❌ Network error: Unable to connect to server. Please check your internet connection.';
+            }
+            // Check for common error patterns
+            else if (msg.toLowerCase().includes('email') && msg.toLowerCase().includes('invalid')) {
+                errorMessage = '❌ Invalid email format. Please enter a valid email address.';
+            }
+            else if (msg.toLowerCase().includes('password') && msg.toLowerCase().includes('short')) {
+                errorMessage = '❌ Password too short. Password must be at least 8 characters.';
+            }
+            // Handle generic "An error occurred" message
+            else if (msg === 'An error occurred' || msg === 'Failed to register user') {
+                errorMessage = '❌ Unable to add maid. Please check all fields and try again.';
+            }
+            // Use the error message directly if it's specific
+            else if (msg.length > 0) {
+                errorMessage = `❌ ${msg}`;
+            }
+        }
+        
+        showToast(errorMessage, 'error');
     } finally {
         // Re-enable submit button
         submitBtn.disabled = false;
@@ -640,15 +756,15 @@ async function handleAddMaid(event) {
 }
 
 function openScheduleModal() {
-    alert('Schedule modal would open here. (Not implemented in prototype)');
+    showToast('Schedule modal would open here - this feature will be implemented', 'info');
 }
 
 function openTaskModal() {
-    alert('Task modal would open here. (Not implemented in prototype)');
+    showToast('Task modal would open here - this feature will be implemented', 'info');
 }
 
 function openPaymentModal() {
-    alert('Payment modal would open here. (Not implemented in prototype)');
+    showToast('Payment modal would open here - this feature will be implemented', 'info');
 }
 
 function closeModal(modalId) {
@@ -669,18 +785,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Forms with IDs or specific onsubmit handlers are handled separately
     const forms = document.querySelectorAll('form:not([id]):not([onsubmit])');
     forms.forEach(form => {
-        // Skip if form is inside a modal that has specific handling
-        if (form.closest('#addMaidModal')) {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                // Handle add maid form via API
-                const formData = new FormData(form);
-                console.log('Add maid form submitted:', Object.fromEntries(formData));
-                alert('Maid added successfully!');
-                closeModal('addMaidModal');
-                form.reset();
-            });
-        }
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Handle generic form via API
+            const formData = new FormData(form);
+            console.log('Generic form submitted:', Object.fromEntries(formData));
+            showToast('Form submitted successfully!', 'success');
+            form.reset();
+        });
     });
 
     // Add smooth scrolling
@@ -713,16 +825,156 @@ if (searchInput) {
     searchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         // This would normally search through data
-        console.log('Searching for:', searchTerm);
+        if (searchTerm.length > 2) {
+            showToast(`Searching for: ${searchTerm}`, 'info');
+        }
     });
 }
 
 // Notification bell click
 const notificationBtn = document.querySelector('.notification-btn');
 if (notificationBtn) {
-    notificationBtn.addEventListener('click', () => {
-        alert('Notifications:\n\n1. New maid registration pending approval\n2. Payment due for Maria Garcia\n3. Task completion rate is 95% this week!');
+    notificationBtn.addEventListener('click', async () => {
+        await showNotificationsModal();
     });
+}
+
+/**
+ * Show notifications in a beautiful modal
+ */
+async function showNotificationsModal() {
+    try {
+        // Get notifications from API
+        const response = await apiGetNotifications({ limit: 10 });
+        const notifications = response.notifications || [];
+        const unreadCount = response.unreadCount || 0;
+        
+        // Create modal HTML
+        const modalHTML = `
+            <div id="notificationsModal" class="modal active">
+                <div class="modal-content notifications-modal">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-bell"></i> Notifications</h2>
+                        <button class="close-btn" onclick="closeNotificationsModal()">&times;</button>
+                    </div>
+                    <div class="notifications-body">
+                        ${notifications.length === 0 ? `
+                            <div class="empty-notifications">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>No notifications yet</p>
+                            </div>
+                        ` : notifications.map(notif => `
+                            <div class="notification-item ${notif.is_read ? 'read' : 'unread'}">
+                                <div class="notification-icon ${getNotificationIconClass(notif.type)}">
+                                    <i class="fas ${getNotificationIcon(notif.type)}"></i>
+                                </div>
+                                <div class="notification-content">
+                                    <h4>${escapeHtmlAdmin(notif.title)}</h4>
+                                    <p>${escapeHtmlAdmin(notif.message)}</p>
+                                    <span class="notification-time">${formatTimeAgo(notif.createdAt)}</span>
+                                </div>
+                                ${!notif.is_read ? `
+                                    <button class="mark-read-btn" onclick="markAsRead('${notif._id}')" title="Mark as read">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${notifications.length > 0 ? `
+                        <div class="notifications-footer">
+                            <button class="btn-secondary" onclick="markAllAsRead()">Mark All as Read</button>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('notificationsModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+    } catch (error) {
+        console.error('Error loading notifications:', error);
+        // Fallback to simple notifications
+        alert('Notifications:\n\n1. New maid registration pending approval\n2. Payment due for Maria Garcia\n3. Task completion rate is 95% this week!');
+    }
+}
+
+function closeNotificationsModal() {
+    const modal = document.getElementById('notificationsModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 300);
+    }
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        'maid_approval': 'fa-user-check',
+        'job_request': 'fa-briefcase',
+        'job_accepted': 'fa-check-circle',
+        'job_completed': 'fa-flag-checkered',
+        'payment': 'fa-dollar-sign',
+        'review': 'fa-star',
+        'system': 'fa-info-circle'
+    };
+    return icons[type] || 'fa-bell';
+}
+
+function getNotificationIconClass(type) {
+    const classes = {
+        'maid_approval': 'blue',
+        'job_request': 'orange',
+        'job_accepted': 'green',
+        'job_completed': 'green',
+        'payment': 'red',
+        'review': 'yellow',
+        'system': 'blue'
+    };
+    return classes[type] || 'blue';
+}
+
+async function markAsRead(notificationId) {
+    try {
+        await apiMarkNotificationRead(notificationId);
+        // Refresh notifications
+        await showNotificationsModal();
+        // Update badge count
+        await updateNotificationBadge();
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+    }
+}
+
+async function markAllAsRead() {
+    try {
+        await apiMarkAllNotificationsRead();
+        // Refresh notifications
+        await showNotificationsModal();
+        // Update badge count
+        await updateNotificationBadge();
+    } catch (error) {
+        console.error('Error marking all as read:', error);
+    }
+}
+
+async function updateNotificationBadge() {
+    try {
+        const response = await apiGetUnreadCount();
+        const badge = document.querySelector('.notification-btn .badge');
+        if (badge) {
+            badge.textContent = response.unreadCount || 0;
+            badge.style.display = response.unreadCount > 0 ? 'flex' : 'none';
+        }
+    } catch (error) {
+        console.error('Error updating notification badge:', error);
+    }
 }
 
 // Table action buttons
@@ -732,7 +984,7 @@ document.addEventListener('click', (e) => {
         const title = button.getAttribute('title');
         
         if (title) {
-            alert(`${title} action clicked. (This is a prototype - no backend integration)`);
+            showToast(`${title} action clicked.`, 'info');
         }
     }
 });
@@ -741,7 +993,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('calendar-day') && !e.target.classList.contains('header')) {
         const day = e.target.textContent;
-        alert(`Schedule for day ${day} would be shown here.`);
+        showToast(`Schedule for day ${day} would be shown here.`, 'info');
     }
 });
 
@@ -769,7 +1021,7 @@ document.addEventListener('drop', (e) => {
     e.preventDefault();
     if (e.target.classList.contains('task-column') && draggedElement) {
         e.target.appendChild(draggedElement);
-        alert('Task status updated! (This is a prototype)');
+        showToast('Task status updated!', 'success');
     }
 });
 
@@ -781,7 +1033,7 @@ document.querySelectorAll('.task-card').forEach(card => {
 // Chart placeholder interaction
 document.querySelectorAll('.chart-placeholder').forEach(placeholder => {
     placeholder.addEventListener('click', () => {
-        alert('In a full implementation, interactive charts would be displayed here using libraries like Chart.js or D3.js');
+        showToast('In a full implementation, interactive charts would be displayed here using libraries like Chart.js or D3.js', 'info');
     });
 });
 
@@ -795,7 +1047,7 @@ function showLoading() {
 function refreshData() {
     showLoading();
     setTimeout(() => {
-        alert('Data refreshed successfully!');
+        showToast('Data refreshed successfully!', 'success');
     }, 1000);
 }
 
@@ -803,7 +1055,7 @@ function refreshData() {
 document.addEventListener('click', (e) => {
     if (e.target.closest('.btn-primary') && e.target.textContent.includes('Export')) {
         e.preventDefault();
-        alert('Export functionality would download a CSV/PDF file here. (This is a prototype)');
+        showToast('Export functionality would download a CSV/PDF file here.', 'info');
     }
 });
 
@@ -930,6 +1182,8 @@ async function showPendingApprovals() {
         }
     } catch (error) {
         console.error('Error loading pending maids:', error);
+        const errorMessage = error.message || 'Unable to load pending maids. Please try again.';
+        showToast(`Pending Maids Error: ${errorMessage}`, 'error');
         // Keep showing existing static data if API fails
     }
 }
@@ -1045,7 +1299,16 @@ async function approveMaid(maidId, maidName) {
         maidId = maid ? maid._id : null;
     }
     
-    if (!confirm(`Approve ${maidName} as a maid?\n\nThey will receive an approval email and can start accepting jobs immediately.`)) {
+    // Show custom confirmation dialog
+    const confirmed = await showConfirmDialog(
+        'Approve Maid',
+        `Approve <strong>${maidName}</strong> as a maid?`,
+        'They will receive an approval email and can start accepting jobs immediately.',
+        'Approve',
+        'Cancel'
+    );
+    
+    if (!confirmed) {
         return;
     }
     
@@ -1055,7 +1318,8 @@ async function approveMaid(maidId, maidName) {
             console.log('Approval result:', result);
         }
         
-        alert(`✅ ${maidName} has been approved!\n\n${maidId ? 'An approval email has been sent to them.' : ''}`);
+        // Show success toast
+        showToast(`${maidName} has been approved!`, 'success');
         
         // Remove the approval card by maidId (not relying on event.target)
         const approvalCard = document.querySelector(`.approval-card[data-maid-id="${maidId}"]`);
@@ -1075,7 +1339,9 @@ async function approveMaid(maidId, maidName) {
             }, 300);
         }
     } catch (error) {
-        alert('Error approving maid: ' + (error.message || 'Unknown error'));
+        console.error('Error approving maid:', error);
+        const errorMessage = error.message || 'Unable to approve maid. Please try again.';
+        showToast(`Approval Error: ${errorMessage}`, 'error');
     }
 }
 
@@ -1088,44 +1354,51 @@ async function rejectMaid(maidId, maidName) {
         maidId = maid ? maid._id : null;
     }
     
-    const reason = prompt(`Please provide a reason for rejecting ${maidName}:`);
-    if (reason !== null) { // Allow empty reason
-        try {
-            if (maidId) {
-                // Use the apiRejectMaid function
-                await apiRejectMaid(maidId, reason);
-            }
-            
-            alert(`❌ ${maidName} has been rejected.
-
-Reason: ${reason || 'No reason provided'}
-
-A rejection email has been sent.`);
-            
-            // Remove the approval card by maidId (not relying on event.target)
-            const approvalCard = document.querySelector(`.approval-card[data-maid-id="${maidId}"]`);
-            if (approvalCard) {
-                approvalCard.style.opacity = '0';
-                setTimeout(() => {
-                    approvalCard.remove();
-                    const remaining = document.querySelectorAll('.approval-card').length;
-                    if (remaining === 0) {
-                        const alertCard = document.querySelector('.alert-card.warning');
-                        if (alertCard) alertCard.style.display = 'none';
-                        hidePendingApprovals();
-                    }
-                    // Update dashboard stats
-                    updateDashboardStats();
-                }, 300);
-            }
-        } catch (error) {
-            alert('Error rejecting maid: ' + (error.message || 'Unknown error'));
+    // Show custom prompt dialog
+    const reason = await showPromptDialog(
+        'Reject Maid',
+        `Please provide a reason for rejecting <strong>${maidName}</strong>:`,
+        'Enter rejection reason (optional)'
+    );
+    
+    if (reason === null) { // User clicked cancel
+        return;
+    }
+    
+    try {
+        if (maidId) {
+            // Use the apiRejectMaid function
+            await apiRejectMaid(maidId, reason);
         }
+        
+        // Show success toast
+        showToast(`${maidName} has been rejected`, 'warning');
+        
+        // Remove the approval card by maidId (not relying on event.target)
+        const approvalCard = document.querySelector(`.approval-card[data-maid-id="${maidId}"]`);
+        if (approvalCard) {
+            approvalCard.style.opacity = '0';
+            setTimeout(() => {
+                approvalCard.remove();
+                const remaining = document.querySelectorAll('.approval-card').length;
+                if (remaining === 0) {
+                    const alertCard = document.querySelector('.alert-card.warning');
+                    if (alertCard) alertCard.style.display = 'none';
+                    hidePendingApprovals();
+                }
+                // Update dashboard stats
+                updateDashboardStats();
+            }, 300);
+        }
+    } catch (error) {
+        console.error('Error rejecting maid:', error);
+        const errorMessage = error.message || 'Unable to reject maid. Please try again.';
+        showToast(`Rejection Error: ${errorMessage}`, 'error');
     }
 }
 
 function viewDocument(docType) {
-    alert(`Viewing ${docType} document...\n\n(In production, this would open a document viewer/PDF)`);
+    showToast(`Viewing ${docType} document - this would open a document viewer/PDF`, 'info');
 }
 
 /**
@@ -1175,6 +1448,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // User is admin, load dashboard data
         loadAdminDashboard();
+        
+        // Load notification badge count
+        updateNotificationBadge();
     }
     
     // Add logout handler to sidebar
@@ -1188,3 +1464,161 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log('Home Maid Tracking System Loaded!');
 });
+
+// ============================================================
+// Custom Dialog and Toast Notification System
+// ============================================================
+
+/**
+ * Show custom confirmation dialog
+ */
+function showConfirmDialog(title, message, description, confirmText = 'OK', cancelText = 'Cancel') {
+    return new Promise((resolve) => {
+        const modalHTML = `
+            <div id="customConfirmDialog" class="modal active">
+                <div class="modal-content confirm-dialog">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-question-circle"></i> ${title}</h2>
+                    </div>
+                    <div class="confirm-body">
+                        <p class="confirm-message">${message}</p>
+                        ${description ? `<p class="confirm-description">${description}</p>` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary cancel-btn">${cancelText}</button>
+                        <button class="btn-primary confirm-btn">${confirmText}</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        const dialog = document.getElementById('customConfirmDialog');
+        const confirmBtn = dialog.querySelector('.confirm-btn');
+        const cancelBtn = dialog.querySelector('.cancel-btn');
+        
+        const cleanup = () => {
+            dialog.classList.remove('active');
+            setTimeout(() => dialog.remove(), 300);
+        };
+        
+        confirmBtn.addEventListener('click', () => {
+            cleanup();
+            resolve(true);
+        });
+        
+        cancelBtn.addEventListener('click', () => {
+            cleanup();
+            resolve(false);
+        });
+        
+        // Close on background click
+        dialog.addEventListener('click', (e) => {
+            if (e.target === dialog) {
+                cleanup();
+                resolve(false);
+            }
+        });
+    });
+}
+
+/**
+ * Show custom prompt dialog
+ */
+function showPromptDialog(title, message, placeholder = '') {
+    return new Promise((resolve) => {
+        const modalHTML = `
+            <div id="customPromptDialog" class="modal active">
+                <div class="modal-content prompt-dialog">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-edit"></i> ${title}</h2>
+                    </div>
+                    <div class="prompt-body">
+                        <p class="prompt-message">${message}</p>
+                        <textarea class="prompt-input" placeholder="${placeholder}" rows="4"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary cancel-btn">Cancel</button>
+                        <button class="btn-primary submit-btn">Submit</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        const dialog = document.getElementById('customPromptDialog');
+        const input = dialog.querySelector('.prompt-input');
+        const submitBtn = dialog.querySelector('.submit-btn');
+        const cancelBtn = dialog.querySelector('.cancel-btn');
+        
+        // Focus input
+        setTimeout(() => input.focus(), 100);
+        
+        const cleanup = () => {
+            dialog.classList.remove('active');
+            setTimeout(() => dialog.remove(), 300);
+        };
+        
+        submitBtn.addEventListener('click', () => {
+            const value = input.value.trim();
+            cleanup();
+            resolve(value);
+        });
+        
+        cancelBtn.addEventListener('click', () => {
+            cleanup();
+            resolve(null);
+        });
+        
+        // Submit on Enter (Ctrl+Enter for textarea)
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                const value = input.value.trim();
+                cleanup();
+                resolve(value);
+            }
+        });
+    });
+}
+
+/**
+ * Show toast notification
+ */
+function showToast(message, type = 'info', duration = 4000) {
+    const icons = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-circle',
+        warning: 'fa-exclamation-triangle',
+        info: 'fa-info-circle'
+    };
+    
+    const icon = icons[type] || icons.info;
+    
+    const toastHTML = `
+        <div class="toast toast-${type}">
+            <i class="fas ${icon}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    container.insertAdjacentHTML('beforeend', toastHTML);
+    const toast = container.lastElementChild;
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 10);
+    
+    // Remove after duration
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
