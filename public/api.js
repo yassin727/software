@@ -1025,4 +1025,13 @@ async function apiDeleteConversation(conversationId) {
     return await apiRequest(`/conversations/${conversationId}`, { method: 'DELETE' });
 }
 
+/**
+ * Get conversation for a specific booking
+ * @param {string} bookingId - Booking/Job ID
+ * @returns {Promise<Object>} Conversation object
+ */
+async function apiGetConversationByBooking(bookingId) {
+    return await apiRequest(`/conversations/by-booking/${bookingId}`, { method: 'GET' });
+}
+
 console.log('API Service Module loaded');

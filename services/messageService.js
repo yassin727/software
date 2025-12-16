@@ -237,6 +237,74 @@ class MessageService {
 
     return { deleted: true };
   }
+
+  /**
+   * Get or create conversation for a booking
+   */
+  static async getConversationByBooking(bookingId, userId) {
+    const Job = require('../models/Job');
+    const Maid = require('../models/Maid');
+
+    // Get the booking
+    const job = await Job.findById(bookingId).populate('maid_id');
+    if (!job) {
+      throw new Error('Booking not found');
+    }
+
+    // Verify user is participant (homeowner or maid)
+    const isHomeowner = job.homeowner_id.toString() === userId.toString();
+    let isMaid = false;
+    let maidUserId = null;
+
+    if (job.maid_id) {
+      const maid = await Maid.findById(job.maid_id._id || job.maid_id);
+      if (maid) {
+        maidUserId = maid.user_id;
+        isMaid = maid.user_id.toString() === userId.toString();
+      }
+    }
+
+    if (!isHomeowner && !isMaid) {
+      throw new Error('Not authorized');
+    }
+
+    if (!maidUserId) {
+      throw new Error('Maid not found for this booking');
+    }
+
+    // Find or create conversation
+    const conversation = await Conversation.findOrCreate(job.homeowner_id, maidUserId);
+    
+    // Link booking if not already linked
+    if (!conversation.bookingId) {
+      conversation.bookingId = bookingId;
+      await conversation.save();
+    }
+
+    // Populate and return
+    await conversation.populate('participants', 'name email role avatar');
+    await conversation.populate('lastMessage', 'body senderId createdAt');
+
+    const otherParticipant = conversation.participants.find(
+      p => p._id.toString() !== userId.toString()
+    );
+
+    const unreadCount = await Message.countDocuments({
+      conversationId: conversation._id,
+      receiverId: userId,
+      readAt: null
+    });
+
+    return {
+      id: conversation._id,
+      otherParticipant,
+      lastMessage: conversation.lastMessage,
+      lastMessageAt: conversation.lastMessageAt,
+      unreadCount,
+      bookingId: conversation.bookingId,
+      createdAt: conversation.createdAt
+    };
+  }
 }
 
 module.exports = MessageService;

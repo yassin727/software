@@ -7,6 +7,11 @@ const conversationSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   }],
+  // Optional reference to the booking that created this conversation
+  bookingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Job'
+  },
   // Reference to last message for preview
   lastMessage: {
     type: mongoose.Schema.Types.ObjectId,

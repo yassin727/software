@@ -332,14 +332,17 @@ function renderBookings(bookings) {
 function renderBookingActions(booking) {
     const actions = [];
     
+    // Message button available for all active bookings (uses booking ID to find conversation)
+    if (booking.status === 'in_progress' || booking.status === 'requested' || booking.status === 'accepted') {
+        actions.push(`<button class="btn-secondary" onclick="messageFromBooking('${booking.id}')"><i class="fas fa-comment"></i> Message</button>`);
+    }
+    
     if (booking.status === 'in_progress') {
-        actions.push(`<button class="btn-secondary" onclick="trackMaid('${booking.id}')"><i class="fas fa-location-arrow"></i> Track Maid</button>`);
-        actions.push(`<button class="btn-secondary" onclick="contactMaid('${booking.maid.userId}')"><i class="fas fa-comment"></i> Message</button>`);
-        actions.push(`<button class="btn-primary" onclick="viewTaskProgress('${booking.id}')"><i class="fas fa-tasks"></i> View Progress</button>`);
+        actions.push(`<button class="btn-secondary" onclick="trackMaid('${booking.id}')"><i class="fas fa-location-arrow"></i> Track</button>`);
+        actions.push(`<button class="btn-primary" onclick="viewTaskProgress('${booking.id}')"><i class="fas fa-tasks"></i> Progress</button>`);
     } else if (booking.status === 'requested' || booking.status === 'accepted') {
         actions.push(`<button class="btn-secondary" onclick="rescheduleBooking('${booking.id}')"><i class="fas fa-calendar-alt"></i> Reschedule</button>`);
         actions.push(`<button class="btn-secondary" onclick="cancelBooking('${booking.id}')"><i class="fas fa-times"></i> Cancel</button>`);
-        actions.push(`<button class="btn-secondary" onclick="contactMaid('${booking.maid.userId}')"><i class="fas fa-comment"></i> Message</button>`);
     } else if (booking.status === 'completed' && !booking.hasReview) {
         actions.push(`<button class="btn-primary" onclick="openReviewModal('${booking.id}', '${booking.maid.id}')"><i class="fas fa-star"></i> Leave Review</button>`);
         actions.push(`<button class="btn-secondary" onclick="bookAgain('${booking.maid.id}')"><i class="fas fa-redo"></i> Book Again</button>`);
@@ -623,6 +626,26 @@ async function contactMaid(maidId) {
         await selectConversation(conversation.id);
     } catch (error) {
         console.error('Error opening conversation:', error);
+        showNotification(error.message || 'Failed to open conversation', 'error');
+    }
+}
+
+/**
+ * Open conversation from a booking (uses booking ID to find/create conversation)
+ */
+async function messageFromBooking(bookingId) {
+    showNotification('Opening messenger...', 'info');
+    try {
+        // Get conversation for this booking
+        const conversation = await apiGetConversationByBooking(bookingId);
+        currentConversationId = conversation.id;
+        
+        // Switch to messages section and load the conversation
+        showSection('messages');
+        await loadConversations();
+        await selectConversation(conversation.id);
+    } catch (error) {
+        console.error('Error opening conversation from booking:', error);
         showNotification(error.message || 'Failed to open conversation', 'error');
     }
 }

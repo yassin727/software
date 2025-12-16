@@ -1,8 +1,10 @@
 const JobService = require('../services/jobService');
 const NotificationService = require('../services/notificationService');
+const MessageService = require('../services/messageService');
 const User = require('../models/User');
 const Maid = require('../models/Maid');
 const Job = require('../models/Job');
+const Conversation = require('../models/Conversation');
 
 /**
  * List jobs for the current user.
@@ -54,12 +56,13 @@ const createJob = async (req, res) => {
       estimatedDuration: parseFloat(estimatedDuration) || 4
     });
 
+    // Get maid's user ID for conversation and notification
+    const maid = await Maid.findById(maidId).populate('user_id');
+    const maidUserId = maid?.user_id?._id;
+
     // Send notification to maid about new job request
     try {
-      const [homeowner, maid] = await Promise.all([
-        User.findById(homeownerId),
-        Maid.findById(maidId).populate('user_id')
-      ]);
+      const homeowner = await User.findById(homeownerId);
       
       if (maid && maid.user_id) {
         const job = await Job.findById(jobId);
@@ -73,7 +76,37 @@ const createJob = async (req, res) => {
       console.error('Failed to send job request notification:', notifError);
     }
 
-    return res.status(201).json({ jobId, message: 'Booking created successfully' });
+    // AUTO-CREATE CONVERSATION between homeowner and maid
+    let conversationId = null;
+    if (maidUserId) {
+      try {
+        // Find or create conversation
+        const conversation = await Conversation.findOrCreate(homeownerId, maidUserId);
+        conversationId = conversation._id;
+        
+        // Link booking to conversation if not already linked
+        if (!conversation.bookingId) {
+          conversation.bookingId = jobId;
+          await conversation.save();
+        }
+
+        // Create initial system message about the booking
+        const job = await Job.findById(jobId);
+        const scheduledDate = new Date(job.scheduled_datetime).toLocaleDateString('en-US', {
+          weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        
+        await MessageService.sendMessage(
+          conversation._id,
+          homeownerId,
+          `📅 New booking created for ${scheduledDate}.\nService: ${title}\nAddress: ${address}\n\nYou can chat here about the booking details.`
+        );
+      } catch (convError) {
+        console.error('Failed to create conversation for booking:', convError);
+      }
+    }
+
+    return res.status(201).json({ jobId, conversationId, message: 'Booking created successfully' });
   } catch (err) {
     console.error('Create job error', err);
     return res.status(500).json({ message: 'Failed to create booking' });
