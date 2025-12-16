@@ -574,6 +574,69 @@ function toggleSidebar() {
 function openAddMaidModal() {
     const modal = document.getElementById('addMaidModal');
     modal.classList.add('active');
+    // Clear form
+    document.getElementById('addMaidForm').reset();
+}
+
+/**
+ * Handle Add Maid form submission
+ */
+async function handleAddMaid(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    try {
+        // Disable submit button
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Adding...';
+        
+        // Collect form data
+        const formData = {
+            name: document.getElementById('maidName').value.trim(),
+            email: document.getElementById('maidEmail').value.trim(),
+            phone: document.getElementById('maidPhone').value.trim(),
+            password: document.getElementById('maidPassword').value,
+            role: 'maid',
+            specializations: document.getElementById('maidSpecialization').value,
+            hourly_rate: parseFloat(document.getElementById('maidRate').value) || 15,
+            experience_years: parseInt(document.getElementById('maidExperience').value) || 0,
+            location: document.getElementById('maidLocation').value.trim() || '',
+            bio: document.getElementById('maidBio').value.trim() || ''
+        };
+        
+        console.log('Submitting maid data:', formData);
+        
+        // Call API to register maid
+        const result = await apiRegister(formData);
+        
+        console.log('Maid registered successfully:', result);
+        
+        // Show success message
+        alert(`✅ Maid "${formData.name}" has been added successfully!\n\nThe maid account is now pending admin approval.`);
+        
+        // Close modal and reset form
+        closeModal('addMaidModal');
+        form.reset();
+        
+        // Reload pending maids list
+        await loadPendingMaidsCount();
+        
+        // Update dashboard if visible
+        if (document.getElementById('dashboard').classList.contains('active')) {
+            await loadAdminDashboard();
+        }
+        
+    } catch (error) {
+        console.error('Error adding maid:', error);
+        alert(`❌ Error adding maid: ${error.message}\n\nPlease check the form and try again.`);
+    } finally {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
 }
 
 function openScheduleModal() {

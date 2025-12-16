@@ -865,52 +865,58 @@
                 <h2>Add New Maid</h2>
                 <button class="close-btn" onclick="closeModal('addMaidModal')">&times;</button>
             </div>
-            <form class="form">
+            <form id="addMaidForm" class="form" onsubmit="handleAddMaid(event)">
                 <div class="form-row">
                     <div class="form-group">
                         <label>Full Name *</label>
-                        <input type="text" placeholder="Enter full name" required>
+                        <input type="text" id="maidName" name="name" placeholder="Enter full name" required>
                     </div>
                     <div class="form-group">
                         <label>Phone Number *</label>
-                        <input type="tel" placeholder="+1 234-567-8900" required>
+                        <input type="tel" id="maidPhone" name="phone" placeholder="+1 234-567-8900" required>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" placeholder="email@example.com">
+                        <label>Email *</label>
+                        <input type="email" id="maidEmail" name="email" placeholder="email@example.com" required>
                     </div>
                     <div class="form-group">
-                        <label>Date of Birth</label>
-                        <input type="date">
+                        <label>Password *</label>
+                        <input type="password" id="maidPassword" name="password" placeholder="Enter password" required minlength="6">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Specialization *</label>
-                        <select required>
+                        <select id="maidSpecialization" name="specializations" required>
                             <option value="">Select specialization</option>
-                            <option>General Cleaning</option>
-                            <option>Deep Cleaning</option>
-                            <option>Kitchen Specialist</option>
-                            <option>Laundry Specialist</option>
-                            <option>Baby Care</option>
-                            <option>Elderly Care</option>
+                            <option value="General Cleaning">General Cleaning</option>
+                            <option value="Deep Cleaning">Deep Cleaning</option>
+                            <option value="Kitchen Specialist">Kitchen Specialist</option>
+                            <option value="Laundry Specialist">Laundry Specialist</option>
+                            <option value="Baby Care">Baby Care</option>
+                            <option value="Elderly Care">Elderly Care</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Hourly Rate ($)</label>
-                        <input type="number" placeholder="15" min="0">
+                        <input type="number" id="maidRate" name="hourly_rate" placeholder="15" min="0" step="0.01">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Experience (years)</label>
+                        <input type="number" id="maidExperience" name="experience_years" placeholder="0" min="0" max="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" id="maidLocation" name="location" placeholder="City, State">
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Address</label>
-                    <textarea rows="3" placeholder="Enter full address"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Upload Photo</label>
-                    <input type="file" accept="image/*">
+                    <label>Bio/Description</label>
+                    <textarea id="maidBio" name="bio" rows="3" placeholder="Brief description about the maid..."></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" onclick="closeModal('addMaidModal')">Cancel</button>
@@ -920,7 +926,7 @@
         </div>
     </div>
 
-    <script src="api.js?v=3.0"></script>
-    <script src="script.js?v=3.0"></script>
+    <script src="api.js?v=4.0"></script>
+    <script src="script.js?v=4.0"></script>
 </body>
 </html>
