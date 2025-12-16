@@ -13,6 +13,13 @@ const router = express.Router();
 router.get('/dashboard', auth(['admin']), AdminController.getDashboard);
 
 // ============================================================
+// Jobs Management
+// ============================================================
+
+// GET /api/admin/jobs - Get all jobs
+router.get('/jobs', auth(['admin']), AdminController.getAllJobs);
+
+// ============================================================
 // Reports
 // ============================================================
 

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Maids API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .test-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #results {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Maids API Test Page</h1>
+    
+    <div class="test-section">
+        <h2>API Endpoints Test</h2>
+        <button onclick="testActiveMaids()">Test GET /api/maids/active</button>
+        <button onclick="testPendingMaids()">Test GET /api/admin/maids/pending</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="results">Click a button above to test the API...</div>
+
+    <script src="api.js?v=3.0"></script>
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : (type === 'success' ? 'success' : '');
+            results.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testActiveMaids() {
+            log('Testing GET /api/maids/active...');
+            try {
+                const response = await apiGetActiveMaids();
+                log(`✓ Success! Received data:`, 'success');
+                log(JSON.stringify(response, null, 2));
+                log(`Total maids: ${Array.isArray(response) ? response.length : 'N/A'}`, 'success');
+            } catch (error) {
+                log(`✗ Error: ${error.message}`, 'error');
+                log(`Full error: ${JSON.stringify(error, null, 2)}`, 'error');
+            }
+        }
+
+        async function testPendingMaids() {
+            log('Testing GET /api/admin/maids/pending...');
+            try {
+                const response = await apiGetPendingMaids();
+                log(`✓ Success! Received data:`, 'success');
+                log(JSON.stringify(response, null, 2));
+                log(`Total pending maids: ${Array.isArray(response) ? response.length : 'N/A'}`, 'success');
+            } catch (error) {
+                log(`✗ Error: ${error.message}`, 'error');
+                log(`Full error: ${JSON.stringify(error, null, 2)}`, 'error');
+            }
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            log('Page loaded. Testing API endpoints...');
+            setTimeout(() => {
+                testActiveMaids();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

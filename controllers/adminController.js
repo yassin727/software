@@ -94,6 +94,31 @@ const getDashboard = async (req, res) => {
 };
 
 /**
+ * Get all jobs (admin only)
+ */
+const getAllJobs = async (req, res) => {
+  try {
+    const jobs = await Job.find()
+      .populate('maid_id')
+      .populate('homeowner_id', 'name email')
+      .populate({
+        path: 'maid_id',
+        populate: {
+          path: 'user_id',
+          select: 'name email phone photo_url'
+        }
+      })
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    return res.json({ jobs });
+  } catch (error) {
+    console.error('Error getting all jobs:', error);
+    return res.status(500).json({ message: 'Failed to get jobs' });
+  }
+};
+
+/**
  * Get recent activities for dashboard
  */
 async function getRecentActivities(limit = 10) {
@@ -165,9 +190,10 @@ const getReportsSummary = async (req, res) => {
       startDate = new Date(today.getFullYear(), today.getMonth(), 1);
     }
     
-    const [jobs, reviews] = await Promise.all([
+    const [jobs, reviews, attendance] = await Promise.all([
       Job.find({ createdAt: { $gte: startDate } }),
-      Review.find({ createdAt: { $gte: startDate } })
+      Review.find({ createdAt: { $gte: startDate } }),
+      Attendance.find({ check_in: { $gte: startDate } })
     ]);
     
     const completed = jobs.filter(j => j.status === 'completed');
@@ -179,6 +205,15 @@ const getReportsSummary = async (req, res) => {
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : 0;
     
+    // Calculate total hours from attendance
+    const totalHours = attendance.reduce((sum, a) => {
+      if (a.check_in && a.check_out) {
+        const hours = (new Date(a.check_out) - new Date(a.check_in)) / (1000 * 60 * 60);
+        return sum + hours;
+      }
+      return sum;
+    }, 0);
+    
     return res.json({
       range,
       totalJobs: jobs.length,
@@ -189,7 +224,9 @@ const getReportsSummary = async (req, res) => {
       averageRating: Math.round(avgRating * 10) / 10,
       completionRate: jobs.length > 0 
         ? Math.round((completed.length / jobs.length) * 100) 
-        : 0
+        : 0,
+      totalHours: Math.round(totalHours * 10) / 10,
+      tasksCompleted: completed.length
     });
   } catch (error) {
     console.error('Error getting reports summary:', error);
@@ -510,6 +547,7 @@ function formatTimeAgo(date) {
 
 module.exports = {
   getDashboard,
+  getAllJobs,
   getReportsSummary,
   getPerformanceData,
   getSchedule,

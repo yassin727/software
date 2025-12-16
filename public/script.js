@@ -54,12 +54,19 @@ async function loadSectionData(sectionId) {
             break;
         case 'maids':
             await loadPendingMaidsCount();
+            await loadActiveMaids();
             break;
         case 'attendance':
             await loadAttendanceData();
             break;
         case 'schedule':
             await loadScheduleData();
+            break;
+        case 'tasks':
+            await loadTasksData();
+            break;
+        case 'payments':
+            await loadPaymentsData();
             break;
         case 'reports':
             await loadReportsData();
@@ -75,6 +82,8 @@ async function loadAdminDashboard() {
     try {
         adminDashboardData = await apiGetAdminDashboard();
         renderAdminDashboard(adminDashboardData);
+        // Also load active maids for the dashboard section
+        await loadActiveMaids();
     } catch (error) {
         console.error('Error loading admin dashboard:', error);
     }
@@ -188,6 +197,96 @@ async function loadPendingMaidsCount() {
     }
 }
 
+// Load active maids and render them
+async function loadActiveMaids() {
+    try {
+        console.log('Loading active maids...');
+        const maids = await apiGetActiveMaids();
+        console.log('Active maids API response:', maids);
+        console.log('Number of maids received:', Array.isArray(maids) ? maids.length : 'not an array');
+        renderActiveMaidsTable(maids || []);
+    } catch (error) {
+        console.error('Error loading active maids:', error);
+        // Show error in UI
+        const tbody = document.querySelector('#maids .data-table tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Error loading maids. Check console.</td></tr>';
+        }
+    }
+}
+
+// Render active maids table
+function renderActiveMaidsTable(maids) {
+    const tbody = document.querySelector('#maids .data-table tbody');
+    console.log('renderActiveMaidsTable called with', maids?.length, 'maids');
+    console.log('tbody element found:', tbody);
+    
+    if (!tbody) {
+        console.error('Could not find tbody element with selector: #maids .data-table tbody');
+        return;
+    }
+    
+    if (!maids || maids.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No active maids found</td></tr>';
+        return;
+    }
+    
+    console.log('Rendering', maids.length, 'maids to table');
+    tbody.innerHTML = maids.map((maid, index) => {
+        const userData = maid.user_id || {};
+        const name = userData.name || 'Unknown';
+        const phone = userData.phone || 'N/A';
+        const email = userData.email || 'N/A';
+        const photo = userData.photo_url || 'https://via.placeholder.com/35';
+        const specialization = maid.specializations || 'General Cleaning';
+        const rating = maid.average_rating || 0;
+        const isOnline = maid.is_online;
+        const status = isOnline ? 'active' : 'inactive';
+        const statusText = isOnline ? 'Active' : 'Off Duty';
+        
+        return `
+            <tr>
+                <td>#${String(index + 1).padStart(3, '0')}</td>
+                <td>
+                    <div class="user-cell">
+                        <img src="${photo}" alt="${name}">
+                        <span>${name}</span>
+                    </div>
+                </td>
+                <td>${phone}</td>
+                <td>${specialization}</td>
+                <td><span class="status-badge ${status}">${statusText}</span></td>
+                <td>
+                    <div class="rating">
+                        <i class="fas fa-star"></i> ${rating.toFixed(1)}
+                    </div>
+                </td>
+                <td>
+                    <button class="btn-icon" title="View" onclick="viewMaidDetails('${maid._id}')"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon" title="Edit" onclick="editMaid('${maid._id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon" title="Suspend" onclick="suspendMaid('${maid._id}', '${name}')"><i class="fas fa-ban"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    console.log('Table rendering complete');
+}
+
+// Placeholder functions for maid actions
+function viewMaidDetails(maidId) {
+    alert(`Viewing details for maid ID: ${maidId}\n(This feature will be implemented)`);
+}
+
+function editMaid(maidId) {
+    alert(`Editing maid ID: ${maidId}\n(This feature will be implemented)`);
+}
+
+function suspendMaid(maidId, name) {
+    if (confirm(`Are you sure you want to suspend ${name}?`)) {
+        alert(`Maid ${name} suspended.\n(This feature will be implemented)`);
+    }
+}
+
 // Load attendance data
 async function loadAttendanceData(date) {
     try {
@@ -208,16 +307,31 @@ function renderAttendanceTable(records) {
         return;
     }
     
-    tbody.innerHTML = records.map(r => `
-        <tr>
-            <td>${r.maidName}</td>
-            <td>${r.jobTitle}</td>
-            <td>${new Date(r.checkIn).toLocaleTimeString()}</td>
-            <td>${r.checkOut ? new Date(r.checkOut).toLocaleTimeString() : '-'}</td>
-            <td>${r.duration ? r.duration + ' hrs' : 'On duty'}</td>
-            <td><span class="status-badge ${r.status}">${r.status}</span></td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = records.map(r => {
+        const maidName = r.maidName || 'Unknown';
+        const checkInTime = r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
+        const checkOutTime = r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '-';
+        const duration = r.duration ? r.duration.toFixed(1) + ' hrs' : '-';
+        const status = r.checkOut ? 'completed' : (r.checkIn ? 'active' : 'inactive');
+        const statusText = r.checkOut ? 'Present' : (r.checkIn ? 'On Duty' : 'Absent');
+        const location = r.location || '-';
+        
+        return `
+            <tr>
+                <td>
+                    <div class="user-cell">
+                        <img src="https://via.placeholder.com/35" alt="${escapeHtmlAdmin(maidName)}">
+                        <span>${escapeHtmlAdmin(maidName)}</span>
+                    </div>
+                </td>
+                <td>${checkInTime}</td>
+                <td>${checkOutTime}</td>
+                <td>${duration}</td>
+                <td><span class="status-badge ${status}">${statusText}</span></td>
+                <td>${escapeHtmlAdmin(location)}</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 // Load schedule data
@@ -235,6 +349,169 @@ async function loadScheduleData() {
     }
 }
 
+// Load tasks data
+async function loadTasksData() {
+    try {
+        // For admin, get all jobs
+        const data = await apiGetAllJobs();
+        renderTasksBoard(data.jobs || data || []);
+    } catch (error) {
+        console.error('Error loading tasks:', error);
+        // Fallback to empty state
+        renderTasksBoard([]);
+    }
+}
+
+// Render tasks board
+function renderTasksBoard(jobs) {
+    const pendingColumn = document.querySelector('.task-column:nth-child(1)');
+    const inProgressColumn = document.querySelector('.task-column:nth-child(2)');
+    const completedColumn = document.querySelector('.task-column:nth-child(3)');
+    
+    if (!pendingColumn || !inProgressColumn || !completedColumn) return;
+    
+    const pending = jobs.filter(j => j.status === 'requested');
+    const inProgress = jobs.filter(j => j.status === 'in_progress' || j.status === 'accepted');
+    const completed = jobs.filter(j => j.status === 'completed');
+    
+    // Update counts
+    pendingColumn.querySelector('.count').textContent = pending.length;
+    inProgressColumn.querySelector('.count').textContent = inProgress.length;
+    completedColumn.querySelector('.count').textContent = completed.length;
+    
+    // Render pending tasks
+    const pendingHTML = pending.slice(0, 5).map(job => `
+        <div class="task-card">
+            <h4>${escapeHtmlAdmin(job.title)}</h4>
+            <p>${escapeHtmlAdmin(job.description || 'No description')}</p>
+            <div class="task-meta">
+                <span class="assigned-to">
+                    <i class="fas fa-user"></i> ${escapeHtmlAdmin(job.maid_id?.user_id?.name || 'Unassigned')}
+                </span>
+                <span class="task-priority medium">Medium</span>
+            </div>
+        </div>
+    `).join('');
+    
+    // Render in-progress tasks
+    const inProgressHTML = inProgress.slice(0, 5).map(job => `
+        <div class="task-card">
+            <h4>${escapeHtmlAdmin(job.title)}</h4>
+            <p>${escapeHtmlAdmin(job.description || 'No description')}</p>
+            <div class="task-meta">
+                <span class="assigned-to">
+                    <i class="fas fa-user"></i> ${escapeHtmlAdmin(job.maid_id?.user_id?.name || 'Unassigned')}
+                </span>
+                <span class="task-priority high">High</span>
+            </div>
+        </div>
+    `).join('');
+    
+    // Render completed tasks
+    const completedHTML = completed.slice(0, 5).map(job => `
+        <div class="task-card completed">
+            <h4>${escapeHtmlAdmin(job.title)}</h4>
+            <p>${escapeHtmlAdmin(job.description || 'No description')}</p>
+            <div class="task-meta">
+                <span class="assigned-to">
+                    <i class="fas fa-user"></i> ${escapeHtmlAdmin(job.maid_id?.user_id?.name || 'Unknown')}
+                </span>
+                <span class="task-priority low">Low</span>
+            </div>
+            <div class="completed-badge">
+                <i class="fas fa-check-circle"></i> Completed
+            </div>
+        </div>
+    `).join('');
+    
+    // Clear and append
+    const pendingContainer = pendingColumn.querySelector('.task-card')?.parentElement;
+    const inProgressContainer = inProgressColumn.querySelector('.task-card')?.parentElement;
+    const completedContainer = completedColumn.querySelector('.task-card')?.parentElement;
+    
+    if (pendingContainer) {
+        pendingContainer.innerHTML = pendingHTML || '<p class="empty-text">No pending tasks</p>';
+    }
+    if (inProgressContainer) {
+        inProgressContainer.innerHTML = inProgressHTML || '<p class="empty-text">No tasks in progress</p>';
+    }
+    if (completedContainer) {
+        completedContainer.innerHTML = completedHTML || '<p class="empty-text">No completed tasks</p>';
+    }
+}
+
+// Load payments data
+async function loadPaymentsData() {
+    try {
+        // For admin, get all jobs
+        const data = await apiGetAllJobs();
+        const allJobs = data.jobs || data || [];
+        const completedJobs = allJobs.filter(j => j.status === 'completed');
+        renderPaymentsTable(completedJobs);
+        renderPaymentStats(completedJobs);
+    } catch (error) {
+        console.error('Error loading payments:', error);
+        // Show empty state on error
+        renderPaymentsTable([]);
+        renderPaymentStats([]);
+    }
+}
+
+// Render payment statistics
+function renderPaymentStats(jobs) {
+    const thisMonth = new Date();
+    thisMonth.setDate(1);
+    thisMonth.setHours(0, 0, 0, 0);
+    
+    const totalPaidThisMonth = jobs
+        .filter(j => new Date(j.updatedAt) >= thisMonth)
+        .reduce((sum, j) => sum + (j.hourly_rate * (j.actual_duration || 4)), 0);
+    
+    const pendingPayments = jobs
+        .filter(j => !j.payment_status || j.payment_status === 'pending')
+        .reduce((sum, j) => sum + (j.hourly_rate * (j.actual_duration || 4)), 0);
+    
+    const statCards = document.querySelectorAll('#payments .stat-card .stat-details h3');
+    if (statCards.length >= 3) {
+        statCards[0].textContent = `$${totalPaidThisMonth.toFixed(2)}`;
+        statCards[1].textContent = `$${pendingPayments.toFixed(2)}`;
+        statCards[2].textContent = `$0.00`; // Due this week - would need more logic
+    }
+}
+
+// Render payments table
+function renderPaymentsTable(jobs) {
+    const tbody = document.querySelector('#payments .data-table tbody');
+    if (!tbody) return;
+    
+    if (!jobs || jobs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No payment records found</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = jobs.slice(0, 10).map((job, index) => {
+        const amount = (job.hourly_rate * (job.actual_duration || 4)).toFixed(2);
+        const date = new Date(job.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        const maidName = job.maid_id?.user_id?.name || 'Unknown';
+        const isPaid = job.payment_status === 'paid';
+        
+        return `
+            <tr>
+                <td>#INV-${String(index + 1).padStart(3, '0')}</td>
+                <td>${escapeHtmlAdmin(maidName)}</td>
+                <td>$${amount}</td>
+                <td>${date}</td>
+                <td>Bank Transfer</td>
+                <td><span class="status-badge ${isPaid ? 'completed' : 'pending'}">${isPaid ? 'Paid' : 'Pending'}</span></td>
+                <td>
+                    <button class="btn-icon" title="View"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon" title="Download"><i class="fas fa-download"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
 // Load reports data
 async function loadReportsData() {
     try {
@@ -249,13 +526,13 @@ async function loadReportsData() {
 function renderReportsSummary(data) {
     if (!data) return;
     
-    // Update report cards if they exist
-    const reportCards = document.querySelectorAll('#reports .stat-card h3');
-    if (reportCards.length >= 4) {
-        reportCards[0].textContent = data.totalJobs || 0;
-        reportCards[1].textContent = data.completedJobs || 0;
-        reportCards[2].textContent = `$${data.totalRevenue || 0}`;
-        reportCards[3].textContent = `${data.completionRate || 0}%`;
+    // Update summary items
+    const summaryItems = document.querySelectorAll('#reports .summary-item .summary-value');
+    if (summaryItems.length >= 4) {
+        summaryItems[0].textContent = `${data.totalHours || 0} hrs`;
+        summaryItems[1].textContent = data.tasksCompleted || 0;
+        summaryItems[2].innerHTML = `${data.averageRating || 0} <i class="fas fa-star"></i>`;
+        summaryItems[3].textContent = `$${data.totalRevenue || 0}`;
     }
 }
 
@@ -756,7 +1033,11 @@ async function rejectMaid(maidId, maidName) {
                 await apiRejectMaid(maidId, reason);
             }
             
-            alert(`❌ ${maidName} has been rejected.\n\nReason: ${reason || 'No reason provided'}\n\nA rejection email has been sent.`);
+            alert(`❌ ${maidName} has been rejected.
+
+Reason: ${reason || 'No reason provided'}
+
+A rejection email has been sent.`);
             
             // Remove the approval card by maidId (not relying on event.target)
             const approvalCard = document.querySelector(`.approval-card[data-maid-id="${maidId}"]`);

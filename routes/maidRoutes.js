@@ -9,6 +9,9 @@ const router = express.Router();
 // GET /api/maids/pending → list pending maids
 router.get('/pending', auth(['admin']), MaidController.listPendingMaids);
 
+// GET /api/maids/active → list active/approved maids (admin)
+router.get('/active', auth(['admin']), MaidController.listActiveMaids);
+
 // POST /api/maids/approve → approve maid
 router.post(
   '/approve',

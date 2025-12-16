@@ -16,6 +16,19 @@ const listPendingMaids = async (_req, res) => {
   }
 };
 
+/**
+ * Admin: list all approved/active maids.
+ */
+const listActiveMaids = async (_req, res) => {
+  try {
+    const maids = await MaidService.getActiveMaids();
+    return res.json(maids);
+  } catch (err) {
+    console.error('List active maids error', err);
+    return res.status(500).json({ message: 'Failed to fetch active maids' });
+  }
+};
+
 const recommendMaids = async (req, res) => {
   try {
     const homeownerId = req.user.userId;
@@ -193,6 +206,7 @@ const rejectMaidById = async (req, res) => {
 
 module.exports = {
   listPendingMaids,
+  listActiveMaids,
   approveMaid,
   approveMaidById,
   rejectMaid,

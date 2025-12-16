@@ -16,6 +16,13 @@ class MaidService {
     );
     return result ? 1 : 0; // Return 1 for success, 0 for failure (to match old API)
   }
+
+  static async getActiveMaids() {
+    return await Maid.find({ approval_status: 'approved' })
+      .populate('user_id', 'name email phone photo_url')
+      .sort({ createdAt: -1 })
+      .lean();
+  }
 }
 
 module.exports = MaidService;

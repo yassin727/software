@@ -233,14 +233,30 @@ async function apiGetMyJobs() {
 }
 
 /**
+ * Get all jobs (admin only)
+ * @returns {Promise<Object>} List of all jobs
+ */
+async function apiGetAllJobs() {
+    return await apiRequest('/admin/jobs', {
+        method: 'GET',
+    });
+}
+
+/**
  * Maid check-in to job
  * @param {number} jobId - Job ID
+ * @param {Object} locationData - Optional location data
  * @returns {Promise<Object>} Check-in response
  */
-async function apiCheckIn(jobId) {
+async function apiCheckIn(jobId, locationData = null) {
+    const body = { jobId };
+    if (locationData) {
+        body.latitude = locationData.latitude;
+        body.longitude = locationData.longitude;
+    }
     return await apiRequest('/jobs/checkin', {
         method: 'POST',
-        body: JSON.stringify({ jobId }),
+        body: JSON.stringify(body),
     });
 }
 
@@ -267,6 +283,16 @@ async function apiCheckOut(attendanceId, jobId) {
  */
 async function apiGetPendingMaids() {
     return await apiRequest('/admin/maids/pending', {
+        method: 'GET',
+    });
+}
+
+/**
+ * Get active/approved maids (admin only)
+ * @returns {Promise<Object>} List of active maids
+ */
+async function apiGetActiveMaids() {
+    return await apiRequest('/maids/active', {
         method: 'GET',
     });
 }
