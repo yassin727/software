@@ -53,6 +53,42 @@ class MessageController {
   }
 
   /**
+   * POST /api/conversations/start
+   * Start conversation by bookingId OR maidId
+   */
+  static async startConversation(req, res) {
+    try {
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+      const { bookingId, maidId } = req.body;
+
+      if (!bookingId && !maidId) {
+        return res.status(400).json({ message: 'Either bookingId or maidId is required' });
+      }
+
+      let conversation;
+      if (bookingId) {
+        conversation = await MessageService.getConversationByBooking(bookingId, userId);
+      } else {
+        // maidId provided - get maid's user ID
+        const Maid = require('../models/Maid');
+        const maid = await Maid.findById(maidId);
+        if (!maid) {
+          return res.status(404).json({ message: 'Maid not found' });
+        }
+        conversation = await MessageService.getOrCreateConversation(userId, maid.user_id);
+      }
+
+      res.json(conversation);
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      res.status(400).json({ message: error.message });
+    }
+  }
+
+  /**
    * GET /api/conversations/:id/messages
    * Get messages for a conversation with pagination
    */

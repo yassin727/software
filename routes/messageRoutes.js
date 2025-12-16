@@ -17,6 +17,9 @@ router.get('/unread/count', auth(), MessageController.getUnreadCount);
 // POST /api/conversations - Create or get existing conversation
 router.post('/', auth(), MessageController.createConversation);
 
+// POST /api/conversations/start - Start conversation by booking or maid ID
+router.post('/start', auth(), MessageController.startConversation);
+
 // GET /api/conversations/by-booking/:bookingId - Get conversation for a booking
 router.get('/by-booking/:bookingId', auth(), MessageController.getConversationByBooking);
 

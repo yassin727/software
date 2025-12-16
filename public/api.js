@@ -1034,4 +1034,76 @@ async function apiGetConversationByBooking(bookingId) {
     return await apiRequest(`/conversations/by-booking/${bookingId}`, { method: 'GET' });
 }
 
+/**
+ * Start a conversation by booking ID or maid ID
+ * @param {Object} params - { bookingId } or { maidId }
+ * @returns {Promise<Object>} Conversation object
+ */
+async function apiStartConversation(params) {
+    return await apiRequest('/conversations/start', {
+        method: 'POST',
+        body: JSON.stringify(params)
+    });
+}
+
+/**
+ * Create cash payment for a booking
+ * @param {string} bookingId - Booking ID
+ * @returns {Promise<Object>} Payment object
+ */
+async function apiCreateCashPayment(bookingId) {
+    return await apiRequest('/payments/cash', {
+        method: 'POST',
+        body: JSON.stringify({ bookingId })
+    });
+}
+
+/**
+ * Get homeowner payments
+ * @returns {Promise<Object>} Payments list
+ */
+async function apiGetHomeownerPayments() {
+    return await apiRequest('/payments/homeowner', { method: 'GET' });
+}
+
+/**
+ * Get maid earnings
+ * @returns {Promise<Object>} Earnings data
+ */
+async function apiGetMaidEarningsPayments() {
+    return await apiRequest('/payments/maid', { method: 'GET' });
+}
+
+/**
+ * Get all payments (admin)
+ * @param {Object} options - Query options (status, method, page, limit)
+ * @returns {Promise<Object>} Payments list with pagination
+ */
+async function apiGetAdminPayments(options = {}) {
+    const params = new URLSearchParams();
+    if (options.status) params.append('status', options.status);
+    if (options.method) params.append('method', options.method);
+    if (options.page) params.append('page', options.page);
+    if (options.limit) params.append('limit', options.limit);
+    const query = params.toString();
+    return await apiRequest(`/payments/admin${query ? '?' + query : ''}`, { method: 'GET' });
+}
+
+/**
+ * Get payment statistics (admin)
+ * @returns {Promise<Object>} Payment stats
+ */
+async function apiGetPaymentStats() {
+    return await apiRequest('/payments/admin/stats', { method: 'GET' });
+}
+
+/**
+ * Mark payment as paid (admin)
+ * @param {string} paymentId - Payment ID
+ * @returns {Promise<Object>} Updated payment
+ */
+async function apiMarkPaymentPaid(paymentId) {
+    return await apiRequest(`/payments/admin/${paymentId}/mark-paid`, { method: 'POST' });
+}
+
 console.log('API Service Module loaded');

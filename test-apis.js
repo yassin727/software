@@ -7,15 +7,19 @@
  */
 
 const http = require('http');
+const https = require('https');
 
 const BASE_URL = process.env.API_URL || 'http://localhost:4000';
 
 async function makeRequest(method, path, data = null, token = null) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, BASE_URL);
+    const isHttps = url.protocol === 'https:';
+    const client = isHttps ? https : http;
+    
     const options = {
       hostname: url.hostname,
-      port: url.port || 80,
+      port: url.port || (isHttps ? 443 : 80),
       path: url.pathname,
       method: method,
       headers: {
@@ -27,7 +31,7 @@ async function makeRequest(method, path, data = null, token = null) {
       options.headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const req = http.request(options, (res) => {
+    const req = client.request(options, (res) => {
       let body = '';
       res.on('data', chunk => body += chunk);
       res.on('end', () => {
@@ -108,6 +112,66 @@ async function testApis() {
       console.log('   Status:', res.status);
       if (Array.isArray(res.data)) {
         console.log('   ✅ Got', res.data.length, 'pending maids');
+      } else {
+        console.log('   Response:', res.data);
+      }
+    } catch (err) {
+      console.log('   ❌ Failed:', err.message);
+    }
+
+    // Test 5: Get admin dashboard
+    console.log('');
+    console.log('5️⃣ Testing admin dashboard endpoint...');
+    try {
+      const res = await makeRequest('GET', '/api/admin/dashboard', null, token);
+      console.log('   Status:', res.status);
+      if (res.data.stats) {
+        console.log('   ✅ Got dashboard stats:', res.data.stats);
+      } else {
+        console.log('   Response:', res.data);
+      }
+    } catch (err) {
+      console.log('   ❌ Failed:', err.message);
+    }
+
+    // Test 6: Get admin payments
+    console.log('');
+    console.log('6️⃣ Testing admin payments endpoint...');
+    try {
+      const res = await makeRequest('GET', '/api/payments/admin', null, token);
+      console.log('   Status:', res.status);
+      if (res.data.payments) {
+        console.log('   ✅ Got', res.data.payments.length, 'payments');
+      } else {
+        console.log('   Response:', res.data);
+      }
+    } catch (err) {
+      console.log('   ❌ Failed:', err.message);
+    }
+
+    // Test 7: Get payment stats
+    console.log('');
+    console.log('7️⃣ Testing payment stats endpoint...');
+    try {
+      const res = await makeRequest('GET', '/api/payments/admin/stats', null, token);
+      console.log('   Status:', res.status);
+      if (res.data.totalPaid !== undefined) {
+        console.log('   ✅ Got payment stats:', res.data);
+      } else {
+        console.log('   Response:', res.data);
+      }
+    } catch (err) {
+      console.log('   ❌ Failed:', err.message);
+    }
+
+    // Test 8: Get conversations
+    console.log('');
+    console.log('8️⃣ Testing conversations endpoint...');
+    try {
+      const res = await makeRequest('GET', '/api/conversations', null, token);
+      console.log('   Status:', res.status);
+      if (Array.isArray(res.data)) {
+        console.log('   ✅ Got', res.data.length, 'conversations');
       } else {
         console.log('   Response:', res.data);
       }

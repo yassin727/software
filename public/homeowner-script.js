@@ -1656,13 +1656,6 @@ function removeBookingTask(button) {
     button.closest('.task-item').remove();
 }
 
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 /**
  * Toggle notification panel
  */

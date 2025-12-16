@@ -461,23 +461,43 @@ function renderTasksBoard(jobs) {
 // Load payments data
 async function loadPaymentsData() {
     try {
-        // For admin, get all jobs
-        const data = await apiGetAllJobs();
-        const allJobs = data.jobs || data || [];
-        const completedJobs = allJobs.filter(j => j.status === 'completed');
-        renderPaymentsTable(completedJobs);
-        renderPaymentStats(completedJobs);
+        // Load real payment data from API
+        const [paymentsData, statsData] = await Promise.all([
+            apiGetAdminPayments({ limit: 20 }),
+            apiGetPaymentStats()
+        ]);
+        
+        renderPaymentsTable(paymentsData.payments || []);
+        renderPaymentStatsFromAPI(statsData);
     } catch (error) {
         console.error('Error loading payments:', error);
         const errorMessage = error.message || 'Unable to load payment records. Please try again.';
         showToast(`Payments Error: ${errorMessage}`, 'error');
-        // Show empty state on error
-        renderPaymentsTable([]);
-        renderPaymentStats([]);
+        // Fallback to job-based payments
+        try {
+            const data = await apiGetAllJobs();
+            const allJobs = data.jobs || data || [];
+            const completedJobs = allJobs.filter(j => j.status === 'completed');
+            renderPaymentsTableFromJobs(completedJobs);
+            renderPaymentStats(completedJobs);
+        } catch (fallbackError) {
+            renderPaymentsTable([]);
+            renderPaymentStatsFromAPI({});
+        }
     }
 }
 
-// Render payment statistics
+// Render payment statistics from API
+function renderPaymentStatsFromAPI(stats) {
+    const statCards = document.querySelectorAll('#payments .stat-card .stat-details h3');
+    if (statCards.length >= 3) {
+        statCards[0].textContent = `$${(stats.paidThisMonth || 0).toFixed(2)}`;
+        statCards[1].textContent = `$${(stats.totalPending || 0).toFixed(2)}`;
+        statCards[2].textContent = `$${(stats.dueThisWeek || 0).toFixed(2)}`;
+    }
+}
+
+// Render payment statistics from jobs (fallback)
 function renderPaymentStats(jobs) {
     const thisMonth = new Date();
     thisMonth.setDate(1);
@@ -499,8 +519,43 @@ function renderPaymentStats(jobs) {
     }
 }
 
-// Render payments table
-function renderPaymentsTable(jobs) {
+// Render payments table from real payment data
+function renderPaymentsTable(payments) {
+    const tbody = document.querySelector('#payments .data-table tbody');
+    if (!tbody) return;
+    
+    if (!payments || payments.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No payment records found</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = payments.slice(0, 20).map((payment) => {
+        const amount = (payment.amount || 0).toFixed(2);
+        const date = new Date(payment.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        const maidName = payment.maid_id?.name || 'Unknown';
+        const isPaid = payment.status === 'paid';
+        const method = payment.method === 'cash' ? 'Cash' : (payment.method === 'card' ? 'Card' : 'Apple Pay');
+        const paymentId = payment._id;
+        
+        return `
+            <tr>
+                <td>#PAY-${paymentId.slice(-6).toUpperCase()}</td>
+                <td>${escapeHtmlAdmin(maidName)}</td>
+                <td>$${amount}</td>
+                <td>${date}</td>
+                <td>${method}</td>
+                <td><span class="status-badge ${isPaid ? 'completed' : 'pending'}">${isPaid ? 'Paid' : 'Pending'}</span></td>
+                <td>
+                    <button class="btn-icon" title="View" onclick="viewPaymentDetails('${paymentId}')"><i class="fas fa-eye"></i></button>
+                    ${!isPaid ? `<button class="btn-icon" title="Mark Paid" onclick="markPaymentAsPaid('${paymentId}')"><i class="fas fa-check"></i></button>` : ''}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Render payments table from jobs (fallback)
+function renderPaymentsTableFromJobs(jobs) {
     const tbody = document.querySelector('#payments .data-table tbody');
     if (!tbody) return;
     
@@ -532,6 +587,32 @@ function renderPaymentsTable(jobs) {
     }).join('');
 }
 
+// View payment details
+function viewPaymentDetails(paymentId) {
+    showToast('Payment details view - feature coming soon', 'info');
+}
+
+// Mark payment as paid
+async function markPaymentAsPaid(paymentId) {
+    const confirmed = await showConfirmDialog(
+        'Mark Payment as Paid',
+        'Are you sure you want to mark this payment as paid?',
+        'This action confirms the payment has been received.',
+        'Mark Paid',
+        'Cancel'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+        await apiMarkPaymentPaid(paymentId);
+        showToast('Payment marked as paid', 'success');
+        await loadPaymentsData();
+    } catch (error) {
+        console.error('Error marking payment as paid:', error);
+        showToast('Failed to update payment: ' + (error.message || 'Unknown error'), 'error');
+    }
+}
 // Load reports data
 async function loadReportsData() {
     try {
@@ -1284,6 +1365,24 @@ function formatDate(dateString) {
     if (diffDays === 0) return 'today';
     if (diffDays === 1) return 'yesterday';
     return `${diffDays} days ago`;
+}
+
+/**
+ * Format time ago for notifications
+ */
+function formatTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
 }
 
 function hidePendingApprovals() {
