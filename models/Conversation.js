@@ -53,7 +53,9 @@ conversationSchema.statics.findOrCreate = async function(userId1, userId2) {
 
 // Instance method to get the other participant
 conversationSchema.methods.getOtherParticipant = function(currentUserId) {
-  return this.participants.find(p => p.toString() !== currentUserId.toString());
+  if (!currentUserId) return null;
+  const currentIdStr = String(currentUserId);
+  return this.participants?.find(p => p && String(p) !== currentIdStr) || null;
 };
 
 module.exports = mongoose.model('Conversation', conversationSchema);

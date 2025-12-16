@@ -2,11 +2,18 @@ const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const mongoose = require('mongoose');
 
+// Safe string conversion helper
+const safeStr = (val) => val ? String(val) : '';
+
 class MessageService {
   /**
    * Get all conversations for a user with unread counts
    */
   static async getConversations(userId) {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
     const conversations = await Conversation.find({
       participants: userId
     })
@@ -24,10 +31,11 @@ class MessageService {
           readAt: null
         });
         
-        // Get the other participant
-        const otherParticipant = conv.participants.find(
-          p => p._id.toString() !== userId.toString()
-        );
+        // Get the other participant (safely)
+        const userIdStr = safeStr(userId);
+        const otherParticipant = conv.participants?.find(
+          p => p?._id && safeStr(p._id) !== userIdStr
+        ) || null;
         
         return {
           id: conv._id,
@@ -47,7 +55,11 @@ class MessageService {
    * Get or create a conversation between two users
    */
   static async getOrCreateConversation(userId, otherUserId) {
-    if (userId.toString() === otherUserId.toString()) {
+    if (!userId || !otherUserId) {
+      throw new Error('Both user IDs are required');
+    }
+
+    if (safeStr(userId) === safeStr(otherUserId)) {
       throw new Error('Cannot create conversation with yourself');
     }
 
@@ -57,9 +69,10 @@ class MessageService {
     await conversation.populate('participants', 'name email role avatar');
     await conversation.populate('lastMessage', 'body senderId createdAt');
     
-    const otherParticipant = conversation.participants.find(
-      p => p._id.toString() !== userId.toString()
-    );
+    const userIdStr = safeStr(userId);
+    const otherParticipant = conversation.participants?.find(
+      p => p?._id && safeStr(p._id) !== userIdStr
+    ) || null;
 
     const unreadCount = await Message.countDocuments({
       conversationId: conversation._id,
@@ -81,14 +94,19 @@ class MessageService {
    * Get messages for a conversation with pagination
    */
   static async getMessages(conversationId, userId, { limit = 50, before = null } = {}) {
+    if (!conversationId || !userId) {
+      throw new Error('Conversation ID and User ID are required');
+    }
+
     // Verify user is participant
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       throw new Error('Conversation not found');
     }
     
-    const isParticipant = conversation.participants.some(
-      p => p.toString() === userId.toString()
+    const userIdStr = safeStr(userId);
+    const isParticipant = conversation.participants?.some(
+      p => p && safeStr(p) === userIdStr
     );
     if (!isParticipant) {
       throw new Error('Not authorized to view this conversation');
@@ -110,7 +128,7 @@ class MessageService {
       id: msg._id,
       conversationId: msg.conversationId,
       sender: msg.senderId,
-      senderId: msg.senderId._id,
+      senderId: msg.senderId?._id || msg.senderId,
       receiverId: msg.receiverId,
       body: msg.body,
       attachments: msg.attachments,
@@ -123,23 +141,32 @@ class MessageService {
    * Send a message
    */
   static async sendMessage(conversationId, senderId, body, attachments = []) {
+    if (!conversationId || !senderId) {
+      throw new Error('Conversation ID and Sender ID are required');
+    }
+
     // Verify conversation exists and user is participant
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       throw new Error('Conversation not found');
     }
 
-    const isParticipant = conversation.participants.some(
-      p => p.toString() === senderId.toString()
+    const senderIdStr = safeStr(senderId);
+    const isParticipant = conversation.participants?.some(
+      p => p && safeStr(p) === senderIdStr
     );
     if (!isParticipant) {
       throw new Error('Not authorized to send messages in this conversation');
     }
 
     // Get receiver ID (the other participant)
-    const receiverId = conversation.participants.find(
-      p => p.toString() !== senderId.toString()
+    const receiverId = conversation.participants?.find(
+      p => p && safeStr(p) !== senderIdStr
     );
+
+    if (!receiverId) {
+      throw new Error('Could not determine message receiver');
+    }
 
     // Create message
     const message = await Message.create({
@@ -162,7 +189,7 @@ class MessageService {
       id: message._id,
       conversationId: message.conversationId,
       sender: message.senderId,
-      senderId: message.senderId._id,
+      senderId: message.senderId?._id || message.senderId,
       receiverId: message.receiverId,
       body: message.body,
       attachments: message.attachments,
@@ -175,14 +202,19 @@ class MessageService {
    * Mark all messages as read in a conversation for a user
    */
   static async markAsRead(conversationId, userId) {
+    if (!conversationId || !userId) {
+      throw new Error('Conversation ID and User ID are required');
+    }
+
     // Verify user is participant
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       throw new Error('Conversation not found');
     }
 
-    const isParticipant = conversation.participants.some(
-      p => p.toString() === userId.toString()
+    const userIdStr = safeStr(userId);
+    const isParticipant = conversation.participants?.some(
+      p => p && safeStr(p) === userIdStr
     );
     if (!isParticipant) {
       throw new Error('Not authorized');
@@ -217,13 +249,18 @@ class MessageService {
    * Delete a conversation and all its messages
    */
   static async deleteConversation(conversationId, userId) {
+    if (!conversationId || !userId) {
+      throw new Error('Conversation ID and User ID are required');
+    }
+
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
       throw new Error('Conversation not found');
     }
 
-    const isParticipant = conversation.participants.some(
-      p => p.toString() === userId.toString()
+    const userIdStr = safeStr(userId);
+    const isParticipant = conversation.participants?.some(
+      p => p && safeStr(p) === userIdStr
     );
     if (!isParticipant) {
       throw new Error('Not authorized');
@@ -242,6 +279,10 @@ class MessageService {
    * Get or create conversation for a booking
    */
   static async getConversationByBooking(bookingId, userId) {
+    if (!bookingId || !userId) {
+      throw new Error('Booking ID and User ID are required');
+    }
+
     const Job = require('../models/Job');
     const Maid = require('../models/Maid');
 
@@ -252,15 +293,18 @@ class MessageService {
     }
 
     // Verify user is participant (homeowner or maid)
-    const isHomeowner = job.homeowner_id.toString() === userId.toString();
+    const userIdStr = safeStr(userId);
+    const homeownerIdStr = safeStr(job.homeowner_id);
+    const isHomeowner = homeownerIdStr === userIdStr;
     let isMaid = false;
     let maidUserId = null;
 
     if (job.maid_id) {
-      const maid = await Maid.findById(job.maid_id._id || job.maid_id);
-      if (maid) {
+      const maidProfileId = job.maid_id._id || job.maid_id;
+      const maid = await Maid.findById(maidProfileId);
+      if (maid && maid.user_id) {
         maidUserId = maid.user_id;
-        isMaid = maid.user_id.toString() === userId.toString();
+        isMaid = safeStr(maid.user_id) === userIdStr;
       }
     }
 
@@ -285,9 +329,9 @@ class MessageService {
     await conversation.populate('participants', 'name email role avatar');
     await conversation.populate('lastMessage', 'body senderId createdAt');
 
-    const otherParticipant = conversation.participants.find(
-      p => p._id.toString() !== userId.toString()
-    );
+    const otherParticipant = conversation.participants?.find(
+      p => p?._id && safeStr(p._id) !== userIdStr
+    ) || null;
 
     const unreadCount = await Message.countDocuments({
       conversationId: conversation._id,

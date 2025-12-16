@@ -1717,7 +1717,10 @@ function renderMaidMessages(messages) {
     }
     
     container.innerHTML = messages.map(msg => {
-        const isSent = msg.senderId.toString() === currentUser.id.toString();
+        // Safe comparison - handle both populated and unpopulated senderId
+        const msgSenderId = msg.senderId?._id || msg.senderId || '';
+        const currentUserId = currentUser?.id || '';
+        const isSent = String(msgSenderId) === String(currentUserId);
         return `
             <div class="message ${isSent ? 'sent' : 'received'}">
                 <p>${escapeMaidHtml(msg.body)}</p>
@@ -1768,7 +1771,10 @@ function appendMaidMessage(message) {
     if (emptyState) emptyState.remove();
     
     const currentUser = getUser();
-    const isSent = message.senderId.toString() === currentUser.id.toString();
+    // Safe comparison - handle both populated and unpopulated senderId
+    const msgSenderId = message.senderId?._id || message.senderId || '';
+    const currentUserId = currentUser?.id || '';
+    const isSent = String(msgSenderId) === String(currentUserId);
     
     const msgEl = document.createElement('div');
     msgEl.className = `message ${isSent ? 'sent' : 'received'}`;
