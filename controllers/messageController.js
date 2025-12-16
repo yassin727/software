@@ -2,6 +2,9 @@ const MessageService = require('../services/messageService');
 const NotificationService = require('../services/notificationService');
 const mongoose = require('mongoose');
 
+// Helper to get userId from req.user (handles both .id and .userId)
+const getUserId = (req) => req.user?.userId || req.user?.id;
+
 class MessageController {
   /**
    * GET /api/conversations
@@ -9,7 +12,10 @@ class MessageController {
    */
   static async getConversations(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
       const conversations = await MessageService.getConversations(userId);
       res.json(conversations);
     } catch (error) {
@@ -24,7 +30,10 @@ class MessageController {
    */
   static async createConversation(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
       const { otherUserId } = req.body;
 
       if (!otherUserId) {
@@ -49,7 +58,10 @@ class MessageController {
    */
   static async getMessages(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
       const { id } = req.params;
       const { limit = 50, before } = req.query;
 
@@ -81,7 +93,10 @@ class MessageController {
    */
   static async sendMessage(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
       const { id } = req.params;
       const { body, attachments } = req.body;
 
@@ -101,11 +116,11 @@ class MessageController {
           userId: message.receiverId,
           type: 'message',
           title: 'New Message',
-          message: `${message.sender.name}: ${body.substring(0, 50)}${body.length > 50 ? '...' : ''}`,
+          message: `${message.sender?.name || 'Someone'}: ${body.substring(0, 50)}${body.length > 50 ? '...' : ''}`,
           data: {
             conversationId: id,
             senderId: userId,
-            senderName: message.sender.name
+            senderName: message.sender?.name
           }
         });
       } catch (notifError) {
@@ -131,7 +146,10 @@ class MessageController {
    */
   static async markAsRead(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -155,7 +173,10 @@ class MessageController {
    */
   static async getUnreadCount(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
       const count = await MessageService.getTotalUnreadCount(userId);
       res.json({ unreadCount: count });
     } catch (error) {
@@ -170,7 +191,10 @@ class MessageController {
    */
   static async deleteConversation(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
       const { id } = req.params;
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -191,11 +215,19 @@ class MessageController {
   /**
    * GET /api/conversations/by-booking/:bookingId
    * Get or create conversation for a specific booking
+   * Server derives userId from JWT - client only sends bookingId
    */
   static async getConversationByBooking(req, res) {
     try {
-      const userId = req.user.id;
+      const userId = getUserId(req);
+      if (!userId) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
       const { bookingId } = req.params;
+
+      if (!bookingId) {
+        return res.status(400).json({ message: 'Booking ID is required' });
+      }
 
       if (!mongoose.Types.ObjectId.isValid(bookingId)) {
         return res.status(400).json({ message: 'Invalid booking ID' });
@@ -211,7 +243,10 @@ class MessageController {
       if (error.message === 'Not authorized') {
         return res.status(403).json({ message: error.message });
       }
-      res.status(500).json({ message: error.message });
+      if (error.message === 'Maid not found for this booking') {
+        return res.status(404).json({ message: 'Maid not found for this booking' });
+      }
+      res.status(500).json({ message: error.message || 'Failed to get conversation' });
     }
   }
 }

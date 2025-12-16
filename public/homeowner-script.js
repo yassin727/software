@@ -632,12 +632,33 @@ async function contactMaid(maidId) {
 
 /**
  * Open conversation from a booking (uses booking ID to find/create conversation)
+ * Server derives userId from JWT - we only send bookingId
  */
 async function messageFromBooking(bookingId) {
+    // Validate bookingId before making API call
+    if (!bookingId) {
+        showNotification('Cannot open chat: booking ID is missing', 'error');
+        return;
+    }
+    
+    // Check if user is authenticated
+    const user = getUser();
+    if (!user || !user.id) {
+        showNotification('Please log in to send messages', 'error');
+        window.location.href = 'login.html';
+        return;
+    }
+    
     showNotification('Opening messenger...', 'info');
     try {
-        // Get conversation for this booking
+        // Get conversation for this booking (server derives maidId from booking)
         const conversation = await apiGetConversationByBooking(bookingId);
+        
+        if (!conversation || !conversation.id) {
+            showNotification('Could not open conversation', 'error');
+            return;
+        }
+        
         currentConversationId = conversation.id;
         
         // Switch to messages section and load the conversation
@@ -646,7 +667,18 @@ async function messageFromBooking(bookingId) {
         await selectConversation(conversation.id);
     } catch (error) {
         console.error('Error opening conversation from booking:', error);
-        showNotification(error.message || 'Failed to open conversation', 'error');
+        // Show user-friendly error messages
+        const errorMsg = error.message || 'Failed to open conversation';
+        if (errorMsg.includes('not found')) {
+            showNotification('Booking or maid not found', 'error');
+        } else if (errorMsg.includes('Not authorized') || errorMsg.includes('403')) {
+            showNotification('You are not authorized to view this conversation', 'error');
+        } else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+            showNotification('Session expired. Please log in again.', 'error');
+            window.location.href = 'login.html';
+        } else {
+            showNotification(errorMsg, 'error');
+        }
     }
 }
 
