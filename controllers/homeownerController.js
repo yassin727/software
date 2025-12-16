@@ -149,6 +149,7 @@ const searchMaids = async (req, res) => {
 
     const maidList = maids.map(maid => ({
       id: maid._id,
+      userId: maid.user_id?._id, // User ID for messaging
       name: maid.user_id?.name || 'Unknown',
       email: maid.user_id?.email,
       photo: maid.user_id?.photo_url || null,
@@ -227,6 +228,7 @@ const getBookings = async (req, res) => {
         progressPercentage: progressPercent,
         maid: {
           id: booking.maid_id?._id,
+          userId: booking.maid_id?.user_id?._id, // User ID for messaging
           name: booking.maid_id?.user_id?.name || 'Unknown',
           photo: booking.maid_id?.user_id?.photo_url || null,
           rating: booking.maid_id?.average_rating || 0

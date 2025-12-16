@@ -227,6 +227,7 @@ function renderMaidCards(maids) {
             </div>
             <div class="maid-card-footer">
                 <button class="btn-secondary" onclick="viewMaidProfile('${maid.id}')">View Profile</button>
+                <button class="btn-secondary" onclick="contactMaid('${maid.userId}')" title="Message"><i class="fas fa-comment"></i></button>
                 <button class="btn-primary" onclick="bookMaid('${maid.id}', '${maid.name}', ${maid.hourlyRate})" ${!maid.isOnline ? 'disabled' : ''}>
                     ${maid.isOnline ? 'Book Now' : 'Currently Offline'}
                 </button>
@@ -333,12 +334,12 @@ function renderBookingActions(booking) {
     
     if (booking.status === 'in_progress') {
         actions.push(`<button class="btn-secondary" onclick="trackMaid('${booking.id}')"><i class="fas fa-location-arrow"></i> Track Maid</button>`);
-        actions.push(`<button class="btn-secondary" onclick="contactMaid('${booking.maid.id}')"><i class="fas fa-comment"></i> Message</button>`);
+        actions.push(`<button class="btn-secondary" onclick="contactMaid('${booking.maid.userId}')"><i class="fas fa-comment"></i> Message</button>`);
         actions.push(`<button class="btn-primary" onclick="viewTaskProgress('${booking.id}')"><i class="fas fa-tasks"></i> View Progress</button>`);
     } else if (booking.status === 'requested' || booking.status === 'accepted') {
         actions.push(`<button class="btn-secondary" onclick="rescheduleBooking('${booking.id}')"><i class="fas fa-calendar-alt"></i> Reschedule</button>`);
         actions.push(`<button class="btn-secondary" onclick="cancelBooking('${booking.id}')"><i class="fas fa-times"></i> Cancel</button>`);
-        actions.push(`<button class="btn-secondary" onclick="contactMaid('${booking.maid.id}')"><i class="fas fa-comment"></i> Message</button>`);
+        actions.push(`<button class="btn-secondary" onclick="contactMaid('${booking.maid.userId}')"><i class="fas fa-comment"></i> Message</button>`);
     } else if (booking.status === 'completed' && !booking.hasReview) {
         actions.push(`<button class="btn-primary" onclick="openReviewModal('${booking.id}', '${booking.maid.id}')"><i class="fas fa-star"></i> Leave Review</button>`);
         actions.push(`<button class="btn-secondary" onclick="bookAgain('${booking.maid.id}')"><i class="fas fa-redo"></i> Book Again</button>`);
