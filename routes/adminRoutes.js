@@ -88,4 +88,26 @@ router.get('/verifications/pending', auth(['admin']), AdminController.getPending
 // POST /api/admin/verifications/process - Process verification
 router.post('/verifications/process', auth(['admin']), AdminController.processVerification);
 
+// ============================================================
+// Email Testing (Admin Only)
+// ============================================================
+const EmailService = require('../services/emailService');
+
+// GET /api/admin/email/status - Get email configuration status
+router.get('/email/status', auth(['admin']), async (_req, res) => {
+  const status = EmailService.getConfigStatus();
+  const verification = await EmailService.verifyConnection();
+  res.json({ ...status, ...verification });
+});
+
+// POST /api/admin/email/test - Send a test email
+router.post('/email/test', auth(['admin']), async (req, res) => {
+  const { to } = req.body;
+  if (!to) {
+    return res.status(400).json({ message: 'Email address (to) is required' });
+  }
+  const result = await EmailService.sendTestEmail(to);
+  res.json(result);
+});
+
 module.exports = router;

@@ -270,10 +270,59 @@ The MaidTrack Team`;
     
     try {
       await transporter.verify();
+      console.log('✅ SMTP connection verified successfully');
       return { configured: true, connected: true, message: 'SMTP connection verified' };
     } catch (error) {
+      console.error('❌ SMTP connection failed:', error.message);
+      // Log details without exposing password
+      console.error('SMTP Config: host=%s, port=%s, user=%s', 
+        process.env.SMTP_HOST, 
+        process.env.SMTP_PORT, 
+        process.env.SMTP_USER
+      );
       return { configured: true, connected: false, message: error.message };
     }
+  }
+  
+  /**
+   * Send a test email to verify configuration
+   */
+  static async sendTestEmail(toEmail) {
+    const subject = '✅ MaidTrack Email Test';
+    const text = `This is a test email from MaidTrack.
+
+If you received this email, your SMTP configuration is working correctly!
+
+Sent at: ${new Date().toISOString()}
+Server: ${process.env.APP_URL || 'localhost'}
+
+Best regards,
+MaidTrack System`;
+
+    const result = await this.send({ to: toEmail, subject, text });
+    
+    if (result.success) {
+      console.log(`✅ Test email sent successfully to ${toEmail}`);
+    } else {
+      console.error(`❌ Test email failed to ${toEmail}:`, result.error);
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Get SMTP configuration status (without exposing secrets)
+   */
+  static getConfigStatus() {
+    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL } = process.env;
+    return {
+      configured: !!(SMTP_HOST && SMTP_USER && SMTP_PASS),
+      host: SMTP_HOST || 'not set',
+      port: SMTP_PORT || '587 (default)',
+      user: SMTP_USER ? `${SMTP_USER.substring(0, 3)}***` : 'not set',
+      passSet: !!SMTP_PASS,
+      fromEmail: FROM_EMAIL || 'noreply@maidtrack.com'
+    };
   }
 }
 
