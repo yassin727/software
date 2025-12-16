@@ -22,6 +22,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const homeownerRoutes = require('./routes/homeownerRoutes');
 const maidDashboardRoutes = require('./routes/maidDashboardRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -61,6 +62,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/homeowner', homeownerRoutes);
 app.use('/api/maid', maidDashboardRoutes);
+app.use('/api/conversations', messageRoutes);
 
 // Serve homepage (landing page)
 app.get('/', (_req, res) => {

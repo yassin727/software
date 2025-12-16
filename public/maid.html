@@ -40,6 +40,10 @@
                 <i class="fas fa-star"></i>
                 <span>Reviews</span>
             </a>
+            <a href="#messages" class="nav-item" onclick="showSection('messages')">
+                <i class="fas fa-envelope"></i>
+                <span>Messages</span>
+            </a>
         </nav>
         <div class="sidebar-footer">
             <a href="#profile" class="nav-item" onclick="showSection('profile')">
@@ -744,6 +748,39 @@
                         </div>
                     </div>
                     <!-- Add more days as needed -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Messages Section -->
+        <section id="messages" class="content-section">
+            <div class="messages-container">
+                <div class="messages-sidebar">
+                    <div class="messages-header">
+                        <h3>Messages</h3>
+                    </div>
+                    <div class="conversations-list">
+                        <div class="empty-conversations">
+                            <i class="fas fa-comments"></i>
+                            <p>No conversations yet</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="messages-main">
+                    <div class="chat-header">
+                        <p>Select a conversation to start messaging</p>
+                    </div>
+                    <div class="chat-messages">
+                        <div class="empty-messages">
+                            <i class="fas fa-comment-dots"></i>
+                            <p>No messages yet</p>
+                            <small>Select a conversation from the left</small>
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" placeholder="Type a message...">
+                        <button class="btn-primary"><i class="fas fa-paper-plane"></i></button>
+                    </div>
                 </div>
             </div>
         </section>

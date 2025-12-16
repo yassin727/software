@@ -609,9 +609,21 @@ function trackMaid(bookingId) {
     showSection('active-tasks');
 }
 
-function contactMaid(maidId) {
+async function contactMaid(maidId) {
     showNotification('Opening messenger...', 'info');
-    showSection('messages');
+    try {
+        // Create or get existing conversation with this maid
+        const conversation = await apiCreateConversation(maidId);
+        currentConversationId = conversation.id;
+        
+        // Switch to messages section and load the conversation
+        showSection('messages');
+        await loadConversations();
+        await selectConversation(conversation.id);
+    } catch (error) {
+        console.error('Error opening conversation:', error);
+        showNotification(error.message || 'Failed to open conversation', 'error');
+    }
 }
 
 function viewTaskProgress(bookingId) {
@@ -1299,6 +1311,12 @@ showSection = function(sectionId) {
         case 'profile':
             loadProfile();
             break;
+        case 'messages':
+            loadConversations();
+            initMessagingUI();
+            break;
+        default:
+            stopMessagePolling();
     }
 };
 
@@ -1694,4 +1712,350 @@ window.addEventListener('beforeunload', () => {
     if (notificationStream) {
         notificationStream.close();
     }
+    if (messagePollingInterval) {
+        clearInterval(messagePollingInterval);
+    }
 });
+
+// ============================================================
+// MESSAGING FUNCTIONALITY
+// ============================================================
+
+let currentConversationId = null;
+let messagePollingInterval = null;
+let conversationsCache = [];
+
+/**
+ * Load all conversations for the user
+ */
+async function loadConversations() {
+    try {
+        const conversations = await apiGetConversations();
+        conversationsCache = conversations;
+        renderConversationsList(conversations);
+        updateMessageBadge();
+    } catch (error) {
+        console.error('Error loading conversations:', error);
+        renderConversationsList([]);
+    }
+}
+
+/**
+ * Render conversations list in sidebar
+ */
+function renderConversationsList(conversations) {
+    const container = document.querySelector('.conversations-list');
+    if (!container) return;
+    
+    if (!conversations || conversations.length === 0) {
+        container.innerHTML = `
+            <div class="empty-conversations">
+                <i class="fas fa-comments"></i>
+                <p>No conversations yet</p>
+                <small>Start a conversation by messaging a maid from your bookings</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = conversations.map(conv => {
+        const participant = conv.otherParticipant || {};
+        const lastMsg = conv.lastMessage;
+        const isActive = conv.id === currentConversationId;
+        const unreadClass = conv.unreadCount > 0 ? 'has-unread' : '';
+        
+        return `
+            <div class="conversation-item ${isActive ? 'active' : ''} ${unreadClass}" 
+                 data-conversation-id="${conv.id}"
+                 onclick="selectConversation('${conv.id}')">
+                <img src="${participant.avatar || 'https://via.placeholder.com/45'}" alt="${participant.name || 'User'}">
+                <div class="conversation-info">
+                    <h4>${escapeHtml(participant.name || 'Unknown')}</h4>
+                    <p>${lastMsg ? escapeHtml(lastMsg.body.substring(0, 40)) + (lastMsg.body.length > 40 ? '...' : '') : 'No messages yet'}</p>
+                </div>
+                <span class="message-time">${lastMsg ? formatMessageTime(lastMsg.createdAt) : ''}</span>
+                ${conv.unreadCount > 0 ? `<span class="unread-badge">${conv.unreadCount}</span>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Select and load a conversation
+ */
+async function selectConversation(conversationId) {
+    currentConversationId = conversationId;
+    
+    // Update active state in list
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.conversationId === conversationId);
+    });
+    
+    // Find conversation in cache
+    const conversation = conversationsCache.find(c => c.id === conversationId);
+    
+    // Update chat header
+    updateChatHeader(conversation);
+    
+    // Load messages
+    await loadMessages(conversationId);
+    
+    // Mark as read
+    try {
+        await apiMarkMessagesAsRead(conversationId);
+        // Update unread count in list
+        const convItem = document.querySelector(`.conversation-item[data-conversation-id="${conversationId}"]`);
+        if (convItem) {
+            convItem.classList.remove('has-unread');
+            const badge = convItem.querySelector('.unread-badge');
+            if (badge) badge.remove();
+        }
+        updateMessageBadge();
+    } catch (error) {
+        console.error('Error marking messages as read:', error);
+    }
+    
+    // Start polling for new messages
+    startMessagePolling();
+}
+
+/**
+ * Update chat header with participant info
+ */
+function updateChatHeader(conversation) {
+    const header = document.querySelector('.chat-header');
+    if (!header || !conversation) return;
+    
+    const participant = conversation.otherParticipant || {};
+    header.innerHTML = `
+        <img src="${participant.avatar || 'https://via.placeholder.com/45'}" alt="${participant.name || 'User'}">
+        <div>
+            <h4>${escapeHtml(participant.name || 'Unknown')}</h4>
+            <p class="online-status"><i class="fas fa-circle"></i> ${participant.role || 'User'}</p>
+        </div>
+    `;
+}
+
+/**
+ * Load messages for a conversation
+ */
+async function loadMessages(conversationId) {
+    const container = document.querySelector('.chat-messages');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-messages"><i class="fas fa-spinner fa-spin"></i> Loading messages...</div>';
+    
+    try {
+        const messages = await apiGetMessages(conversationId);
+        renderMessages(messages);
+    } catch (error) {
+        console.error('Error loading messages:', error);
+        container.innerHTML = '<div class="error-messages"><i class="fas fa-exclamation-circle"></i> Failed to load messages</div>';
+    }
+}
+
+/**
+ * Render messages in chat area
+ */
+function renderMessages(messages) {
+    const container = document.querySelector('.chat-messages');
+    if (!container) return;
+    
+    const currentUser = getUser();
+    
+    if (!messages || messages.length === 0) {
+        container.innerHTML = `
+            <div class="empty-messages">
+                <i class="fas fa-comment-dots"></i>
+                <p>No messages yet</p>
+                <small>Send a message to start the conversation</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = messages.map(msg => {
+        const isSent = msg.senderId.toString() === currentUser.id.toString();
+        return `
+            <div class="message ${isSent ? 'sent' : 'received'}">
+                <p>${escapeHtml(msg.body)}</p>
+                <span class="time">${formatMessageTime(msg.createdAt)}</span>
+            </div>
+        `;
+    }).join('');
+    
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * Send a message
+ */
+async function sendMessage() {
+    if (!currentConversationId) {
+        showNotification('Please select a conversation first', 'error');
+        return;
+    }
+    
+    const input = document.querySelector('.chat-input input');
+    if (!input) return;
+    
+    const body = input.value.trim();
+    if (!body) return;
+    
+    // Clear input immediately
+    input.value = '';
+    
+    try {
+        const message = await apiSendMessage(currentConversationId, body);
+        
+        // Append message to chat
+        appendMessage(message);
+        
+        // Update conversation in list
+        await loadConversations();
+    } catch (error) {
+        console.error('Error sending message:', error);
+        showNotification(error.message || 'Failed to send message', 'error');
+        // Restore input value on error
+        input.value = body;
+    }
+}
+
+/**
+ * Append a single message to the chat
+ */
+function appendMessage(message) {
+    const container = document.querySelector('.chat-messages');
+    if (!container) return;
+    
+    // Remove empty state if present
+    const emptyState = container.querySelector('.empty-messages');
+    if (emptyState) emptyState.remove();
+    
+    const currentUser = getUser();
+    const isSent = message.senderId.toString() === currentUser.id.toString();
+    
+    const msgEl = document.createElement('div');
+    msgEl.className = `message ${isSent ? 'sent' : 'received'}`;
+    msgEl.innerHTML = `
+        <p>${escapeHtml(message.body)}</p>
+        <span class="time">${formatMessageTime(message.createdAt)}</span>
+    `;
+    
+    container.appendChild(msgEl);
+    container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * Format message timestamp
+ */
+function formatMessageTime(timestamp) {
+    if (!timestamp) return '';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffDays === 1) {
+        return 'Yesterday';
+    } else if (diffDays < 7) {
+        return date.toLocaleDateString([], { weekday: 'short' });
+    } else {
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+}
+
+/**
+ * Update message badge in navbar
+ */
+async function updateMessageBadge() {
+    try {
+        const result = await apiGetUnreadMessageCount();
+        const badge = document.querySelector('.nav-item[href="#messages"] .badge, .messages-badge');
+        
+        // Also update sidebar nav item
+        const navItem = document.querySelector('a[href="#messages"]');
+        if (navItem) {
+            let badgeEl = navItem.querySelector('.msg-badge');
+            if (result.unreadCount > 0) {
+                if (!badgeEl) {
+                    badgeEl = document.createElement('span');
+                    badgeEl.className = 'msg-badge';
+                    navItem.appendChild(badgeEl);
+                }
+                badgeEl.textContent = result.unreadCount > 99 ? '99+' : result.unreadCount;
+                badgeEl.style.display = 'inline-block';
+            } else if (badgeEl) {
+                badgeEl.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error updating message badge:', error);
+    }
+}
+
+/**
+ * Start polling for new messages
+ */
+function startMessagePolling() {
+    // Clear existing interval
+    if (messagePollingInterval) {
+        clearInterval(messagePollingInterval);
+    }
+    
+    // Poll every 5 seconds
+    messagePollingInterval = setInterval(async () => {
+        if (!currentConversationId) return;
+        
+        try {
+            const messages = await apiGetMessages(currentConversationId);
+            const container = document.querySelector('.chat-messages');
+            if (container) {
+                const currentCount = container.querySelectorAll('.message').length;
+                if (messages.length > currentCount) {
+                    renderMessages(messages);
+                }
+            }
+        } catch (error) {
+            console.error('Error polling messages:', error);
+        }
+    }, 5000);
+}
+
+/**
+ * Stop message polling
+ */
+function stopMessagePolling() {
+    if (messagePollingInterval) {
+        clearInterval(messagePollingInterval);
+        messagePollingInterval = null;
+    }
+}
+
+/**
+ * Initialize messaging UI event listeners
+ */
+function initMessagingUI() {
+    // Send button click
+    const sendBtn = document.querySelector('.chat-input button');
+    if (sendBtn) {
+        sendBtn.addEventListener('click', sendMessage);
+    }
+    
+    // Enter key to send
+    const chatInput = document.querySelector('.chat-input input');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+}
+
+// Messaging is initialized via showSection switch case above

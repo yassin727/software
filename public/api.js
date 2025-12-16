@@ -946,4 +946,83 @@ async function apiChangeAdminPassword(currentPassword, newPassword) {
     });
 }
 
+// ============================================================
+// Messaging API
+// ============================================================
+
+/**
+ * Get all conversations for the logged-in user
+ * @returns {Promise<Array>} List of conversations
+ */
+async function apiGetConversations() {
+    return await apiRequest('/conversations', { method: 'GET' });
+}
+
+/**
+ * Create or get existing conversation with another user
+ * @param {string} otherUserId - The other user's ID
+ * @returns {Promise<Object>} Conversation object
+ */
+async function apiCreateConversation(otherUserId) {
+    return await apiRequest('/conversations', {
+        method: 'POST',
+        body: JSON.stringify({ otherUserId })
+    });
+}
+
+/**
+ * Get messages in a conversation
+ * @param {string} conversationId - Conversation ID
+ * @param {Object} options - Pagination options
+ * @param {number} options.limit - Max messages to return
+ * @param {string} options.before - Get messages before this timestamp
+ * @returns {Promise<Array>} List of messages
+ */
+async function apiGetMessages(conversationId, { limit = 50, before = null } = {}) {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit);
+    if (before) params.append('before', before);
+    const query = params.toString();
+    return await apiRequest(`/conversations/${conversationId}/messages${query ? '?' + query : ''}`, { method: 'GET' });
+}
+
+/**
+ * Send a message in a conversation
+ * @param {string} conversationId - Conversation ID
+ * @param {string} body - Message text
+ * @returns {Promise<Object>} Created message
+ */
+async function apiSendMessage(conversationId, body) {
+    return await apiRequest(`/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ body })
+    });
+}
+
+/**
+ * Mark all messages as read in a conversation
+ * @param {string} conversationId - Conversation ID
+ * @returns {Promise<Object>} Result
+ */
+async function apiMarkMessagesAsRead(conversationId) {
+    return await apiRequest(`/conversations/${conversationId}/read`, { method: 'PUT' });
+}
+
+/**
+ * Get total unread message count
+ * @returns {Promise<Object>} { unreadCount: number }
+ */
+async function apiGetUnreadMessageCount() {
+    return await apiRequest('/conversations/unread/count', { method: 'GET' });
+}
+
+/**
+ * Delete a conversation
+ * @param {string} conversationId - Conversation ID
+ * @returns {Promise<Object>} Result
+ */
+async function apiDeleteConversation(conversationId) {
+    return await apiRequest(`/conversations/${conversationId}`, { method: 'DELETE' });
+}
+
 console.log('API Service Module loaded');

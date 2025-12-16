@@ -2174,6 +2174,67 @@ input:checked + .slider:before {
     outline: none;
 }
 
+/* Message Empty States */
+.empty-conversations,
+.empty-messages,
+.loading-messages,
+.error-messages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-light);
+}
+
+.empty-conversations i,
+.empty-messages i,
+.loading-messages i,
+.error-messages i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.empty-conversations p,
+.empty-messages p {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.empty-conversations small,
+.empty-messages small {
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+.loading-messages {
+    color: var(--primary-color);
+}
+
+.error-messages {
+    color: var(--danger-color);
+}
+
+.conversation-item.has-unread .conversation-info h4 {
+    font-weight: 700;
+}
+
+.conversation-item.has-unread .conversation-info p {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.msg-badge {
+    background: var(--danger-color);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 8px;
+}
+
 /* Job Requests */
 .job-requests-list {
     display: flex;

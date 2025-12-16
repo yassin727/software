@@ -838,7 +838,7 @@ function showSection(sectionId) {
     
     const titles = {
         'dashboard': 'Maid Dashboard', 'job-requests': 'Job Requests', 'my-jobs': 'My Jobs',
-        'schedule': 'Schedule', 'earnings': 'Earnings', 'reviews': 'Reviews', 'profile': 'Profile'
+        'schedule': 'Schedule', 'earnings': 'Earnings', 'reviews': 'Reviews', 'messages': 'Messages', 'profile': 'Profile'
     };
     const pageTitle = document.getElementById('page-title');
     if (pageTitle) pageTitle.textContent = titles[sectionId] || 'Dashboard';
@@ -851,6 +851,12 @@ function showSection(sectionId) {
         case 'earnings': loadEarnings(); break;
         case 'reviews': loadReviews(); break;
         case 'profile': loadMaidProfile(); break;
+        case 'messages': 
+            loadMaidConversations(); 
+            initMaidMessagingUI(); 
+            break;
+        default:
+            stopMaidMessagePolling();
     }
 }
 
@@ -1549,6 +1555,353 @@ window.addEventListener('beforeunload', () => {
     if (notificationStream) {
         notificationStream.close();
     }
+    if (maidMessagePollingInterval) {
+        clearInterval(maidMessagePollingInterval);
+    }
 });
+
+// ============================================================
+// MESSAGING FUNCTIONALITY
+// ============================================================
+
+let maidCurrentConversationId = null;
+let maidMessagePollingInterval = null;
+let maidConversationsCache = [];
+
+/**
+ * Load all conversations for the maid
+ */
+async function loadMaidConversations() {
+    try {
+        const conversations = await apiGetConversations();
+        maidConversationsCache = conversations;
+        renderMaidConversationsList(conversations);
+        updateMaidMessageBadge();
+    } catch (error) {
+        console.error('Error loading conversations:', error);
+        renderMaidConversationsList([]);
+    }
+}
+
+/**
+ * Render conversations list in sidebar
+ */
+function renderMaidConversationsList(conversations) {
+    const container = document.querySelector('.conversations-list');
+    if (!container) return;
+    
+    if (!conversations || conversations.length === 0) {
+        container.innerHTML = `
+            <div class="empty-conversations">
+                <i class="fas fa-comments"></i>
+                <p>No conversations yet</p>
+                <small>Homeowners will message you about bookings</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = conversations.map(conv => {
+        const participant = conv.otherParticipant || {};
+        const lastMsg = conv.lastMessage;
+        const isActive = conv.id === maidCurrentConversationId;
+        const unreadClass = conv.unreadCount > 0 ? 'has-unread' : '';
+        
+        return `
+            <div class="conversation-item ${isActive ? 'active' : ''} ${unreadClass}" 
+                 data-conversation-id="${conv.id}"
+                 onclick="selectMaidConversation('${conv.id}')">
+                <img src="${participant.avatar || 'https://via.placeholder.com/45'}" alt="${participant.name || 'User'}">
+                <div class="conversation-info">
+                    <h4>${escapeMaidHtml(participant.name || 'Unknown')}</h4>
+                    <p>${lastMsg ? escapeMaidHtml(lastMsg.body.substring(0, 40)) + (lastMsg.body.length > 40 ? '...' : '') : 'No messages yet'}</p>
+                </div>
+                <span class="message-time">${lastMsg ? formatMaidMessageTime(lastMsg.createdAt) : ''}</span>
+                ${conv.unreadCount > 0 ? `<span class="unread-badge">${conv.unreadCount}</span>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Select and load a conversation
+ */
+async function selectMaidConversation(conversationId) {
+    maidCurrentConversationId = conversationId;
+    
+    // Update active state in list
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.conversationId === conversationId);
+    });
+    
+    // Find conversation in cache
+    const conversation = maidConversationsCache.find(c => c.id === conversationId);
+    
+    // Update chat header
+    updateMaidChatHeader(conversation);
+    
+    // Load messages
+    await loadMaidMessages(conversationId);
+    
+    // Mark as read
+    try {
+        await apiMarkMessagesAsRead(conversationId);
+        const convItem = document.querySelector(`.conversation-item[data-conversation-id="${conversationId}"]`);
+        if (convItem) {
+            convItem.classList.remove('has-unread');
+            const badge = convItem.querySelector('.unread-badge');
+            if (badge) badge.remove();
+        }
+        updateMaidMessageBadge();
+    } catch (error) {
+        console.error('Error marking messages as read:', error);
+    }
+    
+    // Start polling for new messages
+    startMaidMessagePolling();
+}
+
+/**
+ * Update chat header with participant info
+ */
+function updateMaidChatHeader(conversation) {
+    const header = document.querySelector('.chat-header');
+    if (!header || !conversation) return;
+    
+    const participant = conversation.otherParticipant || {};
+    header.innerHTML = `
+        <img src="${participant.avatar || 'https://via.placeholder.com/45'}" alt="${participant.name || 'User'}">
+        <div>
+            <h4>${escapeMaidHtml(participant.name || 'Unknown')}</h4>
+            <p class="online-status"><i class="fas fa-circle"></i> Homeowner</p>
+        </div>
+    `;
+}
+
+/**
+ * Load messages for a conversation
+ */
+async function loadMaidMessages(conversationId) {
+    const container = document.querySelector('.chat-messages');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading-messages"><i class="fas fa-spinner fa-spin"></i> Loading messages...</div>';
+    
+    try {
+        const messages = await apiGetMessages(conversationId);
+        renderMaidMessages(messages);
+    } catch (error) {
+        console.error('Error loading messages:', error);
+        container.innerHTML = '<div class="error-messages"><i class="fas fa-exclamation-circle"></i> Failed to load messages</div>';
+    }
+}
+
+/**
+ * Render messages in chat area
+ */
+function renderMaidMessages(messages) {
+    const container = document.querySelector('.chat-messages');
+    if (!container) return;
+    
+    const currentUser = getUser();
+    
+    if (!messages || messages.length === 0) {
+        container.innerHTML = `
+            <div class="empty-messages">
+                <i class="fas fa-comment-dots"></i>
+                <p>No messages yet</p>
+                <small>Send a message to start the conversation</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = messages.map(msg => {
+        const isSent = msg.senderId.toString() === currentUser.id.toString();
+        return `
+            <div class="message ${isSent ? 'sent' : 'received'}">
+                <p>${escapeMaidHtml(msg.body)}</p>
+                <span class="time">${formatMaidMessageTime(msg.createdAt)}</span>
+            </div>
+        `;
+    }).join('');
+    
+    container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * Send a message
+ */
+async function sendMaidMessage() {
+    if (!maidCurrentConversationId) {
+        showMaidNotification('Please select a conversation first', 'error');
+        return;
+    }
+    
+    const input = document.querySelector('.chat-input input');
+    if (!input) return;
+    
+    const body = input.value.trim();
+    if (!body) return;
+    
+    input.value = '';
+    
+    try {
+        const message = await apiSendMessage(maidCurrentConversationId, body);
+        appendMaidMessage(message);
+        await loadMaidConversations();
+    } catch (error) {
+        console.error('Error sending message:', error);
+        showMaidNotification(error.message || 'Failed to send message', 'error');
+        input.value = body;
+    }
+}
+
+/**
+ * Append a single message to the chat
+ */
+function appendMaidMessage(message) {
+    const container = document.querySelector('.chat-messages');
+    if (!container) return;
+    
+    const emptyState = container.querySelector('.empty-messages');
+    if (emptyState) emptyState.remove();
+    
+    const currentUser = getUser();
+    const isSent = message.senderId.toString() === currentUser.id.toString();
+    
+    const msgEl = document.createElement('div');
+    msgEl.className = `message ${isSent ? 'sent' : 'received'}`;
+    msgEl.innerHTML = `
+        <p>${escapeMaidHtml(message.body)}</p>
+        <span class="time">${formatMaidMessageTime(message.createdAt)}</span>
+    `;
+    
+    container.appendChild(msgEl);
+    container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * Format message timestamp
+ */
+function formatMaidMessageTime(timestamp) {
+    if (!timestamp) return '';
+    
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffDays === 1) {
+        return 'Yesterday';
+    } else if (diffDays < 7) {
+        return date.toLocaleDateString([], { weekday: 'short' });
+    } else {
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+}
+
+/**
+ * Update message badge in navbar
+ */
+async function updateMaidMessageBadge() {
+    try {
+        const result = await apiGetUnreadMessageCount();
+        const navItem = document.querySelector('a[href="#messages"]');
+        if (navItem) {
+            let badgeEl = navItem.querySelector('.msg-badge');
+            if (result.unreadCount > 0) {
+                if (!badgeEl) {
+                    badgeEl = document.createElement('span');
+                    badgeEl.className = 'msg-badge badge';
+                    navItem.appendChild(badgeEl);
+                }
+                badgeEl.textContent = result.unreadCount > 99 ? '99+' : result.unreadCount;
+                badgeEl.style.display = 'inline-block';
+            } else if (badgeEl) {
+                badgeEl.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error updating message badge:', error);
+    }
+}
+
+/**
+ * Start polling for new messages
+ */
+function startMaidMessagePolling() {
+    if (maidMessagePollingInterval) {
+        clearInterval(maidMessagePollingInterval);
+    }
+    
+    maidMessagePollingInterval = setInterval(async () => {
+        if (!maidCurrentConversationId) return;
+        
+        try {
+            const messages = await apiGetMessages(maidCurrentConversationId);
+            const container = document.querySelector('.chat-messages');
+            if (container) {
+                const currentCount = container.querySelectorAll('.message').length;
+                if (messages.length > currentCount) {
+                    renderMaidMessages(messages);
+                }
+            }
+        } catch (error) {
+            console.error('Error polling messages:', error);
+        }
+    }, 5000);
+}
+
+/**
+ * Stop message polling
+ */
+function stopMaidMessagePolling() {
+    if (maidMessagePollingInterval) {
+        clearInterval(maidMessagePollingInterval);
+        maidMessagePollingInterval = null;
+    }
+}
+
+/**
+ * Initialize messaging UI event listeners
+ */
+function initMaidMessagingUI() {
+    const sendBtn = document.querySelector('.chat-input button');
+    if (sendBtn) {
+        sendBtn.onclick = sendMaidMessage;
+    }
+    
+    const chatInput = document.querySelector('.chat-input input');
+    if (chatInput) {
+        chatInput.onkeypress = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMaidMessage();
+            }
+        };
+    }
+}
+
+// Messaging is initialized via showSection switch case above
+
+/**
+ * Contact a homeowner (start conversation)
+ */
+async function contactHomeowner(homeownerId) {
+    showMaidNotification('Opening messenger...', 'info');
+    try {
+        const conversation = await apiCreateConversation(homeownerId);
+        maidCurrentConversationId = conversation.id;
+        showSection('messages');
+        await loadMaidConversations();
+        await selectMaidConversation(conversation.id);
+    } catch (error) {
+        console.error('Error opening conversation:', error);
+        showMaidNotification(error.message || 'Failed to open conversation', 'error');
+    }
+}
 
 console.log('Maid Script loaded');
