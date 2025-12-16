@@ -646,45 +646,24 @@
                         <h3>Messages</h3>
                     </div>
                     <div class="conversations-list">
-                        <div class="conversation-item active">
-                            <img src="https://via.placeholder.com/45" alt="Maid">
-                            <div class="conversation-info">
-                                <h4>Maria Garcia</h4>
-                                <p>I'll be there in 10 minutes</p>
-                            </div>
-                            <span class="message-time">9:50 AM</span>
-                            <span class="unread-badge">2</span>
-                        </div>
-                        <div class="conversation-item">
-                            <img src="https://via.placeholder.com/45" alt="Maid">
-                            <div class="conversation-info">
-                                <h4>Sarah Johnson</h4>
-                                <p>Thanks for booking!</p>
-                            </div>
-                            <span class="message-time">Yesterday</span>
+                        <!-- Conversations loaded dynamically -->
+                        <div class="empty-conversations">
+                            <i class="fas fa-comments"></i>
+                            <p>No conversations yet</p>
+                            <small>Start a conversation by messaging a maid from your bookings</small>
                         </div>
                     </div>
                 </div>
                 <div class="messages-main">
                     <div class="chat-header">
-                        <img src="https://via.placeholder.com/45" alt="Maid">
-                        <div>
-                            <h4>Maria Garcia</h4>
-                            <p class="online-status"><i class="fas fa-circle"></i> Online</p>
-                        </div>
+                        <p style="color: var(--text-light);">Select a conversation to start messaging</p>
                     </div>
                     <div class="chat-messages">
-                        <div class="message received">
-                            <p>Good morning! I'm on my way to your location.</p>
-                            <span class="time">9:45 AM</span>
-                        </div>
-                        <div class="message sent">
-                            <p>Great! See you soon.</p>
-                            <span class="time">9:47 AM</span>
-                        </div>
-                        <div class="message received">
-                            <p>I'll be there in 10 minutes.</p>
-                            <span class="time">9:50 AM</span>
+                        <!-- Messages loaded dynamically -->
+                        <div class="empty-messages">
+                            <i class="fas fa-comment-dots"></i>
+                            <p>No messages yet</p>
+                            <small>Select a conversation from the left</small>
                         </div>
                     </div>
                     <div class="chat-input">
