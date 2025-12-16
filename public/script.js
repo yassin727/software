@@ -717,8 +717,8 @@ async function approveMaid(maidId, maidName) {
         
         alert(`✅ ${maidName} has been approved!\n\n${maidId ? 'An approval email has been sent to them.' : ''}`);
         
-        // Remove the approval card with animation
-        const approvalCard = event.target.closest('.approval-card');
+        // Remove the approval card by maidId (not relying on event.target)
+        const approvalCard = document.querySelector(`.approval-card[data-maid-id="${maidId}"]`);
         if (approvalCard) {
             approvalCard.style.opacity = '0';
             setTimeout(() => {
@@ -758,8 +758,8 @@ async function rejectMaid(maidId, maidName) {
             
             alert(`❌ ${maidName} has been rejected.\n\nReason: ${reason || 'No reason provided'}\n\nA rejection email has been sent.`);
             
-            // Remove the approval card
-            const approvalCard = event.target.closest('.approval-card');
+            // Remove the approval card by maidId (not relying on event.target)
+            const approvalCard = document.querySelector(`.approval-card[data-maid-id="${maidId}"]`);
             if (approvalCard) {
                 approvalCard.style.opacity = '0';
                 setTimeout(() => {
