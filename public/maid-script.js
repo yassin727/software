@@ -521,12 +521,73 @@ function renderReviewsPage(data) {
         const total = data.totalReviews || 1;
         for (let i = 5; i >= 1; i--) {
             const bar = document.querySelector(`.rating-bar[data-rating="${i}"] .bar-fill`);
+            const count = document.querySelector(`.rating-bar[data-rating="${i}"] .bar-count`);
             if (bar) {
                 const percent = ((data.ratingDistribution[i] || 0) / total) * 100;
                 bar.style.width = `${percent}%`;
             }
+            if (count) {
+                count.textContent = data.ratingDistribution[i] || 0;
+            }
         }
     }
+    
+    // Render reviews list
+    const reviewsList = document.querySelector('.reviews-detailed-list');
+    if (reviewsList) {
+        const reviews = data.reviews || [];
+        
+        if (reviews.length === 0) {
+            reviewsList.innerHTML = `
+                <div class="empty-state" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-star" style="font-size: 48px; color: #ccc; margin-bottom: 16px;"></i>
+                    <p>No reviews yet</p>
+                    <p style="color: var(--text-light);">Complete jobs to receive reviews from homeowners</p>
+                </div>
+            `;
+        } else {
+            reviewsList.innerHTML = reviews.map(review => {
+                const stars = renderStarsHTML(review.rating);
+                const date = new Date(review.date).toLocaleDateString('en-US', { 
+                    year: 'numeric', month: 'long', day: 'numeric' 
+                });
+                
+                return `
+                    <div class="review-detail-item">
+                        <div class="review-header">
+                            <img src="${review.clientPhoto || 'https://via.placeholder.com/50'}" alt="${review.clientName}">
+                            <div class="review-client-info">
+                                <h4>${review.clientName}</h4>
+                                <div class="stars">${stars}</div>
+                                <span class="review-date">${date}</span>
+                            </div>
+                        </div>
+                        <div class="review-body">
+                            <p>"${review.comment || 'No comment provided'}"</p>
+                            ${review.service ? `<div class="review-tags"><span class="tag">${review.service}</span></div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+}
+
+function renderStarsHTML(rating) {
+    let html = '';
+    const fullStars = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.5;
+    
+    for (let i = 0; i < fullStars; i++) {
+        html += '<i class="fas fa-star"></i>';
+    }
+    if (hasHalf) {
+        html += '<i class="fas fa-star-half-alt"></i>';
+    }
+    for (let i = fullStars + (hasHalf ? 1 : 0); i < 5; i++) {
+        html += '<i class="far fa-star"></i>';
+    }
+    return html;
 }
 
 // ============================================================
