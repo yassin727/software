@@ -9,17 +9,19 @@ const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: [
-      'job_request',      // New job assigned to maid
-      'job_accepted',     // Maid accepted job
-      'job_declined',     // Maid declined job
-      'job_started',      // Maid checked in
-      'job_completed',    // Job completed
-      'job_cancelled',    // Job cancelled
-      'new_review',       // New review received
-      'payment_received', // Payment marked as paid
-      'maid_approved',    // Maid account approved
-      'maid_rejected',    // Maid account rejected
-      'system'            // System notification
+      'job_request',       // New job assigned to maid
+      'job_accepted',      // Maid accepted job
+      'job_declined',      // Maid declined job
+      'job_started',       // Maid checked in
+      'job_completed',     // Job completed
+      'job_cancelled',     // Job cancelled
+      'job_progress',      // Job progress update
+      'new_review',        // New review received
+      'payment_received',  // Payment marked as paid
+      'payment_required',  // Payment required from homeowner
+      'maid_approved',     // Maid account approved
+      'maid_rejected',     // Maid account rejected
+      'system'             // System notification
     ],
     required: true
   },

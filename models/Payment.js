@@ -23,7 +23,7 @@ const paymentSchema = new mongoose.Schema({
   },
   provider: {
     type: String,
-    enum: ['stripe', 'cash'],
+    enum: ['stripe', 'apple_pay', 'cash'],
     default: 'cash'
   },
   stripe_payment_intent_id: {
