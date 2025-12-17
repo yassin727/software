@@ -6,7 +6,9 @@ const router = express.Router();
 
 // Homeowner routes
 router.post('/cash', auth(['homeowner']), PaymentController.createCashPayment);
+router.post('/process', auth(['homeowner']), PaymentController.processPayment);
 router.get('/homeowner', auth(['homeowner']), PaymentController.getHomeownerPayments);
+router.get('/homeowner/pending', auth(['homeowner']), PaymentController.getPendingPayments);
 
 // Maid routes
 router.get('/maid', auth(['maid']), PaymentController.getMaidEarnings);

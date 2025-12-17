@@ -193,7 +193,7 @@ const getReportsSummary = async (req, res) => {
     const [jobs, reviews, attendance] = await Promise.all([
       Job.find({ createdAt: { $gte: startDate } }),
       Review.find({ createdAt: { $gte: startDate } }),
-      Attendance.find({ check_in: { $gte: startDate } })
+      Attendance.find({ check_in_time: { $gte: startDate } })
     ]);
     
     const completed = jobs.filter(j => j.status === 'completed');
@@ -207,8 +207,8 @@ const getReportsSummary = async (req, res) => {
     
     // Calculate total hours from attendance
     const totalHours = attendance.reduce((sum, a) => {
-      if (a.check_in && a.check_out) {
-        const hours = (new Date(a.check_out) - new Date(a.check_in)) / (1000 * 60 * 60);
+      if (a.check_in_time && a.check_out_time) {
+        const hours = (new Date(a.check_out_time) - new Date(a.check_in_time)) / (1000 * 60 * 60);
         return sum + hours;
       }
       return sum;
@@ -276,6 +276,36 @@ const getPerformanceData = async (req, res) => {
   } catch (error) {
     console.error('Error getting performance data:', error);
     return res.status(500).json({ message: 'Failed to get performance data' });
+  }
+};
+
+/**
+ * Get recent reviews for admin reports
+ */
+const getRecentReviews = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    
+    const reviews = await Review.find()
+      .populate('reviewer_id', 'name photo_url')
+      .populate('reviewee_id', 'name')
+      .sort({ createdAt: -1 })
+      .limit(limit);
+    
+    return res.json({
+      reviews: reviews.map(r => ({
+        id: r._id,
+        rating: r.rating,
+        comment: r.comments,
+        reviewerName: r.reviewer_id?.name || 'Anonymous',
+        reviewerPhoto: r.reviewer_id?.photo_url || null,
+        revieweeName: r.reviewee_id?.name || 'Unknown',
+        createdAt: r.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error('Error getting recent reviews:', error);
+    return res.status(500).json({ message: 'Failed to get reviews' });
   }
 };
 
@@ -550,6 +580,7 @@ module.exports = {
   getAllJobs,
   getReportsSummary,
   getPerformanceData,
+  getRecentReviews,
   getSchedule,
   getAttendance,
   getProfile,

@@ -332,6 +332,12 @@ function renderBookings(bookings) {
 function renderBookingActions(booking) {
     const actions = [];
     
+    // Payment button for completed jobs awaiting payment
+    if (booking.status === 'completed' && booking.paymentStatus === 'awaiting_payment') {
+        const amount = booking.hourlyRate * (booking.actualDuration || booking.estimatedDuration || 4);
+        actions.push(`<button class="btn-primary" onclick="openPaymentModal('${booking.id}', '${booking.title}', '${booking.maid.name}', ${amount}, '${booking.paymentMethod}')"><i class="fas fa-credit-card"></i> Pay Now ($${amount.toFixed(2)})</button>`);
+    }
+    
     // Message button available for all active bookings (uses booking ID to find conversation)
     if (booking.status === 'in_progress' || booking.status === 'requested' || booking.status === 'accepted') {
         actions.push(`<button class="btn-secondary" onclick="messageFromBooking('${booking.id}')"><i class="fas fa-comment"></i> Message</button>`);
@@ -343,10 +349,10 @@ function renderBookingActions(booking) {
     } else if (booking.status === 'requested' || booking.status === 'accepted') {
         actions.push(`<button class="btn-secondary" onclick="rescheduleBooking('${booking.id}')"><i class="fas fa-calendar-alt"></i> Reschedule</button>`);
         actions.push(`<button class="btn-secondary" onclick="cancelBooking('${booking.id}')"><i class="fas fa-times"></i> Cancel</button>`);
-    } else if (booking.status === 'completed' && !booking.hasReview) {
+    } else if (booking.status === 'completed' && booking.paymentStatus !== 'awaiting_payment' && !booking.hasReview) {
         actions.push(`<button class="btn-primary" onclick="openReviewModal('${booking.id}', '${booking.maid.id}')"><i class="fas fa-star"></i> Leave Review</button>`);
         actions.push(`<button class="btn-secondary" onclick="bookAgain('${booking.maid.id}')"><i class="fas fa-redo"></i> Book Again</button>`);
-    } else if (booking.status === 'completed') {
+    } else if (booking.status === 'completed' && booking.paymentStatus !== 'awaiting_payment') {
         actions.push(`<button class="btn-secondary" onclick="viewInvoice('${booking.id}')"><i class="fas fa-file-invoice"></i> Invoice</button>`);
         actions.push(`<button class="btn-secondary" onclick="bookAgain('${booking.maid.id}')"><i class="fas fa-redo"></i> Book Again</button>`);
     }
@@ -423,6 +429,189 @@ function renderHistory(data) {
             </div>
         </div>
     `).join('');
+}
+
+
+// ============================================================
+// Active Tasks Functions
+// ============================================================
+
+/**
+ * Load and render active tasks (in-progress jobs)
+ */
+async function loadActiveTasks() {
+    try {
+        const container = document.getElementById('activeTasksContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="loading-spinner" style="text-align: center; padding: 60px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--primary-color);"></i>
+                    <p style="margin-top: 16px; color: var(--text-light);">Loading active tasks...</p>
+                </div>
+            `;
+        }
+        
+        const response = await apiGetActiveTasks();
+        renderActiveTasks(response);
+    } catch (error) {
+        console.error('Error loading active tasks:', error);
+        const container = document.getElementById('activeTasksContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="empty-state" style="text-align: center; padding: 60px;">
+                    <i class="fas fa-exclamation-circle" style="font-size: 48px; color: #e74c3c; margin-bottom: 16px;"></i>
+                    <p>Failed to load active tasks</p>
+                    <button class="btn-secondary" onclick="loadActiveTasks()" style="margin-top: 16px;">Try Again</button>
+                </div>
+            `;
+        }
+        showNotification('Failed to load active tasks', 'error');
+    }
+}
+
+/**
+ * Render active tasks
+ */
+function renderActiveTasks(data) {
+    const container = document.getElementById('activeTasksContainer');
+    if (!container) return;
+    
+    const activeTasks = data.activeTasks || [];
+    
+    if (activeTasks.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 60px;">
+                <i class="fas fa-clipboard-check" style="font-size: 64px; color: #ccc; margin-bottom: 20px;"></i>
+                <h3 style="margin-bottom: 12px; color: var(--text-color);">No Active Tasks</h3>
+                <p style="color: var(--text-light); margin-bottom: 20px;">You don't have any jobs in progress right now.</p>
+                <button class="btn-primary" onclick="showSection('my-bookings')">
+                    <i class="fas fa-calendar-alt"></i> View My Bookings
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = activeTasks.map(task => {
+        const completedTasks = task.completedTasks || 0;
+        const totalTasks = task.totalTasks || 0;
+        const progressPercent = task.progressPercentage || 0;
+        const checkInTime = task.checkInTime ? new Date(task.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A';
+        
+        return `
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header">
+                <h3><i class="fas fa-tasks"></i> Task Progress - ${task.maid.name}</h3>
+                <span class="status-badge active">In Progress</span>
+            </div>
+            
+            <div class="task-progress-header">
+                <div class="progress-stats">
+                    <div class="stat-item">
+                        <span class="label">Started:</span>
+                        <span class="value">${checkInTime}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Duration:</span>
+                        <span class="value">${task.duration || 'Just started'}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Completed:</span>
+                        <span class="value">${completedTasks}/${totalTasks} Tasks</span>
+                    </div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: ${progressPercent}%"></div>
+                    <span class="progress-text">${progressPercent}% Complete</span>
+                </div>
+            </div>
+
+            <div class="task-checklist">
+                ${renderTaskItems(task.tasks)}
+            </div>
+            
+            ${task.progressNotes && task.progressNotes.length > 0 ? `
+                <div style="margin-top: 20px; padding: 16px; background: var(--bg-light); border-radius: 8px;">
+                    <h4 style="margin-bottom: 12px;"><i class="fas fa-sticky-note"></i> Progress Notes</h4>
+                    ${task.progressNotes.slice(-3).reverse().map(note => `
+                        <div style="padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+                            <p style="margin: 0; font-size: 14px;">${note.note}</p>
+                            <small style="color: var(--text-light);">${new Date(note.timestamp).toLocaleString()}</small>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+            
+            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <p style="margin: 4px 0;"><i class="fas fa-broom"></i> <strong>Service:</strong> ${task.title}</p>
+                    <p style="margin: 4px 0;"><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> ${task.address}</p>
+                    <p style="margin: 4px 0;"><i class="fas fa-dollar-sign"></i> <strong>Rate:</strong> ${task.hourlyRate}/hour</p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: flex-start;">
+                    <button class="btn-secondary" onclick="messageFromBooking('${task.id}')">
+                        <i class="fas fa-comment"></i> Message
+                    </button>
+                    <button class="btn-secondary" onclick="editHomeownerJobTasks('${task.id}')">
+                        <i class="fas fa-edit"></i> Edit Tasks
+                    </button>
+                    <button class="btn-primary" onclick="viewHomeownerJobProgress('${task.id}')">
+                        <i class="fas fa-eye"></i> Full Details
+                    </button>
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Render task items for active tasks
+ */
+function renderTaskItems(tasks) {
+    if (!tasks || tasks.length === 0) {
+        return `
+            <div class="task-item pending">
+                <i class="far fa-circle"></i>
+                <div class="task-info">
+                    <h4>No tasks defined</h4>
+                    <p>The maid will update progress as they work</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Find the first incomplete task (in progress)
+    const firstIncompleteIndex = tasks.findIndex(t => !t.completed);
+    
+    return tasks.map((task, index) => {
+        let statusClass = 'pending';
+        let icon = '<i class="far fa-circle"></i>';
+        let timeStamp = 'Not started';
+        
+        if (task.completed) {
+            statusClass = 'completed';
+            icon = '<i class="fas fa-check-circle"></i>';
+            timeStamp = task.completedAt 
+                ? `Completed at ${new Date(task.completedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`
+                : 'Completed';
+        } else if (index === firstIncompleteIndex) {
+            statusClass = 'in-progress';
+            icon = '<i class="fas fa-spinner fa-spin"></i>';
+            timeStamp = 'In progress...';
+        }
+        
+        return `
+            <div class="task-item ${statusClass}">
+                ${icon}
+                <div class="task-info">
+                    <h4>${task.name}</h4>
+                    ${task.notes ? `<p>${task.notes}</p>` : ''}
+                    <span class="time-stamp">${timeStamp}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 
@@ -741,6 +930,10 @@ async function submitBooking(event) {
         }
     });
     
+    // Get selected payment method
+    const paymentMethodInput = document.querySelector('input[name="paymentMethod"]:checked');
+    const paymentMethod = paymentMethodInput?.value || 'cash';
+    
     try {
         const response = await apiCreateJob({
             maidId: maidId,
@@ -750,12 +943,20 @@ async function submitBooking(event) {
             scheduledDatetime: scheduledDatetime,
             hourlyRate: parseFloat(hourlyRate),
             estimatedDuration: parseFloat(duration) || 4,
-            tasks: tasks
+            tasks: tasks,
+            paymentMethod: paymentMethod
         });
         
-        showNotification('Booking created successfully!', 'success');
+        const paymentMsg = paymentMethod === 'cash' 
+            ? 'Pay the maid directly after service.' 
+            : 'You will be notified to complete payment after service.';
+        showNotification(`Booking created successfully! ${paymentMsg}`, 'success');
         closeModal('bookingModal');
         document.getElementById('bookingForm')?.reset();
+        
+        // Clear tasks container
+        const tasksContainer = document.getElementById('tasksContainer');
+        if (tasksContainer) tasksContainer.innerHTML = '';
         
         // Redirect to My Bookings
         showSection('my-bookings');
@@ -933,6 +1134,9 @@ function showSection(sectionId) {
             break;
         case 'my-bookings':
             loadBookings();
+            break;
+        case 'active-tasks':
+            loadActiveTasks();
             break;
         case 'history':
             loadHistory();
@@ -2114,3 +2318,259 @@ function initMessagingUI() {
 }
 
 // Messaging is initialized via showSection switch case above
+
+
+// ============================================================
+// Payment Method Selection & Processing
+// ============================================================
+
+let currentPaymentJobId = null;
+let currentPaymentAmount = 0;
+
+/**
+ * Initialize payment method selection UI
+ */
+function initPaymentMethodUI() {
+    const paymentOptions = document.querySelectorAll('input[name="paymentMethod"]');
+    paymentOptions.forEach(option => {
+        option.addEventListener('change', updatePaymentMethodHint);
+    });
+}
+
+/**
+ * Update payment method hint text
+ */
+function updatePaymentMethodHint() {
+    const selectedMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
+    const hintEl = document.getElementById('paymentMethodHint');
+    const summaryEl = document.getElementById('paymentSummary');
+    
+    const hints = {
+        'cash': '<i class="fas fa-info-circle"></i> Cash payments are made directly to the maid after service completion.',
+        'card': '<i class="fas fa-info-circle"></i> You will receive a notification to complete card payment after the maid checks out.',
+        'apple_pay': '<i class="fas fa-info-circle"></i> You will receive a notification to complete Apple Pay payment after the maid checks out.'
+    };
+    
+    const summaries = {
+        'cash': '<i class="fas fa-money-bill-wave"></i> Payment: Cash to maid',
+        'card': '<i class="fas fa-credit-card"></i> Payment: Card (after service)',
+        'apple_pay': '<i class="fab fa-apple-pay"></i> Payment: Apple Pay (after service)'
+    };
+    
+    if (hintEl) hintEl.innerHTML = hints[selectedMethod] || hints['cash'];
+    if (summaryEl) summaryEl.innerHTML = summaries[selectedMethod] || summaries['cash'];
+    
+    // Update visual selection
+    document.querySelectorAll('.payment-option').forEach(opt => {
+        const input = opt.querySelector('input');
+        if (input?.checked) {
+            opt.style.borderColor = 'var(--primary-color)';
+            opt.style.background = 'rgba(52, 152, 219, 0.05)';
+        } else {
+            opt.style.borderColor = 'var(--border-color)';
+            opt.style.background = 'white';
+        }
+    });
+}
+
+/**
+ * Open payment modal for a completed job
+ */
+function openPaymentModal(jobId, jobTitle, maidName, amount, paymentMethod) {
+    currentPaymentJobId = jobId;
+    currentPaymentAmount = amount;
+    
+    document.getElementById('paymentJobTitle').textContent = jobTitle || 'Service Completed';
+    document.getElementById('paymentMaidName').innerHTML = `<i class="fas fa-user"></i> Maid: ${maidName}`;
+    document.getElementById('paymentAmount').textContent = `Total: $${amount.toFixed(2)}`;
+    
+    // Set default payment tab based on booking payment method
+    if (paymentMethod === 'apple_pay') {
+        selectPaymentTab('apple_pay');
+    } else {
+        selectPaymentTab('card');
+    }
+    
+    document.getElementById('paymentModal').classList.add('active');
+}
+
+/**
+ * Select payment tab (card or apple_pay)
+ */
+function selectPaymentTab(tab) {
+    const cardForm = document.getElementById('cardPaymentForm');
+    const applePaySection = document.getElementById('applePaySection');
+    const tabCard = document.getElementById('tabCard');
+    const tabApplePay = document.getElementById('tabApplePay');
+    const processBtn = document.getElementById('processPaymentBtn');
+    
+    if (tab === 'apple_pay') {
+        cardForm.style.display = 'none';
+        applePaySection.style.display = 'block';
+        tabCard.style.background = 'white';
+        tabCard.style.color = 'var(--text-color)';
+        tabCard.style.borderColor = 'var(--border-color)';
+        tabApplePay.style.background = 'var(--primary-color)';
+        tabApplePay.style.color = 'white';
+        tabApplePay.style.borderColor = 'var(--primary-color)';
+        processBtn.style.display = 'none';
+    } else {
+        cardForm.style.display = 'block';
+        applePaySection.style.display = 'none';
+        tabCard.style.background = 'var(--primary-color)';
+        tabCard.style.color = 'white';
+        tabCard.style.borderColor = 'var(--primary-color)';
+        tabApplePay.style.background = 'white';
+        tabApplePay.style.color = 'var(--text-color)';
+        tabApplePay.style.borderColor = 'var(--border-color)';
+        processBtn.style.display = 'inline-flex';
+    }
+}
+
+/**
+ * Process card payment
+ */
+async function processCardPayment() {
+    const cardNumber = document.getElementById('cardNumber')?.value?.trim();
+    const cardExpiry = document.getElementById('cardExpiry')?.value?.trim();
+    const cardCvv = document.getElementById('cardCvv')?.value?.trim();
+    const cardName = document.getElementById('cardName')?.value?.trim();
+    
+    // Basic validation
+    if (!cardNumber || cardNumber.replace(/\s/g, '').length < 13) {
+        showNotification('Please enter a valid card number', 'error');
+        return;
+    }
+    if (!cardExpiry || !cardExpiry.match(/^\d{2}\/\d{2}$/)) {
+        showNotification('Please enter expiry date (MM/YY)', 'error');
+        return;
+    }
+    if (!cardCvv || cardCvv.length < 3) {
+        showNotification('Please enter a valid CVV', 'error');
+        return;
+    }
+    if (!cardName) {
+        showNotification('Please enter cardholder name', 'error');
+        return;
+    }
+    
+    const btn = document.getElementById('processPaymentBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    btn.disabled = true;
+    
+    try {
+        // In production, this would send card details to Stripe
+        // For now, we just call our backend to mark payment as complete
+        const result = await apiProcessPayment(currentPaymentJobId, 'card');
+        
+        showNotification(`Payment of $${currentPaymentAmount.toFixed(2)} successful!`, 'success');
+        closeModal('paymentModal');
+        
+        // Clear form
+        document.getElementById('cardNumber').value = '';
+        document.getElementById('cardExpiry').value = '';
+        document.getElementById('cardCvv').value = '';
+        document.getElementById('cardName').value = '';
+        
+        // Refresh bookings
+        loadBookings();
+        loadHomeownerDashboard();
+    } catch (error) {
+        showNotification(error.message || 'Payment failed. Please try again.', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+/**
+ * Process Apple Pay payment
+ */
+async function processApplePay() {
+    // In production, this would trigger Apple Pay sheet
+    // For now, simulate Apple Pay flow
+    
+    showNotification('Processing Apple Pay...', 'info');
+    
+    try {
+        const result = await apiProcessPayment(currentPaymentJobId, 'apple_pay');
+        
+        showNotification(`Payment of $${currentPaymentAmount.toFixed(2)} successful!`, 'success');
+        closeModal('paymentModal');
+        
+        // Refresh bookings
+        loadBookings();
+        loadHomeownerDashboard();
+    } catch (error) {
+        showNotification(error.message || 'Apple Pay failed. Please try again.', 'error');
+    }
+}
+
+/**
+ * Check for pending payments and show notification
+ */
+async function checkPendingPayments() {
+    try {
+        const result = await apiGetPendingPayments();
+        const pending = result.pendingPayments || [];
+        
+        if (pending.length > 0) {
+            // Show notification for first pending payment
+            const payment = pending[0];
+            showNotification(
+                `Payment required: $${payment.amount.toFixed(2)} for ${payment.title}`,
+                'warning'
+            );
+            
+            // Optionally auto-open payment modal
+            // openPaymentModal(payment.jobId, payment.title, payment.maidName, payment.amount, payment.paymentMethod);
+        }
+    } catch (error) {
+        console.error('Error checking pending payments:', error);
+    }
+}
+
+/**
+ * Format card number with spaces
+ */
+function formatCardNumber(input) {
+    let value = input.value.replace(/\s/g, '').replace(/\D/g, '');
+    let formatted = '';
+    for (let i = 0; i < value.length && i < 16; i++) {
+        if (i > 0 && i % 4 === 0) formatted += ' ';
+        formatted += value[i];
+    }
+    input.value = formatted;
+}
+
+/**
+ * Format expiry date
+ */
+function formatExpiryDate(input) {
+    let value = input.value.replace(/\D/g, '');
+    if (value.length >= 2) {
+        value = value.substring(0, 2) + '/' + value.substring(2, 4);
+    }
+    input.value = value;
+}
+
+// Initialize payment UI on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initPaymentMethodUI();
+    
+    // Add card number formatting
+    const cardNumberInput = document.getElementById('cardNumber');
+    if (cardNumberInput) {
+        cardNumberInput.addEventListener('input', () => formatCardNumber(cardNumberInput));
+    }
+    
+    // Add expiry date formatting
+    const cardExpiryInput = document.getElementById('cardExpiry');
+    if (cardExpiryInput) {
+        cardExpiryInput.addEventListener('input', () => formatExpiryDate(cardExpiryInput));
+    }
+    
+    // Check for pending payments after a short delay
+    setTimeout(checkPendingPayments, 3000);
+});

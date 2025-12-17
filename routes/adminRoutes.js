@@ -29,6 +29,9 @@ router.get('/reports/summary', auth(['admin']), AdminController.getReportsSummar
 // GET /api/admin/reports/performance - Get performance data for charts
 router.get('/reports/performance', auth(['admin']), AdminController.getPerformanceData);
 
+// GET /api/admin/reports/reviews - Get recent reviews
+router.get('/reports/reviews', auth(['admin']), AdminController.getRecentReviews);
+
 // ============================================================
 // Schedule
 // ============================================================

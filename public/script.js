@@ -616,8 +616,14 @@ async function markPaymentAsPaid(paymentId) {
 // Load reports data
 async function loadReportsData() {
     try {
-        const summary = await apiGetReportsSummary('month');
+        const [summary, performance, reviews] = await Promise.all([
+            apiGetReportsSummary(currentReportRange || 'month'),
+            apiGetPerformanceData(currentReportRange === 'week' ? 7 : 30),
+            apiGetRecentReviews()
+        ]);
         renderReportsSummary(summary);
+        renderPerformanceChart(performance);
+        renderRecentReviews(reviews);
     } catch (error) {
         console.error('Error loading reports:', error);
         const errorMessage = error.message || 'Unable to load reports. Please try again.';
@@ -1720,4 +1726,80 @@ function showToast(message, type = 'info', duration = 4000) {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
     }, duration);
+}
+
+
+// Current report range
+let currentReportRange = 'month';
+
+// Change report range
+function changeReportRange(range) {
+    currentReportRange = range;
+    loadReportsData();
+}
+
+// Render performance chart
+function renderPerformanceChart(data) {
+    const container = document.getElementById('performanceChartContainer');
+    const statsContainer = document.getElementById('jobStatsContainer');
+    
+    if (!data || !data.data || data.data.length === 0) {
+        if (container) container.innerHTML = '<i class="fas fa-chart-line" style="font-size: 48px; color: #ccc;"></i><p>No performance data available</p>';
+        if (statsContainer) statsContainer.innerHTML = '<i class="fas fa-chart-bar" style="font-size: 48px; color: #ccc;"></i><p>No job statistics available</p>';
+        return;
+    }
+    
+    const chartData = data.data.slice(-14);
+    const maxJobs = Math.max(...chartData.map(d => d.jobs)) || 1;
+    
+    if (container) {
+        const barsHtml = chartData.map(d => {
+            const height = (d.jobs / maxJobs) * 100;
+            const date = new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return '<div style="display:flex;flex-direction:column;align-items:center;flex:1;max-width:40px;">' +
+                '<div style="width:20px;height:' + Math.max(height, 5) + 'px;background:var(--primary-color);border-radius:4px 4px 0 0;" title="' + d.jobs + ' jobs"></div>' +
+                '<span style="font-size:9px;color:var(--text-light);margin-top:4px;">' + date.split(' ')[1] + '</span></div>';
+        }).join('');
+        container.innerHTML = '<div style="display:flex;align-items:flex-end;justify-content:space-around;height:150px;padding:10px 0;">' + barsHtml + '</div>' +
+            '<p style="text-align:center;color:var(--text-light);font-size:12px;margin-top:10px;">Jobs per day</p>';
+    }
+    
+    if (statsContainer) {
+        const totalJobs = chartData.reduce((sum, d) => sum + d.jobs, 0);
+        const totalCompleted = chartData.reduce((sum, d) => sum + d.completed, 0);
+        const totalRevenue = chartData.reduce((sum, d) => sum + d.revenue, 0);
+        
+        statsContainer.innerHTML = '<div style="display:flex;flex-direction:column;gap:16px;padding:20px;">' +
+            '<div style="display:flex;justify-content:space-between;"><span>Jobs Created</span><strong style="color:var(--primary-color);">' + totalJobs + '</strong></div>' +
+            '<div style="display:flex;justify-content:space-between;"><span>Jobs Completed</span><strong style="color:#27ae60;">' + totalCompleted + '</strong></div>' +
+            '<div style="display:flex;justify-content:space-between;"><span>Revenue</span><strong style="color:#9b59b6;">$' + totalRevenue.toFixed(2) + '</strong></div>' +
+            '<div style="display:flex;justify-content:space-between;"><span>Avg/Day</span><strong>' + (totalJobs / chartData.length).toFixed(1) + '</strong></div></div>';
+    }
+}
+
+// Render recent reviews
+function renderRecentReviews(data) {
+    const container = document.getElementById('recentReviewsContainer');
+    if (!container) return;
+    
+    const reviews = data && data.reviews ? data.reviews : [];
+    
+    if (reviews.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:20px;"><i class="fas fa-star" style="font-size:32px;color:#ccc;display:block;margin-bottom:12px;"></i>No reviews yet</p>';
+        return;
+    }
+    
+    const reviewsHtml = reviews.slice(0, 5).map(review => {
+        let stars = '';
+        for (let i = 0; i < review.rating; i++) stars += '<i class="fas fa-star"></i>';
+        for (let j = review.rating; j < 5; j++) stars += '<i class="far fa-star"></i>';
+        return '<div style="display:flex;gap:12px;padding:12px;background:var(--bg-light);border-radius:8px;">' +
+            '<img src="' + (review.reviewerPhoto || 'https://via.placeholder.com/40') + '" style="width:40px;height:40px;border-radius:50%;">' +
+            '<div style="flex:1;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><strong>' + (review.reviewerName || 'Anonymous') + '</strong>' +
+            '<div style="color:#f1c40f;">' + stars + '</div></div>' +
+            '<p style="margin:0;color:var(--text-light);font-size:14px;">' + (review.comment || 'No comment') + '</p>' +
+            '<small style="color:#999;">' + new Date(review.createdAt).toLocaleDateString() + '</small></div></div>';
+    }).join('');
+    
+    container.innerHTML = '<div style="display:flex;flex-direction:column;gap:12px;">' + reviewsHtml + '</div>';
 }

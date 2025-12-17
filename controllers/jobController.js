@@ -30,7 +30,7 @@ const listJobs = async (req, res) => {
 const createJob = async (req, res) => {
   try {
     const homeownerId = req.user.userId;
-    const { maidId, title, description, address, scheduledDatetime, hourlyRate, tasks, estimatedDuration } = req.body;
+    const { maidId, title, description, address, scheduledDatetime, hourlyRate, tasks, estimatedDuration, paymentMethod } = req.body;
 
     // Validate required fields
     const errors = [];
@@ -44,6 +44,10 @@ const createJob = async (req, res) => {
       return res.status(400).json({ message: errors[0].message, errors });
     }
 
+    // Validate payment method
+    const validPaymentMethods = ['cash', 'card', 'apple_pay'];
+    const selectedPaymentMethod = validPaymentMethods.includes(paymentMethod) ? paymentMethod : 'cash';
+
     const jobId = await JobService.createJob({
       homeownerId,
       maidId,
@@ -53,7 +57,8 @@ const createJob = async (req, res) => {
       scheduledDatetime,
       hourlyRate: parseFloat(hourlyRate),
       tasks: tasks || [],
-      estimatedDuration: parseFloat(estimatedDuration) || 4
+      estimatedDuration: parseFloat(estimatedDuration) || 4,
+      paymentMethod: selectedPaymentMethod
     });
 
     // Get maid's user ID for conversation and notification
@@ -192,30 +197,72 @@ const checkOut = async (req, res) => {
         .json({ message: 'Attendance record not found' });
     }
 
-    // Notify homeowner that job is completed
-    try {
-      const job = await Job.findById(jobId).populate('maid_id');
-      if (job && job.maid_id) {
-        const maidUser = await User.findById(job.maid_id.user_id);
+    // Get job details for notifications
+    const job = await Job.findById(jobId).populate('maid_id');
+    const amount = job.hourly_rate * (job.actual_duration || job.estimated_duration || 4);
+
+    // Handle payment based on payment method
+    if (job && job.maid_id) {
+      const maidUser = await User.findById(job.maid_id.user_id);
+      const maidName = maidUser?.name || 'Your maid';
+
+      if (job.payment_method === 'cash') {
+        // Cash payment - mark as paid immediately (maid collects directly)
+        job.payment_status = 'paid';
+        await job.save();
+
+        // Notify homeowner that job is completed
         await NotificationService.notifyJobCompleted(
           job.homeowner_id,
           job,
-          maidUser?.name || 'Your maid'
+          maidName
         );
         
-        // Notify maid of payment (simplified - in real app would track actual payment)
-        const amount = job.hourly_rate * (job.actual_duration || job.estimated_duration || 4);
+        // Notify maid of payment received
         await NotificationService.notifyPaymentReceived(
           job.maid_id.user_id,
           job,
           amount
         );
+      } else {
+        // Card or Apple Pay - set status to awaiting_payment
+        job.payment_status = 'awaiting_payment';
+        await job.save();
+
+        // Notify homeowner that payment is required
+        await NotificationService.create({
+          userId: job.homeowner_id,
+          type: 'payment_required',
+          title: 'Payment Required',
+          message: `Service completed by ${maidName}. Please complete your payment of $${amount.toFixed(2)}.`,
+          data: {
+            jobId: job._id,
+            amount: amount,
+            paymentMethod: job.payment_method,
+            maidName: maidName
+          }
+        });
+
+        // Notify maid that job is completed (payment pending)
+        await NotificationService.create({
+          userId: job.maid_id.user_id,
+          type: 'job_completed',
+          title: 'Job Completed',
+          message: `Great work! The homeowner will complete the payment of $${amount.toFixed(2)} shortly.`,
+          data: {
+            jobId: job._id,
+            amount: amount
+          }
+        });
       }
-    } catch (notifError) {
-      console.error('Failed to send checkout notification:', notifError);
     }
 
-    return res.json({ attendance, message: 'Checked out successfully' });
+    return res.json({ 
+      attendance, 
+      message: 'Checked out successfully',
+      paymentStatus: job?.payment_status,
+      paymentMethod: job?.payment_method
+    });
   } catch (err) {
     console.error('Check-out error', err);
     return res.status(500).json({ message: 'Failed to check out' });

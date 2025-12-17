@@ -620,6 +620,16 @@ async function apiGetServiceHistory(startDate, endDate) {
 }
 
 /**
+ * Get active tasks (in-progress jobs) for homeowner
+ * @returns {Promise<Object>} Active tasks with progress details
+ */
+async function apiGetActiveTasks() {
+    return await apiRequest('/homeowner/active-tasks', {
+        method: 'GET',
+    });
+}
+
+/**
  * Submit a review for a completed job
  * @param {Object} reviewData - Review data (jobId, rating, comment)
  * @returns {Promise<Object>} Review response
@@ -890,6 +900,15 @@ async function apiGetPerformanceData(days = 30) {
 }
 
 /**
+ * Get recent reviews for admin reports
+ * @param {number} limit - Number of reviews to fetch
+ * @returns {Promise<Object>} Recent reviews
+ */
+async function apiGetRecentReviews(limit = 10) {
+    return await apiRequest(`/admin/reports/reviews?limit=${limit}`, { method: 'GET' });
+}
+
+/**
  * Get schedule/calendar events
  * @param {string} from - Start date (YYYY-MM-DD)
  * @param {string} to - End date (YYYY-MM-DD)
@@ -1072,6 +1091,27 @@ async function apiGetHomeownerPayments() {
  */
 async function apiGetMaidEarningsPayments() {
     return await apiRequest('/payments/maid', { method: 'GET' });
+}
+
+/**
+ * Process card/Apple Pay payment for a completed job
+ * @param {string} jobId - Job ID
+ * @param {string} paymentMethod - 'card' or 'apple_pay'
+ * @returns {Promise<Object>} Payment result
+ */
+async function apiProcessPayment(jobId, paymentMethod) {
+    return await apiRequest('/payments/process', {
+        method: 'POST',
+        body: JSON.stringify({ jobId, paymentMethod })
+    });
+}
+
+/**
+ * Get pending payments for homeowner
+ * @returns {Promise<Object>} Pending payments list
+ */
+async function apiGetPendingPayments() {
+    return await apiRequest('/payments/homeowner/pending', { method: 'GET' });
 }
 
 /**

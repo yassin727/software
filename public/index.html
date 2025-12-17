@@ -737,44 +737,101 @@
         <section id="reports" class="content-section">
             <div class="section-header">
                 <h2>Analytics & Reports</h2>
+                <div style="display: flex; gap: 8px;">
+                    <select id="reportRangeSelect" onchange="changeReportRange(this.value)" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        <option value="week">Last 7 Days</option>
+                        <option value="month" selected>This Month</option>
+                    </select>
+                    <button class="btn-secondary" onclick="loadReportsData()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3 id="reportTotalJobs">0</h3>
+                        <p>Total Jobs</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #27ae60, #219a52);">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3 id="reportCompletedJobs">0</h3>
+                        <p>Completed</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3 id="reportCancelledJobs">0</h3>
+                        <p>Cancelled</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #9b59b6, #8e44ad);">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h3 id="reportCompletionRate">0%</h3>
+                        <p>Completion Rate</p>
+                    </div>
+                </div>
             </div>
 
             <div class="reports-grid">
                 <div class="card chart-card">
-                    <h3>Performance Overview</h3>
-                    <div class="chart-placeholder">
-                        <i class="fas fa-chart-line"></i>
-                        <p>Chart: Task completion rate over time</p>
+                    <h3><i class="fas fa-chart-line"></i> Performance Overview</h3>
+                    <div id="performanceChartContainer" class="chart-placeholder">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading performance data...</p>
                     </div>
                 </div>
                 <div class="card chart-card">
-                    <h3>Attendance Rate</h3>
-                    <div class="chart-placeholder">
-                        <i class="fas fa-chart-bar"></i>
-                        <p>Chart: Monthly attendance statistics</p>
+                    <h3><i class="fas fa-chart-bar"></i> Job Statistics</h3>
+                    <div id="jobStatsContainer" class="chart-placeholder">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading job statistics...</p>
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <h3>Monthly Summary</h3>
+                <h3><i class="fas fa-clipboard-list"></i> Monthly Summary</h3>
                 <div class="summary-grid">
                     <div class="summary-item">
                         <span class="summary-label">Total Working Hours</span>
-                        <span class="summary-value">1,240 hrs</span>
+                        <span class="summary-value" id="reportTotalHours">0 hrs</span>
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">Tasks Completed</span>
-                        <span class="summary-value">156</span>
+                        <span class="summary-value" id="reportTasksCompleted">0</span>
                     </div>
                     <div class="summary-item">
                         <span class="summary-label">Average Rating</span>
-                        <span class="summary-value">4.8 <i class="fas fa-star"></i></span>
+                        <span class="summary-value" id="reportAvgRating">0 <i class="fas fa-star"></i></span>
                     </div>
                     <div class="summary-item">
-                        <span class="summary-label">Total Payments</span>
-                        <span class="summary-value">$12,450</span>
+                        <span class="summary-label">Total Revenue</span>
+                        <span class="summary-value" id="reportTotalRevenue">$0</span>
                     </div>
+                </div>
+            </div>
+
+            <!-- Recent Reviews -->
+            <div class="card">
+                <h3><i class="fas fa-star"></i> Recent Reviews</h3>
+                <div id="recentReviewsContainer">
+                    <p style="color: var(--text-light); text-align: center; padding: 20px;">Loading reviews...</p>
                 </div>
             </div>
         </section>

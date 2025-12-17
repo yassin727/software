@@ -471,77 +471,13 @@
 
         <!-- Active Tasks Section -->
         <section id="active-tasks" class="content-section">
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-tasks"></i> Task Progress - Maria Garcia</h3>
-                    <span class="status-badge active">In Progress</span>
-                </div>
-                
-                <div class="task-progress-header">
-                    <div class="progress-stats">
-                        <div class="stat-item">
-                            <span class="label">Started:</span>
-                            <span class="value">10:00 AM</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">Duration:</span>
-                            <span class="value">1h 15m</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="label">Completed:</span>
-                            <span class="value">3/5 Tasks</span>
-                        </div>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" style="width: 60%"></div>
-                        <span class="progress-text">60% Complete</span>
-                    </div>
-                </div>
-
-                <div class="task-checklist">
-                    <div class="task-item completed">
-                        <i class="fas fa-check-circle"></i>
-                        <div class="task-info">
-                            <h4>Living Room Cleaning</h4>
-                            <p>Dusting, vacuuming, organizing</p>
-                            <span class="time-stamp">Completed at 10:30 AM</span>
-                        </div>
-                    </div>
-                    <div class="task-item completed">
-                        <i class="fas fa-check-circle"></i>
-                        <div class="task-info">
-                            <h4>Kitchen Cleaning</h4>
-                            <p>Dishes, counters, appliances, floor</p>
-                            <span class="time-stamp">Completed at 11:00 AM</span>
-                        </div>
-                    </div>
-                    <div class="task-item completed">
-                        <i class="fas fa-check-circle"></i>
-                        <div class="task-info">
-                            <h4>Bathroom Sanitization</h4>
-                            <p>Toilet, shower, sink, mirrors</p>
-                            <span class="time-stamp">Completed at 11:15 AM</span>
-                        </div>
-                    </div>
-                    <div class="task-item in-progress">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <div class="task-info">
-                            <h4>Bedroom Cleaning</h4>
-                            <p>Making beds, organizing, vacuuming</p>
-                            <span class="time-stamp">In progress...</span>
-                        </div>
-                    </div>
-                    <div class="task-item pending">
-                        <i class="far fa-circle"></i>
-                        <div class="task-info">
-                            <h4>Final Inspection</h4>
-                            <p>Walk-through and touch-ups</p>
-                            <span class="time-stamp">Not started</span>
-                        </div>
-                    </div>
+            <div id="activeTasksContainer">
+                <!-- Dynamic content loaded by JavaScript -->
+                <div class="loading-spinner" style="text-align: center; padding: 60px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--primary-color);"></i>
+                    <p style="margin-top: 16px; color: var(--text-light);">Loading active tasks...</p>
                 </div>
             </div>
-
         </section>
 
         <!-- History Section -->
@@ -815,8 +751,45 @@
                     </small>
                 </div>
                 
+                <!-- Payment Method Selection -->
+                <div class="form-group">
+                    <label>Payment Method *</label>
+                    <div class="payment-methods" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <label class="payment-option" style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; flex: 1; min-width: 140px;">
+                            <input type="radio" name="paymentMethod" value="cash" checked>
+                            <i class="fas fa-money-bill-wave" style="color: #27ae60; font-size: 20px;"></i>
+                            <div>
+                                <strong>Cash</strong>
+                                <small style="display: block; color: var(--text-light);">Pay maid directly</small>
+                            </div>
+                        </label>
+                        <label class="payment-option" style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; flex: 1; min-width: 140px;">
+                            <input type="radio" name="paymentMethod" value="card">
+                            <i class="fas fa-credit-card" style="color: #3498db; font-size: 20px;"></i>
+                            <div>
+                                <strong>Card</strong>
+                                <small style="display: block; color: var(--text-light);">Pay after service</small>
+                            </div>
+                        </label>
+                        <label class="payment-option" style="display: flex; align-items: center; gap: 8px; padding: 12px 16px; border: 2px solid var(--border-color); border-radius: 8px; cursor: pointer; flex: 1; min-width: 140px;">
+                            <input type="radio" name="paymentMethod" value="apple_pay">
+                            <i class="fab fa-apple-pay" style="color: #000; font-size: 24px;"></i>
+                            <div>
+                                <strong>Apple Pay</strong>
+                                <small style="display: block; color: var(--text-light);">Pay after service</small>
+                            </div>
+                        </label>
+                    </div>
+                    <p id="paymentMethodHint" style="margin-top: 8px; color: var(--text-light); font-size: 13px;">
+                        <i class="fas fa-info-circle"></i> Cash payments are made directly to the maid after service completion.
+                    </p>
+                </div>
+                
                 <div class="booking-summary" style="background: var(--bg-light); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
                     <p><strong>Estimated Total:</strong> <span id="estimatedTotal">$0.00</span></p>
+                    <p id="paymentSummary" style="margin-top: 4px; font-size: 13px; color: var(--text-light);">
+                        <i class="fas fa-money-bill-wave"></i> Payment: Cash to maid
+                    </p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary" onclick="closeModal('bookingModal')">Cancel</button>
@@ -860,6 +833,79 @@
                     <button type="submit" class="btn-primary">Submit Review</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Payment Modal (for card/Apple Pay after checkout) -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-credit-card"></i> Complete Payment</h2>
+                <button class="close-btn" onclick="closeModal('paymentModal')">&times;</button>
+            </div>
+            <div class="payment-modal-body">
+                <div class="payment-info" style="background: var(--bg-light); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 id="paymentJobTitle" style="margin-bottom: 8px;">Service Completed</h4>
+                    <p id="paymentMaidName" style="color: var(--text-light);"><i class="fas fa-user"></i> Maid: Maria Garcia</p>
+                    <p id="paymentDuration" style="color: var(--text-light);"><i class="fas fa-clock"></i> Duration: 4 hours</p>
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                        <h3 id="paymentAmount" style="color: var(--primary-color);">Total: $60.00</h3>
+                    </div>
+                </div>
+                
+                <div id="paymentMethodSection">
+                    <div class="payment-tabs" style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <button type="button" class="payment-tab active" onclick="selectPaymentTab('card')" id="tabCard" style="flex: 1; padding: 12px; border: 2px solid var(--primary-color); background: var(--primary-color); color: white; border-radius: 8px; cursor: pointer;">
+                            <i class="fas fa-credit-card"></i> Card
+                        </button>
+                        <button type="button" class="payment-tab" onclick="selectPaymentTab('apple_pay')" id="tabApplePay" style="flex: 1; padding: 12px; border: 2px solid var(--border-color); background: white; color: var(--text-color); border-radius: 8px; cursor: pointer;">
+                            <i class="fab fa-apple-pay"></i> Apple Pay
+                        </button>
+                    </div>
+                    
+                    <!-- Card Payment Form -->
+                    <div id="cardPaymentForm">
+                        <div class="form-group">
+                            <label>Card Number *</label>
+                            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                        </div>
+                        <div class="form-row" style="display: flex; gap: 12px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label>Expiry Date *</label>
+                                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" required>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>CVV *</label>
+                                <input type="text" id="cardCvv" placeholder="123" maxlength="4" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Cardholder Name *</label>
+                            <input type="text" id="cardName" placeholder="John Doe" required>
+                        </div>
+                    </div>
+                    
+                    <!-- Apple Pay Section -->
+                    <div id="applePaySection" style="display: none; text-align: center; padding: 20px;">
+                        <i class="fab fa-apple" style="font-size: 48px; margin-bottom: 16px;"></i>
+                        <p style="margin-bottom: 16px;">Click the button below to pay with Apple Pay</p>
+                        <button type="button" class="btn-apple-pay" onclick="processApplePay()" style="background: #000; color: white; padding: 14px 32px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">
+                            <i class="fab fa-apple-pay" style="font-size: 24px;"></i> Pay with Apple Pay
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="margin-top: 20px;">
+                    <button type="button" class="btn-secondary" onclick="closeModal('paymentModal')">Cancel</button>
+                    <button type="button" class="btn-primary" id="processPaymentBtn" onclick="processCardPayment()">
+                        <i class="fas fa-lock"></i> Pay Now
+                    </button>
+                </div>
+                
+                <p style="text-align: center; margin-top: 12px; font-size: 12px; color: var(--text-light);">
+                    <i class="fas fa-lock"></i> Your payment is secure and encrypted
+                </p>
+            </div>
         </div>
     </div>
 

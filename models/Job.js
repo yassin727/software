@@ -82,6 +82,16 @@ const jobSchema = new mongoose.Schema({
     default: 0,
     min: 0,
     max: 100
+  },
+  payment_method: {
+    type: String,
+    enum: ['cash', 'card', 'apple_pay'],
+    default: 'cash'
+  },
+  payment_status: {
+    type: String,
+    enum: ['pending', 'awaiting_payment', 'paid', 'failed'],
+    default: 'pending'
   }
 }, {
   timestamps: true
