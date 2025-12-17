@@ -411,19 +411,36 @@ async function submitCheckout(event) {
     }
     
     try {
-        if (currentAttendanceId && currentActiveJobId) {
-            await apiCheckOut(currentAttendanceId, currentActiveJobId);
+        // If we don't have the IDs, try to get them from the active job
+        if (!currentAttendanceId || !currentActiveJobId) {
+            const inProgressJob = myMaidJobs.find(j => j.status === 'in_progress');
+            if (inProgressJob) {
+                const jobDetails = await apiGetJobDetails(inProgressJob.id);
+                if (jobDetails.job.attendance && jobDetails.job.attendance.id) {
+                    currentAttendanceId = jobDetails.job.attendance.id;
+                    currentActiveJobId = inProgressJob.id;
+                }
+            }
         }
         
-        stopWorkTimer();
-        showMaidNotification('Job completed successfully!', 'success');
-        closeModal('checkoutModal');
-        
-        currentAttendanceId = null;
-        currentActiveJobId = null;
-        
-        await loadMaidDashboard();
-        showSection('dashboard');
+        if (currentAttendanceId && currentActiveJobId) {
+            await apiCheckOut(currentAttendanceId, currentActiveJobId);
+            stopWorkTimer();
+            showMaidNotification('Job completed successfully!', 'success');
+            closeModal('checkoutModal');
+            
+            currentAttendanceId = null;
+            currentActiveJobId = null;
+            
+            await loadMaidDashboard();
+            showSection('dashboard');
+        } else {
+            showMaidNotification('Unable to checkout. No active job found.', 'error');
+            if (submitBtn) {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        }
     } catch (error) {
         showMaidNotification(error.message || 'Check-out failed', 'error');
         if (submitBtn) {
@@ -648,10 +665,11 @@ async function renderActiveJobCard(job) {
             </div>
         `;
         
-        // Start/update work timer
+        // Start/update work timer and set attendance ID for checkout
         if (fullJob.attendance && fullJob.attendance.check_in_time) {
             currentJobStartTime = new Date(fullJob.attendance.check_in_time);
             currentActiveJobId = fullJob.id;
+            currentAttendanceId = fullJob.attendance.id; // Set attendance ID for checkout
             startWorkTimer();
         }
     } catch (error) {
@@ -1003,12 +1021,24 @@ async function completeJobAndCheckout(jobId) {
     try {
         // First, check if all tasks are completed
         const jobDetails = await apiGetJobDetails(jobId);
-        const tasks = jobDetails.job.tasks || [];
+        const fullJob = jobDetails.job;
+        const tasks = fullJob.tasks || [];
         const incompleteTasks = tasks.filter(t => !t.completed);
         
         if (incompleteTasks.length > 0) {
             const confirmMsg = `You have ${incompleteTasks.length} incomplete task(s). Do you want to complete and checkout anyway?`;
             if (!confirm(confirmMsg)) return;
+        }
+        
+        // Get attendance ID from job details if not already set
+        let attendanceId = currentAttendanceId;
+        if (!attendanceId && fullJob.attendance && fullJob.attendance.id) {
+            attendanceId = fullJob.attendance.id;
+        }
+        
+        if (!attendanceId) {
+            showMaidNotification('Unable to checkout. No check-in record found.', 'error');
+            return;
         }
         
         // Update progress to 100%
@@ -1017,22 +1047,18 @@ async function completeJobAndCheckout(jobId) {
         });
         
         // Then checkout
-        if (currentAttendanceId && jobId) {
-            await apiCheckOut(currentAttendanceId, jobId);
-            showMaidNotification('Job completed and checked out successfully!', 'success');
-            
-            // Clear active job variables
-            currentJobStartTime = null;
-            currentActiveJobId = null;
-            currentAttendanceId = null;
-            stopWorkTimer();
-            
-            // Reload everything
-            await loadMaidDashboard();
-            await loadMyJobs('active');
-        } else {
-            showMaidNotification('Unable to checkout. Please try again.', 'error');
-        }
+        await apiCheckOut(attendanceId, jobId);
+        showMaidNotification('Job completed and checked out successfully!', 'success');
+        
+        // Clear active job variables
+        currentJobStartTime = null;
+        currentActiveJobId = null;
+        currentAttendanceId = null;
+        stopWorkTimer();
+        
+        // Reload everything
+        await loadMaidDashboard();
+        await loadMyJobs('active');
     } catch (error) {
         console.error('Error completing job:', error);
         showMaidNotification(error.message || 'Failed to complete job', 'error');

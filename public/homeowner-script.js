@@ -64,6 +64,9 @@ async function loadHomeownerDashboard() {
         dashboardData = await apiGetHomeownerDashboard();
         renderDashboard(dashboardData);
         hideLoadingState();
+        
+        // Check for pending payments and notify user
+        checkPendingPayments();
     } catch (error) {
         console.error('Error loading dashboard:', error);
         hideLoadingState();

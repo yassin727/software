@@ -328,6 +328,7 @@ const getJobDetails = async (req, res) => {
           phone: job.maid_id?.user_id?.phone
         } : null,
         attendance: attendance ? {
+          id: attendance._id,
           check_in_time: attendance.check_in_time,
           check_out_time: attendance.check_out_time,
           duration: attendance.duration
