@@ -12,6 +12,54 @@ const router = express.Router();
 // GET /api/admin/dashboard - Get dashboard stats and data
 router.get('/dashboard', auth(['admin']), AdminController.getDashboard);
 
+// SIMPLE: Get basic dashboard stats without date filtering
+router.get('/dashboard/simple', auth(['admin']), async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const Maid = require('../models/Maid');
+    const Job = require('../models/Job');
+    
+    const [
+      totalMaids,
+      pendingMaids,
+      totalHomeowners,
+      totalJobs,
+      completedJobs,
+      pendingJobs
+    ] = await Promise.all([
+      Maid.countDocuments({ approval_status: 'approved' }),
+      Maid.countDocuments({ approval_status: 'pending' }),
+      User.countDocuments({ role: 'homeowner' }),
+      Job.countDocuments(),
+      Job.countDocuments({ status: 'completed' }),
+      Job.countDocuments({ status: { $in: ['requested', 'accepted'] } })
+    ]);
+    
+    // Calculate simple revenue from completed jobs
+    const completedJobsWithRate = await Job.find({ status: 'completed' });
+    const totalRevenue = completedJobsWithRate.reduce((sum, job) => {
+      return sum + (job.hourly_rate * (job.actual_duration || job.estimated_duration || 4));
+    }, 0);
+    
+    return res.json({
+      stats: {
+        totalMaids,
+        pendingMaids,
+        totalHomeowners,
+        onDutyToday: 0, // Simplified
+        pendingJobs,
+        completedThisMonth: completedJobs,
+        revenueThisMonth: Math.round(totalRevenue * 100) / 100
+      },
+      todaySchedule: [],
+      recentActivities: []
+    });
+  } catch (error) {
+    console.error('Simple dashboard error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // DEBUG: Get database counts
 router.get('/debug/counts', auth(['admin']), async (req, res) => {
   try {
