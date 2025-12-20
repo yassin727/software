@@ -878,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function() {
  * @returns {Promise<Object>} Dashboard stats and data
  */
 async function apiGetAdminDashboard() {
-    return await apiRequest('/admin/dashboard/simple', { method: 'GET' });
+    return await apiRequest('/admin/dashboard', { method: 'GET' });
 }
 
 /**
