@@ -12,6 +12,31 @@ const router = express.Router();
 // GET /api/admin/dashboard - Get dashboard stats and data
 router.get('/dashboard', auth(['admin']), AdminController.getDashboard);
 
+// DEBUG: Get database counts
+router.get('/debug/counts', auth(['admin']), async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const Maid = require('../models/Maid');
+    const Job = require('../models/Job');
+    
+    const counts = {
+      totalUsers: await User.countDocuments(),
+      totalMaids: await Maid.countDocuments(),
+      approvedMaids: await Maid.countDocuments({ approval_status: 'approved' }),
+      pendingMaids: await Maid.countDocuments({ approval_status: 'pending' }),
+      totalJobs: await Job.countDocuments(),
+      completedJobs: await Job.countDocuments({ status: 'completed' }),
+      requestedJobs: await Job.countDocuments({ status: 'requested' }),
+      acceptedJobs: await Job.countDocuments({ status: 'accepted' }),
+      inProgressJobs: await Job.countDocuments({ status: 'in_progress' })
+    };
+    
+    res.json(counts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================================
 // Jobs Management
 // ============================================================
