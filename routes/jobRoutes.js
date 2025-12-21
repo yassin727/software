@@ -61,4 +61,10 @@ router.put(
 // Optional: admin update job status
 router.patch('/:jobId/status', auth(['admin']), JobController.updateJobStatus);
 
+// PUT /api/jobs/:jobId/cancel - Homeowner cancels a booking
+router.put('/:jobId/cancel', auth(['homeowner']), JobController.cancelBooking);
+
+// PUT /api/jobs/:jobId/reschedule - Homeowner reschedules a booking
+router.put('/:jobId/reschedule', auth(['homeowner']), JobController.rescheduleBooking);
+
 module.exports = router;

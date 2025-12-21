@@ -1,0 +1,180 @@
+@startuml HMTS_Architecture_Diagram
+!theme plain
+title HMTS - System Architecture Diagram
+
+!define COMPONENT rectangle
+
+package "Client Layer" {
+  COMPONENT [Web Browser] as WB
+  COMPONENT [Mobile Browser] as MB
+  
+  package "Frontend (Public)" {
+    COMPONENT [HTML Pages] as HTML
+    COMPONENT [CSS Styles] as CSS
+    COMPONENT [JavaScript] as JS
+    COMPONENT [API Client] as API
+  }
+}
+
+package "Application Layer" {
+  package "Express.js Server" {
+    COMPONENT [Route Handlers] as ROUTES
+    COMPONENT [Middleware] as MW
+    
+    package "Controllers (MVC)" {
+      COMPONENT [AuthController] as AC
+      COMPONENT [JobController] as JC
+      COMPONENT [MaidController] as MC
+      COMPONENT [AdminController] as ADC
+      COMPONENT [MessageController] as MSC
+      COMPONENT [PaymentController] as PC
+    }
+    
+    package "Services (Business Logic)" {
+      COMPONENT [UserService] as US
+      COMPONENT [JobService] as JS_SVC
+      COMPONENT [NotificationService] as NS
+      COMPONENT [RecommendationService] as RS
+      COMPONENT [MessageService] as MS_SVC
+      COMPONENT [PaymentService] as PS
+    }
+    
+    package "Models (Data Access)" {
+      COMPONENT [User Model] as UM
+      COMPONENT [Job Model] as JM
+      COMPONENT [Maid Model] as MM
+      COMPONENT [Review Model] as RM
+      COMPONENT [Attendance Model] as AM
+      COMPONENT [Payment Model] as PM
+      COMPONENT [Message Model] as MSM
+    }
+  }
+}
+
+package "Data Layer" {
+  COMPONENT [MongoDB] as DB
+  
+  package "Collections" {
+    COMPONENT [users] as U_COL
+    COMPONENT [maids] as M_COL
+    COMPONENT [jobs] as J_COL
+    COMPONENT [reviews] as R_COL
+    COMPONENT [attendance] as A_COL
+    COMPONENT [payments] as P_COL
+    COMPONENT [messages] as MS_COL
+    COMPONENT [notifications] as N_COL
+    COMPONENT [menus] as MN_COL
+  }
+}
+
+package "External Services" {
+  COMPONENT [Email Service] as EMAIL
+  COMPONENT [Payment Gateway] as PAY_GW
+  COMPONENT [File Storage] as STORAGE
+  COMPONENT [Location API] as LOC_API
+}
+
+package "Infrastructure" {
+  COMPONENT [Railway Platform] as RAILWAY
+  COMPONENT [Environment Config] as ENV
+  COMPONENT [Process Manager] as PM
+}
+
+' Client connections
+WB --> HTML : "Loads pages"
+MB --> HTML : "Loads pages"
+HTML --> CSS : "Applies styles"
+HTML --> JS : "Executes scripts"
+JS --> API : "Makes API calls"
+
+' API to Routes
+API --> ROUTES : "HTTP Requests\n(REST API)"
+
+' Route to Middleware
+ROUTES --> MW : "Authentication\nValidation\nError Handling"
+
+' Middleware to Controllers
+MW --> AC : "Auth requests"
+MW --> JC : "Job requests"
+MW --> MC : "Maid requests"
+MW --> ADC : "Admin requests"
+MW --> MSC : "Message requests"
+MW --> PC : "Payment requests"
+
+' Controllers to Services
+AC --> US : "Business logic"
+JC --> JS_SVC : "Job operations"
+MC --> RS : "Recommendations"
+ADC --> NS : "Notifications"
+MSC --> MS_SVC : "Messaging"
+PC --> PS : "Payment processing"
+
+' Services to Models
+US --> UM : "User data"
+JS_SVC --> JM : "Job data"
+JS_SVC --> AM : "Attendance data"
+RS --> MM : "Maid data"
+NS --> UM : "User lookup"
+MS_SVC --> MSM : "Message data"
+PS --> PM : "Payment data"
+
+' Models to Database
+UM --> DB : "User operations"
+JM --> DB : "Job operations"
+MM --> DB : "Maid operations"
+RM --> DB : "Review operations"
+AM --> DB : "Attendance operations"
+PM --> DB : "Payment operations"
+MSM --> DB : "Message operations"
+
+' Database Collections
+DB --> U_COL
+DB --> M_COL
+DB --> J_COL
+DB --> R_COL
+DB --> A_COL
+DB --> P_COL
+DB --> MS_COL
+DB --> N_COL
+DB --> MN_COL
+
+' External Service Connections
+NS --> EMAIL : "Send notifications"
+PS --> PAY_GW : "Process payments"
+UM --> STORAGE : "Store files"
+JS_SVC --> LOC_API : "Location services"
+
+' Infrastructure
+RAILWAY --> ENV : "Environment variables"
+RAILWAY --> PM : "Process management"
+PM --> ROUTES : "Server process"
+
+note top of MW
+  **Middleware Stack:**
+  • JWT Authentication
+  • Request Validation
+  • File Upload (Multer)
+  • Error Handling
+  • CORS
+  • Rate Limiting
+end note
+
+note right of DB
+  **Database Features:**
+  • Document-based storage
+  • Indexing for performance
+  • Referential integrity
+  • Aggregation pipelines
+  • Full-text search
+end note
+
+note bottom of RAILWAY
+  **Deployment:**
+  • Auto-deployment from Git
+  • Environment management
+  • Scaling capabilities
+  • Monitoring & logs
+  • SSL/HTTPS
+end note
+
+@enduml

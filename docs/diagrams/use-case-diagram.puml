@@ -1,0 +1,76 @@
+@startuml HMTS_Use_Case_Diagram
+!theme plain
+title Home Maid Tracking System - Use Case Diagram
+
+left to right direction
+
+actor "Homeowner" as HO
+actor "Maid" as M
+actor "Admin" as A
+actor "System" as S
+
+rectangle "HMTS System" {
+  usecase "Register Account" as UC1
+  usecase "Login" as UC2
+  usecase "Create Job Request" as UC3
+  usecase "Find Maids" as UC4
+  usecase "Review Maid" as UC5
+  usecase "Track Job Progress" as UC6
+  usecase "Make Payment" as UC7
+  
+  usecase "Accept Job" as UC8
+  usecase "Check In/Out" as UC9
+  usecase "Update Job Status" as UC10
+  usecase "View Earnings" as UC11
+  usecase "Manage Profile" as UC12
+  
+  usecase "Approve Maids" as UC13
+  usecase "Manage Users" as UC14
+  usecase "View Reports" as UC15
+  usecase "Send Notifications" as UC16
+  usecase "Verify Identity" as UC17
+  
+  usecase "Generate Recommendations" as UC18
+  usecase "Process Payments" as UC19
+  usecase "Send Email Notifications" as UC20
+}
+
+' Homeowner use cases
+HO --> UC1
+HO --> UC2
+HO --> UC3
+HO --> UC4
+HO --> UC5
+HO --> UC6
+HO --> UC7
+
+' Maid use cases
+M --> UC1
+M --> UC2
+M --> UC8
+M --> UC9
+M --> UC10
+M --> UC11
+M --> UC12
+
+' Admin use cases
+A --> UC2
+A --> UC13
+A --> UC14
+A --> UC15
+A --> UC16
+A --> UC17
+
+' System use cases
+S --> UC18
+S --> UC19
+S --> UC20
+
+' Relationships
+UC3 ..> UC18 : <<includes>>
+UC7 ..> UC19 : <<includes>>
+UC16 ..> UC20 : <<includes>>
+UC13 ..> UC16 : <<includes>>
+UC8 ..> UC16 : <<includes>>
+
+@enduml

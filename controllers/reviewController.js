@@ -24,7 +24,10 @@ const listReviewsForMaid = async (req, res) => {
 const createReview = async (req, res) => {
   try {
     const reviewerId = req.user.userId; // homeowner
-    const { jobId, revieweeId, rating, comments } = req.body;
+    const { jobId, revieweeId, rating, comments, comment } = req.body;
+
+    // Accept both 'comments' and 'comment' field names
+    const reviewComments = comments || comment || '';
 
     if (!jobId || !revieweeId || rating == null) {
       return res.status(400).json({
@@ -44,7 +47,7 @@ const createReview = async (req, res) => {
       reviewerId,
       revieweeId,
       rating: parsedRating,
-      comments,
+      comments: reviewComments,
     });
 
     // Notify maid of new review

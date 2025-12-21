@@ -28,4 +28,7 @@ router.post('/jobs/accept', auth(['maid']), MaidDashboardController.acceptJob);
 // POST /api/maid/jobs/decline - Decline a job request
 router.post('/jobs/decline', auth(['maid']), MaidDashboardController.declineJob);
 
+// GET /api/maid/schedule - Get schedule for week/month view
+router.get('/schedule', auth(['maid']), MaidDashboardController.getSchedule);
+
 module.exports = router;

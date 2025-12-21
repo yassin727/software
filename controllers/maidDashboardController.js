@@ -297,35 +297,45 @@ const getEarnings = async (req, res) => {
       startDate = new Date(0); // All time
     }
     
-    const completedJobs = await Job.find({
-      maid_id: maid._id,
-      status: 'completed',
-      updatedAt: { $gte: startDate }
+    // Get payments from Payment model (includes commission breakdown)
+    const Payment = require('../models/Payment');
+    const payments = await Payment.find({
+      maid_id: userId,
+      createdAt: { $gte: startDate }
     })
+    .populate('booking_id', 'title actual_duration estimated_duration hourly_rate')
     .populate('homeowner_id', 'name')
-    .sort({ updatedAt: -1 });
+    .sort({ createdAt: -1 });
     
-    const earnings = completedJobs.map(job => ({
-      id: job._id,
-      date: job.updatedAt,
-      clientName: job.homeowner_id?.name || 'Unknown',
-      service: job.title,
-      duration: job.actual_duration || job.estimated_duration || 4,
-      amount: job.hourly_rate * (job.actual_duration || job.estimated_duration || 4),
-      status: 'paid' // Simplified - in real app would track payment status
+    // Map payments to earnings with maid's actual earnings (after commission)
+    const earnings = payments.map(payment => ({
+      id: payment._id,
+      date: payment.paid_at || payment.createdAt,
+      clientName: payment.homeowner_id?.name || 'Unknown',
+      service: payment.booking_id?.title || 'Cleaning Service',
+      duration: payment.booking_id?.actual_duration || payment.booking_id?.estimated_duration || 4,
+      amount: payment.maid_earnings || payment.amount, // Show maid's actual earnings
+      totalPaid: payment.amount, // Total paid by homeowner
+      platformFee: payment.commission_amount || 0, // Platform commission
+      status: payment.status
     }));
     
-    const totalEarnings = earnings.reduce((sum, e) => sum + e.amount, 0);
+    // Calculate totals using maid_earnings (after commission)
+    const totalEarnings = payments
+      .filter(p => p.status === 'paid')
+      .reduce((sum, p) => sum + (p.maid_earnings || p.amount), 0);
+    
     const totalHours = earnings.reduce((sum, e) => sum + e.duration, 0);
     
-    // Pending payments (in_progress jobs)
-    const pendingJobs = await Job.find({
-      maid_id: maid._id,
-      status: 'in_progress'
-    });
-    const pendingAmount = pendingJobs.reduce((sum, job) => {
-      return sum + (job.hourly_rate * (job.estimated_duration || 4));
-    }, 0);
+    // Pending payments
+    const pendingAmount = payments
+      .filter(p => p.status === 'pending')
+      .reduce((sum, p) => sum + (p.maid_earnings || p.amount), 0);
+    
+    // Total commission paid to platform
+    const totalCommissionPaid = payments
+      .filter(p => p.status === 'paid')
+      .reduce((sum, p) => sum + (p.commission_amount || 0), 0);
     
     return res.json({
       totalEarnings: Math.round(totalEarnings * 100) / 100,
@@ -333,6 +343,8 @@ const getEarnings = async (req, res) => {
       totalJobs: earnings.length,
       pendingAmount: Math.round(pendingAmount * 100) / 100,
       averageRate: maid.hourly_rate || 15,
+      totalCommissionPaid: Math.round(totalCommissionPaid * 100) / 100,
+      commissionRate: '15%',
       earnings
     });
   } catch (error) {
@@ -470,6 +482,99 @@ const declineJob = async (req, res) => {
   }
 };
 
+/**
+ * Get maid's schedule for a date range (week/month view)
+ */
+const getSchedule = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { startDate, endDate, view } = req.query;
+    
+    const maid = await Maid.findOne({ user_id: userId });
+    if (!maid) {
+      return res.status(404).json({ message: 'Maid profile not found' });
+    }
+    
+    // Calculate date range based on view or provided dates
+    let start, end;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (startDate && endDate) {
+      start = new Date(startDate);
+      end = new Date(endDate);
+    } else if (view === 'month') {
+      start = new Date(today.getFullYear(), today.getMonth(), 1);
+      end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+    } else {
+      // Default to week view
+      const dayOfWeek = today.getDay();
+      start = new Date(today);
+      start.setDate(today.getDate() - dayOfWeek); // Start of week (Sunday)
+      end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59);
+    }
+    
+    // Get jobs in date range
+    const jobs = await Job.find({
+      maid_id: maid._id,
+      scheduled_datetime: { $gte: start, $lte: end },
+      status: { $in: ['accepted', 'in_progress', 'completed'] }
+    })
+    .populate('homeowner_id', 'name phone photo_url')
+    .sort({ scheduled_datetime: 1 });
+    
+    // Group jobs by date
+    const scheduleByDate = {};
+    jobs.forEach(job => {
+      const dateKey = new Date(job.scheduled_datetime).toISOString().split('T')[0];
+      if (!scheduleByDate[dateKey]) {
+        scheduleByDate[dateKey] = [];
+      }
+      scheduleByDate[dateKey].push({
+        id: job._id,
+        title: job.title,
+        clientName: job.homeowner_id?.name || 'Unknown',
+        clientPhone: job.homeowner_id?.phone,
+        clientPhoto: job.homeowner_id?.photo_url,
+        time: new Date(job.scheduled_datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        scheduledDatetime: job.scheduled_datetime,
+        address: job.address,
+        status: job.status,
+        hourlyRate: job.hourly_rate,
+        estimatedDuration: job.estimated_duration || 4,
+        estimatedPay: job.hourly_rate * (job.estimated_duration || 4)
+      });
+    });
+    
+    // Generate days array for the view
+    const days = [];
+    const current = new Date(start);
+    while (current <= end) {
+      const dateKey = current.toISOString().split('T')[0];
+      days.push({
+        date: dateKey,
+        dayName: current.toLocaleDateString('en-US', { weekday: 'short' }),
+        dayNumber: current.getDate(),
+        isToday: current.toDateString() === new Date().toDateString(),
+        events: scheduleByDate[dateKey] || []
+      });
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return res.json({
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+      totalJobs: jobs.length,
+      days
+    });
+  } catch (error) {
+    console.error('Error getting schedule:', error);
+    return res.status(500).json({ message: 'Failed to get schedule' });
+  }
+};
+
 // Helper functions
 function calculateEndTime(startTime, duration) {
   const end = new Date(startTime);
@@ -503,5 +608,6 @@ module.exports = {
   getEarnings,
   getReviews,
   acceptJob,
-  declineJob
+  declineJob,
+  getSchedule
 };

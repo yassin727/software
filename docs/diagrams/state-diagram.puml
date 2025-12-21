@@ -1,0 +1,96 @@
+@startuml HMTS_Job_State_Diagram
+!theme plain
+title HMTS - Job Lifecycle State Diagram
+
+[*] --> Requested : Homeowner creates job
+
+state Requested {
+  Requested : Job posted to system
+  Requested : Waiting for maid acceptance
+  Requested : Notifications sent to maids
+}
+
+state Accepted {
+  Accepted : Maid has committed to job
+  Accepted : Job scheduled in maid's calendar
+  Accepted : Homeowner notified of acceptance
+}
+
+state InProgress {
+  InProgress : Maid has checked in
+  InProgress : GPS location verified
+  InProgress : Tasks being completed
+  InProgress : Progress updates sent
+}
+
+state Completed {
+  Completed : Maid has checked out
+  Completed : All tasks finished
+  Completed : Payment processed
+  Completed : Ready for review
+}
+
+state Cancelled {
+  Cancelled : Job terminated early
+  Cancelled : Cancellation reason recorded
+  Cancelled : Refund processed if applicable
+}
+
+' State transitions
+Requested --> Accepted : maid accepts job\n[maid is approved]
+Requested --> Cancelled : homeowner cancels\nor no maid accepts\n[timeout reached]
+
+Accepted --> InProgress : maid checks in\n[GPS location verified]
+Accepted --> Cancelled : homeowner cancels\nor maid cancels\n[cancellation policy applied]
+
+InProgress --> Completed : maid checks out\n[all tasks completed]
+InProgress --> Cancelled : emergency cancellation\n[dispute resolution needed]
+
+Completed --> [*] : job archived\n[after review period]
+Cancelled --> [*] : cancellation processed\n[refunds completed]
+
+' Self-transitions for updates
+InProgress --> InProgress : task completed\n[progress updated]
+Accepted --> Accepted : schedule modified\n[both parties agree]
+
+note top of Requested
+  **Entry Conditions:**
+  • Valid homeowner account
+  • Complete job details
+  • Payment method selected
+  • Available maids in area
+end note
+
+note right of Accepted
+  **Business Rules:**
+  • Only approved maids can accept
+  • 24-hour cancellation policy
+  • Automatic reminders sent
+  • Schedule conflicts prevented
+end note
+
+note bottom of InProgress
+  **Active Monitoring:**
+  • Real-time location tracking
+  • Task progress updates
+  • Communication channel open
+  • Time tracking active
+end note
+
+note left of Completed
+  **Completion Requirements:**
+  • All tasks marked done
+  • Check-out location verified
+  • Payment automatically processed
+  • Review invitation sent
+end note
+
+note top of Cancelled
+  **Cancellation Handling:**
+  • Reason code required
+  • Refund calculation applied
+  • Both parties notified
+  • Dispute resolution available
+end note
+
+@enduml

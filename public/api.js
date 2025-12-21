@@ -620,16 +620,6 @@ async function apiGetServiceHistory(startDate, endDate) {
 }
 
 /**
- * Get active tasks (in-progress jobs) for homeowner
- * @returns {Promise<Object>} Active tasks with progress details
- */
-async function apiGetActiveTasks() {
-    return await apiRequest('/homeowner/active-tasks', {
-        method: 'GET',
-    });
-}
-
-/**
  * Submit a review for a completed job
  * @param {Object} reviewData - Review data (jobId, rating, comment)
  * @returns {Promise<Object>} Review response
@@ -694,6 +684,32 @@ async function apiUpdateJobProgress(jobId, progressData) {
 }
 
 /**
+ * Cancel a booking (homeowner)
+ * @param {string} jobId - Job ID
+ * @param {string} reason - Cancellation reason (optional)
+ * @returns {Promise<Object>} Response
+ */
+async function apiCancelBooking(jobId, reason = '') {
+    return await apiRequest(`/jobs/${jobId}/cancel`, {
+        method: 'PUT',
+        body: JSON.stringify({ reason })
+    });
+}
+
+/**
+ * Reschedule a booking (homeowner)
+ * @param {string} jobId - Job ID
+ * @param {string} scheduledDatetime - New date/time in ISO format
+ * @returns {Promise<Object>} Response
+ */
+async function apiRescheduleBooking(jobId, scheduledDatetime) {
+    return await apiRequest(`/jobs/${jobId}/reschedule`, {
+        method: 'PUT',
+        body: JSON.stringify({ scheduledDatetime })
+    });
+}
+
+/**
  * Update maid availability (online/offline)
  * @param {boolean} isOnline - Online status
  * @returns {Promise<Object>} Response
@@ -723,6 +739,20 @@ async function apiGetMaidReviews() {
 }
 
 /**
+ * Get maid schedule for week/month view
+ * @param {Object} options - Query options (startDate, endDate, view)
+ * @returns {Promise<Object>} Schedule data
+ */
+async function apiGetMaidSchedule(options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.view) params.append('view', options.view);
+    const query = params.toString();
+    return await apiRequest(`/maid/schedule${query ? '?' + query : ''}`, { method: 'GET' });
+}
+
+/**
  * Accept a job request
  * @param {string} jobId - Job ID
  * @returns {Promise<Object>} Response
@@ -744,6 +774,55 @@ async function apiDeclineJob(jobId) {
         method: 'POST',
         body: JSON.stringify({ jobId })
     });
+}
+
+// ============================================================
+// Payment API
+// ============================================================
+
+/**
+ * Get payment breakdown before processing
+ * @param {string} jobId - Job ID
+ * @returns {Promise<Object>} Payment breakdown
+ */
+async function apiGetPaymentBreakdown(jobId) {
+    return await apiRequest(`/payments/breakdown/${jobId}`, { method: 'GET' });
+}
+
+/**
+ * Process payment for a job
+ * @param {string} jobId - Job ID
+ * @param {string} paymentMethod - Payment method (card, apple_pay, cash)
+ * @returns {Promise<Object>} Payment result with breakdown
+ */
+async function apiProcessPayment(jobId, paymentMethod) {
+    return await apiRequest('/payments/process', {
+        method: 'POST',
+        body: JSON.stringify({ jobId, paymentMethod })
+    });
+}
+
+/**
+ * Get admin commission report
+ * @param {Object} options - Query options (startDate, endDate, page, limit)
+ * @returns {Promise<Object>} Commission report
+ */
+async function apiGetCommissionReport(options = {}) {
+    const params = new URLSearchParams();
+    if (options.startDate) params.append('startDate', options.startDate);
+    if (options.endDate) params.append('endDate', options.endDate);
+    if (options.page) params.append('page', options.page);
+    if (options.limit) params.append('limit', options.limit);
+    const query = params.toString();
+    return await apiRequest(`/payments/admin/commission-report${query ? '?' + query : ''}`, { method: 'GET' });
+}
+
+/**
+ * Get admin payment stats (includes commission)
+ * @returns {Promise<Object>} Payment stats with commission breakdown
+ */
+async function apiGetAdminPaymentStats() {
+    return await apiRequest('/payments/admin/stats', { method: 'GET' });
 }
 
 // ============================================================
@@ -1144,6 +1223,15 @@ async function apiGetPaymentStats() {
  */
 async function apiMarkPaymentPaid(paymentId) {
     return await apiRequest(`/payments/admin/${paymentId}/mark-paid`, { method: 'POST' });
+}
+
+/**
+ * Get payment details (admin)
+ * @param {string} paymentId - Payment ID
+ * @returns {Promise<Object>} Payment details with commission breakdown
+ */
+async function apiGetPaymentDetails(paymentId) {
+    return await apiRequest(`/payments/admin/${paymentId}`, { method: 'GET' });
 }
 
 console.log('API Service Module loaded');

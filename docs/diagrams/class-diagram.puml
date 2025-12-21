@@ -1,0 +1,211 @@
+@startuml HMTS_Class_Diagram
+!theme plain
+title HMTS - Class Diagram
+
+' Models
+class User {
+  - _id: ObjectId
+  - name: String
+  - email: String
+  - phone: String
+  - password_hash: String
+  - role: Enum
+  - photo_url: String
+  - verification_status: Enum
+  - createdAt: Date
+  - updatedAt: Date
+  + findByEmail(email): User
+  + findById(id): User
+}
+
+class Maid {
+  - _id: ObjectId
+  - user_id: ObjectId
+  - approval_status: Enum
+  - rejection_reason: String
+  - specializations: String
+  - experience_years: Number
+  - hourly_rate: Decimal
+  - average_rating: Number
+  - total_reviews: Number
+  - is_online: Boolean
+  - last_active: Date
+  + findByUserId(userId): Maid
+  + findPending(): Maid[]
+  + approve(maidId): Boolean
+}
+
+class Job {
+  - _id: ObjectId
+  - homeowner_id: ObjectId
+  - maid_id: ObjectId
+  - title: String
+  - description: String
+  - address: String
+  - scheduled_datetime: Date
+  - status: Enum
+  - hourly_rate: Decimal
+  - estimated_duration: Number
+  - actual_duration: Number
+  - tasks: Array
+  - progress_percentage: Number
+  + findByHomeowner(id): Job[]
+  + findByMaid(id): Job[]
+  + updateStatus(id, status): Boolean
+}
+
+class Attendance {
+  - _id: ObjectId
+  - job_id: ObjectId
+  - check_in_time: Date
+  - check_out_time: Date
+  - location: Object
+  - notes: String
+  + checkIn(jobId, location): Attendance
+  + checkOut(attendanceId): Boolean
+}
+
+class Review {
+  - _id: ObjectId
+  - job_id: ObjectId
+  - reviewer_id: ObjectId
+  - reviewee_id: ObjectId
+  - rating: Number
+  - comments: String
+  - createdAt: Date
+  + create(reviewData): Review
+  + findByReviewee(id): Review[]
+}
+
+class Notification {
+  - _id: ObjectId
+  - user_id: ObjectId
+  - type: String
+  - title: String
+  - message: String
+  - read: Boolean
+  - createdAt: Date
+  + create(notificationData): Notification
+  + markAsRead(id): Boolean
+}
+
+class Menu {
+  - _id: ObjectId
+  - title: String
+  - path: String
+  - icon: String
+  - parent_id: ObjectId
+  - role: Enum
+  - sort_order: Number
+  + findByRole(role): Menu[]
+  + buildTree(items): Menu[]
+}
+
+class Payment {
+  - _id: ObjectId
+  - job_id: ObjectId
+  - homeowner_id: ObjectId
+  - maid_id: ObjectId
+  - amount: Decimal
+  - provider: Enum
+  - status: Enum
+  - transaction_id: String
+  + create(paymentData): Payment
+  + findByJob(jobId): Payment
+}
+
+class Message {
+  - _id: ObjectId
+  - conversation_id: ObjectId
+  - sender_id: ObjectId
+  - content: String
+  - read: Boolean
+  - createdAt: Date
+  + create(messageData): Message
+  + findByConversation(id): Message[]
+}
+
+class Conversation {
+  - _id: ObjectId
+  - participants: ObjectId[]
+  - last_message: String
+  - last_message_at: Date
+  + findByParticipants(ids): Conversation
+  + create(participants): Conversation
+}
+
+' Services
+class UserService {
+  + register(userData): User
+  + login(credentials): Token
+  + updateProfile(userId, data): User
+}
+
+class JobService {
+  + createJob(jobData): Job
+  + acceptJob(jobId, maidId): Job
+  + checkIn(jobId, location): Attendance
+  + checkOut(attendanceId): Job
+  + updateProgress(jobId, progress): Job
+}
+
+class RecommendationService {
+  + getRecommendedMaids(criteria): Maid[]
+  + calculateScore(maid): Number
+}
+
+class NotificationService {
+  + create(notificationData): Notification
+  + notifyJobAccepted(userId, job): void
+  + notifyJobStarted(userId, job): void
+}
+
+class MessageService {
+  + sendMessage(senderId, recipientId, content): Message
+  + getConversations(userId): Conversation[]
+  + markAsRead(messageId): Boolean
+}
+
+' Controllers
+class AuthController {
+  + register(req, res): Response
+  + login(req, res): Response
+}
+
+class JobController {
+  + createJob(req, res): Response
+  + getMyJobs(req, res): Response
+  + checkIn(req, res): Response
+  + checkOut(req, res): Response
+}
+
+class MaidController {
+  + listPendingMaids(req, res): Response
+  + approveMaid(req, res): Response
+  + getRecommendations(req, res): Response
+}
+
+' Relationships
+User "1" -- "0..1" Maid : extends
+User "1" -- "0..*" Job : creates/performs
+Job "1" -- "0..1" Attendance : tracks
+Job "1" -- "0..*" Review : receives
+User "1" -- "0..*" Review : writes
+User "1" -- "0..*" Notification : receives
+Menu "0..1" -- "0..*" Menu : parent-child
+Job "1" -- "0..1" Payment : has
+User "1" -- "0..*" Message : sends
+Conversation "1" -- "0..*" Message : contains
+User "2..*" -- "0..*" Conversation : participates
+
+' Service dependencies
+AuthController ..> UserService : uses
+JobController ..> JobService : uses
+JobController ..> NotificationService : uses
+MaidController ..> RecommendationService : uses
+JobService ..> Job : uses
+JobService ..> Attendance : uses
+UserService ..> User : uses
+UserService ..> Maid : uses
+
+@enduml

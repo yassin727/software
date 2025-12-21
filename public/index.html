@@ -431,54 +431,32 @@
                 </button>
             </div>
 
-            <div class="card">
-                <div class="calendar-header">
-                    <button class="btn-secondary"><i class="fas fa-chevron-left"></i></button>
-                    <h3>October 2025</h3>
-                    <button class="btn-secondary"><i class="fas fa-chevron-right"></i></button>
+            <div class="schedule-layout">
+                <div class="card schedule-calendar-card">
+                    <div class="calendar-header">
+                        <button class="btn-secondary" onclick="changeCalendarMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                        <h3 id="calendarMonthYear">December 2025</h3>
+                        <button class="btn-secondary" onclick="changeCalendarMonth(1)"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid">
+                        <div class="calendar-day header">Sun</div>
+                        <div class="calendar-day header">Mon</div>
+                        <div class="calendar-day header">Tue</div>
+                        <div class="calendar-day header">Wed</div>
+                        <div class="calendar-day header">Thu</div>
+                        <div class="calendar-day header">Fri</div>
+                        <div class="calendar-day header">Sat</div>
+                    </div>
                 </div>
-                <div class="calendar-grid">
-                    <div class="calendar-day header">Sun</div>
-                    <div class="calendar-day header">Mon</div>
-                    <div class="calendar-day header">Tue</div>
-                    <div class="calendar-day header">Wed</div>
-                    <div class="calendar-day header">Thu</div>
-                    <div class="calendar-day header">Fri</div>
-                    <div class="calendar-day header">Sat</div>
-                    
-                    <div class="calendar-day other-month">29</div>
-                    <div class="calendar-day other-month">30</div>
-                    <div class="calendar-day">1</div>
-                    <div class="calendar-day">2</div>
-                    <div class="calendar-day">3</div>
-                    <div class="calendar-day">4</div>
-                    <div class="calendar-day">5</div>
-                    <div class="calendar-day">6</div>
-                    <div class="calendar-day">7</div>
-                    <div class="calendar-day">8</div>
-                    <div class="calendar-day">9</div>
-                    <div class="calendar-day">10</div>
-                    <div class="calendar-day">11</div>
-                    <div class="calendar-day">12</div>
-                    <div class="calendar-day">13</div>
-                    <div class="calendar-day">14</div>
-                    <div class="calendar-day">15</div>
-                    <div class="calendar-day today">16<span class="event-dot"></span></div>
-                    <div class="calendar-day">17<span class="event-dot"></span></div>
-                    <div class="calendar-day">18<span class="event-dot"></span></div>
-                    <div class="calendar-day">19</div>
-                    <div class="calendar-day">20</div>
-                    <div class="calendar-day">21</div>
-                    <div class="calendar-day">22</div>
-                    <div class="calendar-day">23</div>
-                    <div class="calendar-day">24</div>
-                    <div class="calendar-day">25</div>
-                    <div class="calendar-day">26</div>
-                    <div class="calendar-day">27</div>
-                    <div class="calendar-day">28</div>
-                    <div class="calendar-day">29</div>
-                    <div class="calendar-day">30</div>
-                    <div class="calendar-day">31</div>
+
+                <div class="card schedule-details-card">
+                    <h3 id="selectedDateTitle"><i class="fas fa-calendar-day"></i> Select a date to view bookings</h3>
+                    <div id="dayJobsList">
+                        <div class="empty-state" style="text-align: center; padding: 40px; color: #666;">
+                            <i class="fas fa-calendar-check" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                            <p>Click on a date to see scheduled jobs</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>

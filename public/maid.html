@@ -117,6 +117,29 @@
                 </div>
             </div>
 
+            <!-- Location Sharing Card -->
+            <div class="card location-sharing-card" id="locationSharingCard" style="margin-bottom: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-map-marker-alt" style="font-size: 24px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0; font-size: 18px;">Share Your Location</h3>
+                            <p style="margin: 4px 0 0; opacity: 0.9; font-size: 14px;" id="locationStatus">Location not shared</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-secondary" onclick="shareMyLocation()" id="shareLocationBtn" style="background: white; color: #667eea; border: none;">
+                            <i class="fas fa-location-arrow"></i> Share Location
+                        </button>
+                        <button class="btn-secondary" onclick="stopSharingLocation()" id="stopLocationBtn" style="background: rgba(255,255,255,0.2); color: white; border: none; display: none;">
+                            <i class="fas fa-stop"></i> Stop Sharing
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon blue">
@@ -706,48 +729,21 @@
                 <div class="card-header">
                     <h3><i class="fas fa-calendar"></i> My Schedule</h3>
                     <div class="schedule-view-toggle">
-                        <button class="view-btn active">Week</button>
-                        <button class="view-btn">Month</button>
+                        <button class="view-btn active" onclick="switchScheduleView('week')">Week</button>
+                        <button class="view-btn" onclick="switchScheduleView('month')">Month</button>
                     </div>
                 </div>
                 <div class="calendar-header">
-                    <button class="btn-secondary"><i class="fas fa-chevron-left"></i></button>
-                    <h3>October 16 - 22, 2025</h3>
-                    <button class="btn-secondary"><i class="fas fa-chevron-right"></i></button>
+                    <button class="btn-secondary" onclick="navigateSchedule('prev')"><i class="fas fa-chevron-left"></i></button>
+                    <h3 id="scheduleRangeTitle">Loading...</h3>
+                    <button class="btn-secondary" onclick="navigateSchedule('next')"><i class="fas fa-chevron-right"></i></button>
                 </div>
-                <div class="week-schedule">
-                    <div class="day-column">
-                        <div class="day-header">
-                            <span class="day-name">Mon</span>
-                            <span class="day-number">16</span>
-                        </div>
-                        <div class="day-events">
-                            <div class="event active-event">
-                                <span class="event-time">10:00 AM</span>
-                                <span class="event-title">General Cleaning</span>
-                                <span class="event-client">John Doe</span>
-                            </div>
-                            <div class="event">
-                                <span class="event-time">3:00 PM</span>
-                                <span class="event-title">Deep Cleaning</span>
-                                <span class="event-client">Sarah Smith</span>
-                            </div>
-                        </div>
+                <div id="weekScheduleContainer" class="week-schedule">
+                    <!-- Dynamic schedule content -->
+                    <div class="loading-spinner" style="text-align: center; padding: 40px; grid-column: 1/-1;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i>
+                        <p>Loading schedule...</p>
                     </div>
-                    <div class="day-column">
-                        <div class="day-header">
-                            <span class="day-name">Tue</span>
-                            <span class="day-number">17</span>
-                        </div>
-                        <div class="day-events">
-                            <div class="event">
-                                <span class="event-time">10:00 AM</span>
-                                <span class="event-title">Kitchen Specialist</span>
-                                <span class="event-client">David Lee</span>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Add more days as needed -->
                 </div>
             </div>
         </section>
@@ -915,8 +911,7 @@
         </div>
     </div>
 
-    <script src="api.js"></script>
-    <script src="script.js"></script>
-    <script src="maid-script.js"></script>
+    <script src="api.js?v=3"></script>
+    <script src="maid-script.js?v=3"></script>
 </body>
 </html>

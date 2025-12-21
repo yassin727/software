@@ -1,0 +1,197 @@
+@startuml HMTS_ER_Diagram
+!theme plain
+title HMTS - Entity Relationship Diagram
+
+' Entities
+entity "User" as USER {
+  * _id : ObjectId <<PK>>
+  --
+  * name : String
+  * email : String <<UK>>
+  phone : String
+  * password_hash : String
+  * role : Enum(admin, homeowner, maid)
+  photo_url : String
+  id_document_url : String
+  selfie_url : String
+  verification_status : Enum(pending, verified, rejected)
+  verification_notes : String
+  * createdAt : Date
+  * updatedAt : Date
+}
+
+entity "Maid" as MAID {
+  * _id : ObjectId <<PK>>
+  --
+  * user_id : ObjectId <<FK>>
+  * approval_status : Enum(pending, approved, rejected)
+  rejection_reason : String
+  specializations : String
+  experience_years : Number
+  hourly_rate : Decimal
+  average_rating : Number
+  total_reviews : Number
+  is_online : Boolean
+  last_active : Date
+  availability_schedule : JSON
+  * createdAt : Date
+  * updatedAt : Date
+}
+
+entity "Job" as JOB {
+  * _id : ObjectId <<PK>>
+  --
+  * homeowner_id : ObjectId <<FK>>
+  * maid_id : ObjectId <<FK>>
+  * title : String
+  description : String
+  * address : String
+  * scheduled_datetime : Date
+  * status : Enum(requested, accepted, in_progress, completed, cancelled)
+  * hourly_rate : Decimal
+  estimated_duration : Number
+  actual_duration : Number
+  tasks : Array
+  progress_percentage : Number
+  payment_method : Enum(cash, card, apple_pay)
+  payment_status : Enum(pending, awaiting_payment, paid)
+  * createdAt : Date
+  * updatedAt : Date
+}
+
+entity "Attendance" as ATTENDANCE {
+  * _id : ObjectId <<PK>>
+  --
+  * job_id : ObjectId <<FK>>
+  * check_in_time : Date
+  check_out_time : Date
+  location : Object
+  notes : String
+  * createdAt : Date
+}
+
+entity "Review" as REVIEW {
+  * _id : ObjectId <<PK>>
+  --
+  * job_id : ObjectId <<FK>>
+  * reviewer_id : ObjectId <<FK>>
+  * reviewee_id : ObjectId <<FK>>
+  * rating : Number(1-5)
+  comments : String
+  * createdAt : Date
+}
+
+entity "Payment" as PAYMENT {
+  * _id : ObjectId <<PK>>
+  --
+  * job_id : ObjectId <<FK>>
+  * homeowner_id : ObjectId <<FK>>
+  * maid_id : ObjectId <<FK>>
+  * amount : Decimal
+  * provider : Enum(cash, card, apple_pay)
+  * status : Enum(pending, completed, failed, refunded)
+  transaction_id : String
+  payment_date : Date
+  * createdAt : Date
+  * updatedAt : Date
+}
+
+entity "Notification" as NOTIFICATION {
+  * _id : ObjectId <<PK>>
+  --
+  * user_id : ObjectId <<FK>>
+  * type : String
+  * title : String
+  * message : String
+  read : Boolean
+  * createdAt : Date
+}
+
+entity "Message" as MESSAGE {
+  * _id : ObjectId <<PK>>
+  --
+  * conversation_id : ObjectId <<FK>>
+  * sender_id : ObjectId <<FK>>
+  * content : String
+  read : Boolean
+  * createdAt : Date
+}
+
+entity "Conversation" as CONVERSATION {
+  * _id : ObjectId <<PK>>
+  --
+  * participants : Array[ObjectId]
+  last_message : String
+  last_message_at : Date
+  * createdAt : Date
+  * updatedAt : Date
+}
+
+entity "Menu" as MENU {
+  * _id : ObjectId <<PK>>
+  --
+  * title : String
+  path : String
+  icon : String
+  parent_id : ObjectId <<FK>>
+  * role : Enum(admin, homeowner, maid, all)
+  sort_order : Number
+  * createdAt : Date
+}
+
+' Relationships
+USER ||--o{ MAID : "extends"
+USER ||--o{ JOB : "homeowner creates"
+MAID ||--o{ JOB : "maid performs"
+JOB ||--o| ATTENDANCE : "tracks"
+JOB ||--o{ REVIEW : "receives"
+USER ||--o{ REVIEW : "writes"
+USER ||--o{ NOTIFICATION : "receives"
+JOB ||--o| PAYMENT : "has payment"
+USER ||--o{ MESSAGE : "sends"
+CONVERSATION ||--o{ MESSAGE : "contains"
+USER }o--o{ CONVERSATION : "participates"
+MENU ||--o{ MENU : "parent-child"
+
+' Cardinality notes
+note on link between USER and JOB
+  Homeowner: 1 to Many
+  Maid: 1 to Many
+end note
+
+note on link between USER and CONVERSATION
+  Many to Many
+  (participants array)
+end note
+
+note on link between MENU and MENU
+  Self-referencing
+  (parent_id)
+end note
+
+' Business rules
+note top of JOB
+  **Business Rules:**
+  • Job status follows lifecycle
+  • Only approved maids can accept jobs
+  • Payment required for completion
+  • One active job per maid at a time
+end note
+
+note right of REVIEW
+  **Review Rules:**
+  • Only after job completion
+  • Rating: 1-5 stars
+  • Affects maid average rating
+  • Homeowner reviews maid
+end note
+
+note bottom of PAYMENT
+  **Payment Rules:**
+  • Cash: paid on completion
+  • Card/Apple Pay: awaiting_payment status
+  • Amount = hourly_rate × actual_duration
+  • Refunds possible within 24h
+end note
+
+@enduml

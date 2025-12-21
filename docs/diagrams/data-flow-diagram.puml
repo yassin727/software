@@ -1,0 +1,126 @@
+@startuml HMTS_Data_Flow_Diagram
+!theme plain
+title HMTS - Data Flow Diagram (Level 1)
+
+!define PROCESS circle
+!define DATASTORE rectangle
+!define EXTERNAL rectangle
+
+' External Entities
+EXTERNAL "Homeowner" as HO
+EXTERNAL "Maid" as M  
+EXTERNAL "Admin" as A
+EXTERNAL "Email System" as EMAIL
+EXTERNAL "Payment Gateway" as PAY
+
+' Processes
+PROCESS "1.0\nUser\nManagement" as P1
+PROCESS "2.0\nJob\nManagement" as P2
+PROCESS "3.0\nMaid\nApproval" as P3
+PROCESS "4.0\nPayment\nProcessing" as P4
+PROCESS "5.0\nNotification\nSystem" as P5
+PROCESS "6.0\nReview\nSystem" as P6
+PROCESS "7.0\nRecommendation\nEngine" as P7
+
+' Data Stores
+DATASTORE "D1: Users" as D1
+DATASTORE "D2: Jobs" as D2
+DATASTORE "D3: Maids" as D3
+DATASTORE "D4: Reviews" as D4
+DATASTORE "D5: Payments" as D5
+DATASTORE "D6: Notifications" as D6
+DATASTORE "D7: Attendance" as D7
+DATASTORE "D8: Messages" as D8
+
+' Homeowner flows
+HO --> P1 : "Registration data"
+P1 --> HO : "Account confirmation"
+HO --> P2 : "Job request"
+P2 --> HO : "Job confirmation"
+HO --> P4 : "Payment info"
+P4 --> HO : "Payment receipt"
+HO --> P6 : "Review data"
+P6 --> HO : "Review confirmation"
+
+' Maid flows
+M --> P1 : "Registration data"
+P1 --> M : "Account pending"
+M --> P2 : "Job acceptance"
+P2 --> M : "Job assignment"
+M --> P2 : "Check-in/out data"
+P2 --> M : "Status update"
+
+' Admin flows
+A --> P3 : "Approval decision"
+P3 --> A : "Maid list"
+A --> P1 : "User management"
+P1 --> A : "User reports"
+
+' Process to Data Store flows
+P1 --> D1 : "Store user data"
+D1 --> P1 : "User information"
+P1 --> D3 : "Store maid profile"
+D3 --> P1 : "Maid information"
+
+P2 --> D2 : "Store job data"
+D2 --> P2 : "Job information"
+P2 --> D7 : "Store attendance"
+D7 --> P2 : "Attendance records"
+
+P3 --> D3 : "Update maid status"
+D3 --> P3 : "Pending maids"
+
+P4 --> D5 : "Store payment"
+D5 --> P4 : "Payment history"
+
+P5 --> D6 : "Store notification"
+D6 --> P5 : "Notification queue"
+
+P6 --> D4 : "Store review"
+D4 --> P6 : "Review data"
+
+' Inter-process flows
+P1 --> P5 : "User events"
+P2 --> P5 : "Job events"
+P3 --> P5 : "Approval events"
+P4 --> P5 : "Payment events"
+
+P2 --> P7 : "Job criteria"
+P7 --> P2 : "Maid recommendations"
+D3 --> P7 : "Maid profiles"
+D4 --> P7 : "Rating data"
+
+P2 --> P4 : "Payment request"
+P4 --> P2 : "Payment status"
+
+' External system flows
+P5 --> EMAIL : "Email requests"
+EMAIL --> P5 : "Delivery status"
+P4 --> PAY : "Payment processing"
+PAY --> P4 : "Transaction result"
+
+note top of P7
+  **AI/ML Component:**
+  • Scoring algorithm
+  • Location matching
+  • Rating analysis
+  • Availability check
+end note
+
+note right of D1
+  **User Data:**
+  • Personal info
+  • Authentication
+  • Verification status
+  • Profile photos
+end note
+
+note bottom of P2
+  **Core Business Process:**
+  • Job lifecycle management
+  • Status tracking
+  • Attendance monitoring
+  • Progress updates
+end note
+
+@enduml

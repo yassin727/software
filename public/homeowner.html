@@ -27,10 +27,7 @@
                 <i class="fas fa-calendar-check"></i>
                 <span>My Bookings</span>
             </a>
-            <a href="#active-tasks" class="nav-item" onclick="showSection('active-tasks')">
-                <i class="fas fa-tasks"></i>
-                <span>Active Tasks</span>
-            </a>
+
             <a href="#history" class="nav-item" onclick="showSection('history')">
                 <i class="fas fa-history"></i>
                 <span>History</span>
@@ -183,9 +180,9 @@
                             <i class="fas fa-calendar-plus"></i>
                             <span>Book Service</span>
                         </button>
-                        <button class="action-btn" onclick="showSection('active-tasks')">
-                            <i class="fas fa-tasks"></i>
-                            <span>View Tasks</span>
+                        <button class="action-btn" onclick="showSection('my-bookings')">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>My Bookings</span>
                         </button>
                         <button class="action-btn" onclick="showSection('messages')">
                             <i class="fas fa-comments"></i>
@@ -465,17 +462,6 @@
                             <i class="fas fa-comment"></i> Message
                         </button>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Active Tasks Section -->
-        <section id="active-tasks" class="content-section">
-            <div id="activeTasksContainer">
-                <!-- Dynamic content loaded by JavaScript -->
-                <div class="loading-spinner" style="text-align: center; padding: 60px;">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--primary-color);"></i>
-                    <p style="margin-top: 16px; color: var(--text-light);">Loading active tasks...</p>
                 </div>
             </div>
         </section>
@@ -847,7 +833,12 @@
                 <div class="payment-info" style="background: var(--bg-light); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
                     <h4 id="paymentJobTitle" style="margin-bottom: 8px;">Service Completed</h4>
                     <p id="paymentMaidName" style="color: var(--text-light);"><i class="fas fa-user"></i> Maid: Maria Garcia</p>
-                    <p id="paymentDuration" style="color: var(--text-light);"><i class="fas fa-clock"></i> Duration: 4 hours</p>
+                    
+                    <!-- Payment Breakdown Section -->
+                    <div id="paymentBreakdown" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                    
                     <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
                         <h3 id="paymentAmount" style="color: var(--primary-color);">Total: $60.00</h3>
                     </div>
@@ -909,8 +900,7 @@
         </div>
     </div>
 
-    <script src="api.js"></script>
-    <script src="script.js"></script>
-    <script src="homeowner-script.js"></script>
+    <script src="api.js?v=3"></script>
+    <script src="homeowner-script.js?v=3"></script>
 </body>
 </html>

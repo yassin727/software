@@ -22,7 +22,4 @@ router.get('/bookings/:id', auth(['homeowner']), HomeownerController.getBookingB
 // GET /api/homeowner/history - Get service history
 router.get('/history', auth(['homeowner']), HomeownerController.getHistory);
 
-// GET /api/homeowner/active-tasks - Get in-progress jobs with task details
-router.get('/active-tasks', auth(['homeowner']), HomeownerController.getActiveTasks);
-
 module.exports = router;

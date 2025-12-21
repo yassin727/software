@@ -279,7 +279,10 @@ const getJobDetails = async (req, res) => {
 
     const job = await Job.findById(jobId)
       .populate('homeowner_id', 'name phone photo_url email')
-      .populate('maid_id')
+      .populate({
+        path: 'maid_id',
+        populate: { path: 'user_id', select: 'name phone photo_url email' }
+      })
       .lean();
 
     if (!job) {
@@ -324,8 +327,11 @@ const getJobDetails = async (req, res) => {
           email: job.homeowner_id?.email
         },
         maid: job.maid_id ? {
-          name: job.maid_id?.user_id?.name || 'Unknown',
-          phone: job.maid_id?.user_id?.phone
+          id: job.maid_id._id,
+          name: job.maid_id.user_id?.name || 'Unknown',
+          phone: job.maid_id.user_id?.phone || 'N/A',
+          photo: job.maid_id.user_id?.photo_url || null,
+          rating: job.maid_id.average_rating || 0
         } : null,
         attendance: attendance ? {
           id: attendance._id,
@@ -430,6 +436,137 @@ const updateJobProgress = async (req, res) => {
   }
 };
 
+/**
+ * Homeowner cancels a booking
+ */
+const cancelBooking = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { reason } = req.body;
+    const userId = req.user.userId;
+
+    const job = await Job.findById(jobId).populate('maid_id');
+    if (!job) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Verify ownership
+    if (job.homeowner_id.toString() !== userId) {
+      return res.status(403).json({ message: 'Not authorized to cancel this booking' });
+    }
+
+    // Can only cancel if not already completed or cancelled
+    if (job.status === 'completed') {
+      return res.status(400).json({ message: 'Cannot cancel a completed booking' });
+    }
+    if (job.status === 'cancelled') {
+      return res.status(400).json({ message: 'Booking is already cancelled' });
+    }
+    if (job.status === 'in_progress') {
+      return res.status(400).json({ message: 'Cannot cancel a booking that is in progress' });
+    }
+
+    // Update status
+    job.status = 'cancelled';
+    job.cancellation_reason = reason || 'Cancelled by homeowner';
+    job.cancelled_at = new Date();
+    await job.save();
+
+    // Notify maid about cancellation
+    try {
+      if (job.maid_id && job.maid_id.user_id) {
+        const homeowner = await User.findById(userId);
+        await NotificationService.create({
+          userId: job.maid_id.user_id,
+          type: 'booking_cancelled',
+          title: 'Booking Cancelled',
+          message: `${homeowner?.name || 'A homeowner'} has cancelled the booking for ${job.title} scheduled on ${new Date(job.scheduled_datetime).toLocaleDateString()}.`,
+          data: { jobId: job._id }
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to send cancellation notification:', notifError);
+    }
+
+    return res.json({ message: 'Booking cancelled successfully' });
+  } catch (err) {
+    console.error('Cancel booking error', err);
+    return res.status(500).json({ message: 'Failed to cancel booking' });
+  }
+};
+
+/**
+ * Homeowner reschedules a booking
+ */
+const rescheduleBooking = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { scheduledDatetime } = req.body;
+    const userId = req.user.userId;
+
+    if (!scheduledDatetime) {
+      return res.status(400).json({ message: 'New date and time is required' });
+    }
+
+    const job = await Job.findById(jobId).populate('maid_id');
+    if (!job) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Verify ownership
+    if (job.homeowner_id.toString() !== userId) {
+      return res.status(403).json({ message: 'Not authorized to reschedule this booking' });
+    }
+
+    // Can only reschedule if not completed, cancelled, or in progress
+    if (job.status === 'completed') {
+      return res.status(400).json({ message: 'Cannot reschedule a completed booking' });
+    }
+    if (job.status === 'cancelled') {
+      return res.status(400).json({ message: 'Cannot reschedule a cancelled booking' });
+    }
+    if (job.status === 'in_progress') {
+      return res.status(400).json({ message: 'Cannot reschedule a booking that is in progress' });
+    }
+
+    // Validate new date is in the future
+    const newDate = new Date(scheduledDatetime);
+    if (newDate <= new Date()) {
+      return res.status(400).json({ message: 'New date must be in the future' });
+    }
+
+    const oldDate = job.scheduled_datetime;
+    job.scheduled_datetime = newDate;
+    // Reset to requested status so maid needs to accept again
+    job.status = 'requested';
+    await job.save();
+
+    // Notify maid about reschedule
+    try {
+      if (job.maid_id && job.maid_id.user_id) {
+        const homeowner = await User.findById(userId);
+        await NotificationService.create({
+          userId: job.maid_id.user_id,
+          type: 'booking_rescheduled',
+          title: 'Booking Rescheduled',
+          message: `${homeowner?.name || 'A homeowner'} has rescheduled the booking for ${job.title} from ${new Date(oldDate).toLocaleDateString()} to ${newDate.toLocaleDateString()}.`,
+          data: { jobId: job._id, oldDate, newDate: scheduledDatetime }
+        });
+      }
+    } catch (notifError) {
+      console.error('Failed to send reschedule notification:', notifError);
+    }
+
+    return res.json({ 
+      message: 'Booking rescheduled successfully',
+      newDate: scheduledDatetime
+    });
+  } catch (err) {
+    console.error('Reschedule booking error', err);
+    return res.status(500).json({ message: 'Failed to reschedule booking' });
+  }
+};
+
 module.exports = {
   listJobs,
   createJob,
@@ -438,4 +575,6 @@ module.exports = {
   checkOut,
   getJobDetails,
   updateJobProgress,
+  cancelBooking,
+  rescheduleBooking,
 };

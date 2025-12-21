@@ -7,6 +7,8 @@ let currentAttendanceId = null;
 let currentActiveJobId = null;
 let dashboardData = null;
 let notificationStream = null;
+let locationWatchId = null;
+let isLocationSharing = false;
 
 // ============================================================
 // Initialization
@@ -469,9 +471,24 @@ function renderEarnings(data) {
     const earningCards = document.querySelectorAll('.earning-card h2');
     if (earningCards.length >= 4) {
         earningCards[0].textContent = `$${data.totalEarnings?.toFixed(2) || '0.00'}`;
-        earningCards[1].textContent = `$${(data.totalEarnings / 4)?.toFixed(2) || '0.00'}`; // Weekly estimate
+        
+        // Calculate this week's earnings
+        const thisWeekEarnings = data.earnings?.filter(e => {
+            const earningDate = new Date(e.date);
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            return earningDate >= weekAgo && e.status === 'paid';
+        }).reduce((sum, e) => sum + e.amount, 0) || 0;
+        earningCards[1].textContent = `$${thisWeekEarnings.toFixed(2)}`;
+        
         earningCards[2].textContent = `$${data.pendingAmount?.toFixed(2) || '0.00'}`;
         earningCards[3].textContent = `$${data.averageRate || 15}/hr`;
+    }
+    
+    // Update subtitle to show commission info
+    const earningSubtitles = document.querySelectorAll('.earning-card p');
+    if (earningSubtitles.length >= 1) {
+        earningSubtitles[0].innerHTML = `This Month (After ${data.commissionRate || '15%'} Fee)`;
     }
     
     // Update table
@@ -486,12 +503,186 @@ function renderEarnings(data) {
                     <td>${e.clientName}</td>
                     <td>${e.service}</td>
                     <td>${e.duration} hours</td>
-                    <td>$${e.amount.toFixed(2)}</td>
+                    <td>
+                        <span style="color: var(--success-color); font-weight: 600;">$${e.amount.toFixed(2)}</span>
+                        ${e.platformFee > 0 ? `<br><small style="color: var(--text-light);">Fee: -$${e.platformFee.toFixed(2)}</small>` : ''}
+                    </td>
                     <td><span class="status-badge ${e.status === 'paid' ? 'completed' : 'pending'}">${e.status === 'paid' ? 'Paid' : 'Pending'}</span></td>
                 </tr>
             `).join('');
         }
     }
+}
+
+// ============================================================
+// Schedule
+// ============================================================
+let currentScheduleView = 'week';
+let currentScheduleDate = new Date();
+
+async function loadMaidSchedule(view = currentScheduleView) {
+    const container = document.getElementById('weekScheduleContainer');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="loading-spinner" style="text-align: center; padding: 40px; grid-column: 1/-1;">
+            <i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i>
+            <p>Loading schedule...</p>
+        </div>
+    `;
+    
+    try {
+        // Calculate date range
+        const start = new Date(currentScheduleDate);
+        const end = new Date(currentScheduleDate);
+        
+        if (view === 'week') {
+            const dayOfWeek = start.getDay();
+            start.setDate(start.getDate() - dayOfWeek);
+            end.setDate(start.getDate() + 6);
+        } else {
+            start.setDate(1);
+            end.setMonth(end.getMonth() + 1);
+            end.setDate(0);
+        }
+        
+        const data = await apiGetMaidSchedule({
+            startDate: start.toISOString(),
+            endDate: end.toISOString(),
+            view: view
+        });
+        
+        renderSchedule(data, view);
+        updateScheduleTitle(start, end, view);
+    } catch (error) {
+        console.error('Error loading schedule:', error);
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; grid-column: 1/-1;">
+                <i class="fas fa-exclamation-circle" style="font-size: 32px; color: #e74c3c;"></i>
+                <p>Failed to load schedule</p>
+                <button class="btn-secondary" onclick="loadMaidSchedule()">Try Again</button>
+            </div>
+        `;
+    }
+}
+
+function renderSchedule(data, view) {
+    const container = document.getElementById('weekScheduleContainer');
+    if (!container) return;
+    
+    const days = data.days || [];
+    
+    if (days.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px; grid-column: 1/-1;">
+                <i class="fas fa-calendar-check" style="font-size: 48px; color: #ccc;"></i>
+                <p>No scheduled jobs</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // For week view, show all 7 days
+    if (view === 'week') {
+        container.innerHTML = days.map(day => `
+            <div class="day-column ${day.isToday ? 'today' : ''}">
+                <div class="day-header ${day.isToday ? 'today-header' : ''}">
+                    <span class="day-name">${day.dayName}</span>
+                    <span class="day-number">${day.dayNumber}</span>
+                </div>
+                <div class="day-events">
+                    ${day.events.length === 0 ? `
+                        <div class="no-events">
+                            <span style="color: #999; font-size: 12px;">No jobs</span>
+                        </div>
+                    ` : day.events.map(event => `
+                        <div class="event ${event.status === 'in_progress' ? 'active-event' : ''}" onclick="viewJobProgress('${event.id}')">
+                            <span class="event-time">${event.time}</span>
+                            <span class="event-title">${event.title}</span>
+                            <span class="event-client">${event.clientName}</span>
+                            ${event.status === 'in_progress' ? '<span class="event-status"><i class="fas fa-circle" style="color: #22c55e; font-size: 8px;"></i> In Progress</span>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    } else {
+        // Month view - show as a calendar grid
+        container.innerHTML = `
+            <div class="month-calendar">
+                <div class="calendar-weekdays">
+                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                </div>
+                <div class="calendar-days">
+                    ${generateMonthCalendar(days)}
+                </div>
+            </div>
+        `;
+    }
+}
+
+function generateMonthCalendar(days) {
+    if (days.length === 0) return '';
+    
+    // Get the first day of the month
+    const firstDay = new Date(days[0].date);
+    const startPadding = firstDay.getDay();
+    
+    let html = '';
+    
+    // Add empty cells for padding
+    for (let i = 0; i < startPadding; i++) {
+        html += '<div class="calendar-day empty"></div>';
+    }
+    
+    // Add days
+    days.forEach(day => {
+        const hasEvents = day.events.length > 0;
+        html += `
+            <div class="calendar-day ${day.isToday ? 'today' : ''} ${hasEvents ? 'has-events' : ''}">
+                <span class="day-num">${day.dayNumber}</span>
+                ${hasEvents ? `<span class="event-count">${day.events.length}</span>` : ''}
+            </div>
+        `;
+    });
+    
+    return html;
+}
+
+function updateScheduleTitle(start, end, view) {
+    const titleEl = document.getElementById('scheduleRangeTitle');
+    if (!titleEl) return;
+    
+    if (view === 'week') {
+        const startStr = start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+        const endStr = end.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        titleEl.textContent = `${startStr} - ${endStr}`;
+    } else {
+        titleEl.textContent = start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+}
+
+function switchScheduleView(view) {
+    currentScheduleView = view;
+    
+    // Update toggle buttons
+    document.querySelectorAll('.schedule-view-toggle .view-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent.toLowerCase() === view) {
+            btn.classList.add('active');
+        }
+    });
+    
+    loadMaidSchedule(view);
+}
+
+function navigateSchedule(direction) {
+    if (currentScheduleView === 'week') {
+        currentScheduleDate.setDate(currentScheduleDate.getDate() + (direction === 'next' ? 7 : -7));
+    } else {
+        currentScheduleDate.setMonth(currentScheduleDate.getMonth() + (direction === 'next' ? 1 : -1));
+    }
+    loadMaidSchedule(currentScheduleView);
 }
 
 // ============================================================
@@ -927,6 +1118,7 @@ function showSection(sectionId) {
         case 'dashboard': loadMaidDashboard(); break;
         case 'job-requests': loadJobRequests(); break;
         case 'my-jobs': loadMyJobs(); break;
+        case 'schedule': loadMaidSchedule(); break;
         case 'earnings': loadEarnings(); break;
         case 'reviews': loadReviews(); break;
         case 'profile': loadMaidProfile(); break;
@@ -1998,3 +2190,134 @@ async function contactHomeowner(homeownerId) {
 }
 
 console.log('Maid Script loaded');
+
+
+// ============================================================
+// Location Sharing Functions
+// ============================================================
+
+/**
+ * Share maid's current location with homeowners
+ */
+async function shareMyLocation() {
+    if (!navigator.geolocation) {
+        showMaidNotification('Geolocation is not supported by your browser', 'error');
+        return;
+    }
+    
+    const shareBtn = document.getElementById('shareLocationBtn');
+    const stopBtn = document.getElementById('stopLocationBtn');
+    const statusEl = document.getElementById('locationStatus');
+    
+    if (shareBtn) {
+        shareBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting location...';
+        shareBtn.disabled = true;
+    }
+    
+    try {
+        // Get current position first
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        });
+        
+        const { latitude, longitude } = position.coords;
+        
+        // Send to server
+        await apiUpdateLocation(latitude, longitude);
+        
+        isLocationSharing = true;
+        
+        // Update UI
+        if (shareBtn) {
+            shareBtn.style.display = 'none';
+        }
+        if (stopBtn) {
+            stopBtn.style.display = 'inline-flex';
+        }
+        if (statusEl) {
+            statusEl.textContent = 'Location shared - updating every 30 seconds';
+        }
+        
+        showMaidNotification('Location shared successfully! Homeowners can now see your location.', 'success');
+        
+        // Start watching position for continuous updates
+        locationWatchId = navigator.geolocation.watchPosition(
+            async (pos) => {
+                try {
+                    await apiUpdateLocation(pos.coords.latitude, pos.coords.longitude);
+                    console.log('Location updated:', pos.coords.latitude, pos.coords.longitude);
+                } catch (err) {
+                    console.error('Failed to update location:', err);
+                }
+            },
+            (err) => {
+                console.error('Location watch error:', err);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 30000,
+                maximumAge: 30000
+            }
+        );
+        
+    } catch (error) {
+        console.error('Error sharing location:', error);
+        
+        let errorMessage = 'Failed to get your location';
+        if (error.code === 1) {
+            errorMessage = 'Location permission denied. Please allow location access.';
+        } else if (error.code === 2) {
+            errorMessage = 'Location unavailable. Please try again.';
+        } else if (error.code === 3) {
+            errorMessage = 'Location request timed out. Please try again.';
+        }
+        
+        showMaidNotification(errorMessage, 'error');
+        
+        if (shareBtn) {
+            shareBtn.innerHTML = '<i class="fas fa-location-arrow"></i> Share Location';
+            shareBtn.disabled = false;
+        }
+    }
+}
+
+/**
+ * Stop sharing location
+ */
+function stopSharingLocation() {
+    if (locationWatchId !== null) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        locationWatchId = null;
+    }
+    
+    isLocationSharing = false;
+    
+    const shareBtn = document.getElementById('shareLocationBtn');
+    const stopBtn = document.getElementById('stopLocationBtn');
+    const statusEl = document.getElementById('locationStatus');
+    
+    if (shareBtn) {
+        shareBtn.style.display = 'inline-flex';
+        shareBtn.innerHTML = '<i class="fas fa-location-arrow"></i> Share Location';
+        shareBtn.disabled = false;
+    }
+    if (stopBtn) {
+        stopBtn.style.display = 'none';
+    }
+    if (statusEl) {
+        statusEl.textContent = 'Location not shared';
+    }
+    
+    showMaidNotification('Location sharing stopped', 'info');
+}
+
+// Stop location sharing when page unloads
+window.addEventListener('beforeunload', () => {
+    if (locationWatchId !== null) {
+        navigator.geolocation.clearWatch(locationWatchId);
+    }
+});

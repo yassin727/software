@@ -617,6 +617,63 @@ body {
     background: white;
 }
 
+.calendar-day .event-count {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #3498db;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calendar-day.today .event-count {
+    background: white;
+    color: var(--primary-color);
+}
+
+/* Schedule Layout - Calendar + Details Side by Side */
+.schedule-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+}
+
+.schedule-calendar-card {
+    min-height: 400px;
+}
+
+.schedule-details-card {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.schedule-details-card h3 {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.calendar-day.selected {
+    background: var(--secondary-color);
+    color: white;
+}
+
+.calendar-day.has-events {
+    font-weight: 600;
+}
+
+@media (max-width: 992px) {
+    .schedule-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Tasks Grid */
 .tasks-grid {
     display: grid;
@@ -2856,6 +2913,96 @@ input:checked + .slider:before {
     display: block;
     font-size: 12px;
     color: var(--text-light);
+}
+
+.event .event-status {
+    display: block;
+    font-size: 10px;
+    color: var(--success-color);
+    margin-top: 4px;
+}
+
+.event:hover {
+    cursor: pointer;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+}
+
+.day-column.today {
+    border: 2px solid var(--primary-color);
+}
+
+.day-header.today-header {
+    background: linear-gradient(135deg, var(--primary-color), #2c5282);
+}
+
+.no-events {
+    text-align: center;
+    padding: 20px 10px;
+}
+
+/* Month Calendar */
+.month-calendar {
+    grid-column: 1 / -1;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.calendar-weekdays div {
+    text-align: center;
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-light);
+    padding: 8px;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.calendar-day {
+    background: var(--bg-light);
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 60px;
+    position: relative;
+}
+
+.calendar-day.empty {
+    background: transparent;
+}
+
+.calendar-day.today {
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px solid var(--primary-color);
+}
+
+.calendar-day.has-events {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.calendar-day .day-num {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.calendar-day .event-count {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: var(--primary-color);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
 }
 
 /* Weekly Stats */

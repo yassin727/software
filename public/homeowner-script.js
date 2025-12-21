@@ -353,7 +353,7 @@ function renderBookingActions(booking) {
         actions.push(`<button class="btn-secondary" onclick="rescheduleBooking('${booking.id}')"><i class="fas fa-calendar-alt"></i> Reschedule</button>`);
         actions.push(`<button class="btn-secondary" onclick="cancelBooking('${booking.id}')"><i class="fas fa-times"></i> Cancel</button>`);
     } else if (booking.status === 'completed' && booking.paymentStatus !== 'awaiting_payment' && !booking.hasReview) {
-        actions.push(`<button class="btn-primary" onclick="openReviewModal('${booking.id}', '${booking.maid.id}')"><i class="fas fa-star"></i> Leave Review</button>`);
+        actions.push(`<button class="btn-primary" onclick="openReviewModal('${booking.id}', '${booking.maid.userId}')"><i class="fas fa-star"></i> Leave Review</button>`);
         actions.push(`<button class="btn-secondary" onclick="bookAgain('${booking.maid.id}')"><i class="fas fa-redo"></i> Book Again</button>`);
     } else if (booking.status === 'completed' && booking.paymentStatus !== 'awaiting_payment') {
         actions.push(`<button class="btn-secondary" onclick="viewInvoice('${booking.id}')"><i class="fas fa-file-invoice"></i> Invoice</button>`);
@@ -432,189 +432,6 @@ function renderHistory(data) {
             </div>
         </div>
     `).join('');
-}
-
-
-// ============================================================
-// Active Tasks Functions
-// ============================================================
-
-/**
- * Load and render active tasks (in-progress jobs)
- */
-async function loadActiveTasks() {
-    try {
-        const container = document.getElementById('activeTasksContainer');
-        if (container) {
-            container.innerHTML = `
-                <div class="loading-spinner" style="text-align: center; padding: 60px;">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--primary-color);"></i>
-                    <p style="margin-top: 16px; color: var(--text-light);">Loading active tasks...</p>
-                </div>
-            `;
-        }
-        
-        const response = await apiGetActiveTasks();
-        renderActiveTasks(response);
-    } catch (error) {
-        console.error('Error loading active tasks:', error);
-        const container = document.getElementById('activeTasksContainer');
-        if (container) {
-            container.innerHTML = `
-                <div class="empty-state" style="text-align: center; padding: 60px;">
-                    <i class="fas fa-exclamation-circle" style="font-size: 48px; color: #e74c3c; margin-bottom: 16px;"></i>
-                    <p>Failed to load active tasks</p>
-                    <button class="btn-secondary" onclick="loadActiveTasks()" style="margin-top: 16px;">Try Again</button>
-                </div>
-            `;
-        }
-        showNotification('Failed to load active tasks', 'error');
-    }
-}
-
-/**
- * Render active tasks
- */
-function renderActiveTasks(data) {
-    const container = document.getElementById('activeTasksContainer');
-    if (!container) return;
-    
-    const activeTasks = data.activeTasks || [];
-    
-    if (activeTasks.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state" style="text-align: center; padding: 60px;">
-                <i class="fas fa-clipboard-check" style="font-size: 64px; color: #ccc; margin-bottom: 20px;"></i>
-                <h3 style="margin-bottom: 12px; color: var(--text-color);">No Active Tasks</h3>
-                <p style="color: var(--text-light); margin-bottom: 20px;">You don't have any jobs in progress right now.</p>
-                <button class="btn-primary" onclick="showSection('my-bookings')">
-                    <i class="fas fa-calendar-alt"></i> View My Bookings
-                </button>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = activeTasks.map(task => {
-        const completedTasks = task.completedTasks || 0;
-        const totalTasks = task.totalTasks || 0;
-        const progressPercent = task.progressPercentage || 0;
-        const checkInTime = task.checkInTime ? new Date(task.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A';
-        
-        return `
-        <div class="card" style="margin-bottom: 24px;">
-            <div class="card-header">
-                <h3><i class="fas fa-tasks"></i> Task Progress - ${task.maid.name}</h3>
-                <span class="status-badge active">In Progress</span>
-            </div>
-            
-            <div class="task-progress-header">
-                <div class="progress-stats">
-                    <div class="stat-item">
-                        <span class="label">Started:</span>
-                        <span class="value">${checkInTime}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Duration:</span>
-                        <span class="value">${task.duration || 'Just started'}</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="label">Completed:</span>
-                        <span class="value">${completedTasks}/${totalTasks} Tasks</span>
-                    </div>
-                </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar" style="width: ${progressPercent}%"></div>
-                    <span class="progress-text">${progressPercent}% Complete</span>
-                </div>
-            </div>
-
-            <div class="task-checklist">
-                ${renderTaskItems(task.tasks)}
-            </div>
-            
-            ${task.progressNotes && task.progressNotes.length > 0 ? `
-                <div style="margin-top: 20px; padding: 16px; background: var(--bg-light); border-radius: 8px;">
-                    <h4 style="margin-bottom: 12px;"><i class="fas fa-sticky-note"></i> Progress Notes</h4>
-                    ${task.progressNotes.slice(-3).reverse().map(note => `
-                        <div style="padding: 8px 0; border-bottom: 1px solid var(--border-color);">
-                            <p style="margin: 0; font-size: 14px;">${note.note}</p>
-                            <small style="color: var(--text-light);">${new Date(note.timestamp).toLocaleString()}</small>
-                        </div>
-                    `).join('')}
-                </div>
-            ` : ''}
-            
-            <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; gap: 12px; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 200px;">
-                    <p style="margin: 4px 0;"><i class="fas fa-broom"></i> <strong>Service:</strong> ${task.title}</p>
-                    <p style="margin: 4px 0;"><i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> ${task.address}</p>
-                    <p style="margin: 4px 0;"><i class="fas fa-dollar-sign"></i> <strong>Rate:</strong> ${task.hourlyRate}/hour</p>
-                </div>
-                <div style="display: flex; gap: 8px; align-items: flex-start;">
-                    <button class="btn-secondary" onclick="messageFromBooking('${task.id}')">
-                        <i class="fas fa-comment"></i> Message
-                    </button>
-                    <button class="btn-secondary" onclick="editHomeownerJobTasks('${task.id}')">
-                        <i class="fas fa-edit"></i> Edit Tasks
-                    </button>
-                    <button class="btn-primary" onclick="viewHomeownerJobProgress('${task.id}')">
-                        <i class="fas fa-eye"></i> Full Details
-                    </button>
-                </div>
-            </div>
-        </div>
-        `;
-    }).join('');
-}
-
-/**
- * Render task items for active tasks
- */
-function renderTaskItems(tasks) {
-    if (!tasks || tasks.length === 0) {
-        return `
-            <div class="task-item pending">
-                <i class="far fa-circle"></i>
-                <div class="task-info">
-                    <h4>No tasks defined</h4>
-                    <p>The maid will update progress as they work</p>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Find the first incomplete task (in progress)
-    const firstIncompleteIndex = tasks.findIndex(t => !t.completed);
-    
-    return tasks.map((task, index) => {
-        let statusClass = 'pending';
-        let icon = '<i class="far fa-circle"></i>';
-        let timeStamp = 'Not started';
-        
-        if (task.completed) {
-            statusClass = 'completed';
-            icon = '<i class="fas fa-check-circle"></i>';
-            timeStamp = task.completedAt 
-                ? `Completed at ${new Date(task.completedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`
-                : 'Completed';
-        } else if (index === firstIncompleteIndex) {
-            statusClass = 'in-progress';
-            icon = '<i class="fas fa-spinner fa-spin"></i>';
-            timeStamp = 'In progress...';
-        }
-        
-        return `
-            <div class="task-item ${statusClass}">
-                ${icon}
-                <div class="task-info">
-                    <h4>${task.name}</h4>
-                    ${task.notes ? `<p>${task.notes}</p>` : ''}
-                    <span class="time-stamp">${timeStamp}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
 }
 
 
@@ -802,7 +619,119 @@ async function viewMaidProfile(maidId) {
 
 function trackMaid(bookingId) {
     showNotification('Opening live tracking...', 'info');
-    showSection('active-tasks');
+    openMaidLocationModal(bookingId);
+}
+
+/**
+ * Open modal to show maid's live location
+ */
+async function openMaidLocationModal(jobId) {
+    try {
+        // Create modal if it doesn't exist
+        let modal = document.getElementById('maidLocationModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'maidLocationModal';
+            modal.className = 'modal';
+            document.body.appendChild(modal);
+        }
+        
+        // Show loading state
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-map-marker-alt"></i> Maid Location</h2>
+                    <button class="modal-close" onclick="closeModal('maidLocationModal')">&times;</button>
+                </div>
+                <div class="modal-body" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--primary-color);"></i>
+                    <p style="margin-top: 16px;">Loading location...</p>
+                </div>
+            </div>
+        `;
+        modal.classList.add('active');
+        
+        // Fetch maid location
+        const response = await apiGetMaidLocation(jobId);
+        
+        if (!response.location) {
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-map-marker-alt"></i> Maid Location</h2>
+                        <button class="modal-close" onclick="closeModal('maidLocationModal')">&times;</button>
+                    </div>
+                    <div class="modal-body" style="text-align: center; padding: 40px;">
+                        <i class="fas fa-map-marked-alt" style="font-size: 64px; color: #ccc; margin-bottom: 16px;"></i>
+                        <h3>${response.maidName || 'Maid'}</h3>
+                        <p style="color: var(--text-light);">${response.message || 'Location not available yet'}</p>
+                        <p style="font-size: 12px; color: #999; margin-top: 16px;">The maid needs to share their location from the app</p>
+                        <button class="btn-secondary" onclick="openMaidLocationModal('${jobId}')" style="margin-top: 16px;">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+        
+        const { latitude, longitude, updatedAt } = response.location;
+        const maidName = response.maidName || 'Maid';
+        const lastUpdate = updatedAt ? new Date(updatedAt).toLocaleTimeString() : 'Unknown';
+        
+        // Create map URL (using OpenStreetMap embed)
+        const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${longitude-0.005},${latitude-0.005},${longitude+0.005},${latitude+0.005}&layer=mapnik&marker=${latitude},${longitude}`;
+        const fullMapUrl = `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=17/${latitude}/${longitude}`;
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-map-marker-alt"></i> ${maidName}'s Location</h2>
+                    <button class="modal-close" onclick="closeModal('maidLocationModal')">&times;</button>
+                </div>
+                <div class="modal-body" style="padding: 0;">
+                    <div style="position: relative; width: 100%; height: 400px; background: #f0f0f0;">
+                        <iframe 
+                            width="100%" 
+                            height="100%" 
+                            frameborder="0" 
+                            scrolling="no" 
+                            marginheight="0" 
+                            marginwidth="0" 
+                            src="${mapUrl}"
+                            style="border: 0;">
+                        </iframe>
+                    </div>
+                    <div style="padding: 16px; background: var(--bg-light); border-top: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <p style="margin: 0; font-weight: 600;"><i class="fas fa-user"></i> ${maidName}</p>
+                                <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-light);">
+                                    <i class="fas fa-clock"></i> Last updated: ${lastUpdate}
+                                </p>
+                                <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-light);">
+                                    <i class="fas fa-map-pin"></i> ${latitude.toFixed(6)}, ${longitude.toFixed(6)}
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-secondary" onclick="openMaidLocationModal('${jobId}')">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                                <a href="${fullMapUrl}" target="_blank" class="btn-primary" style="text-decoration: none;">
+                                    <i class="fas fa-external-link-alt"></i> Open in Maps
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error getting maid location:', error);
+        showNotification('Failed to get maid location: ' + (error.message || 'Unknown error'), 'error');
+        closeModal('maidLocationModal');
+    }
 }
 
 async function contactMaid(maidId) {
@@ -875,8 +804,8 @@ async function messageFromBooking(bookingId) {
 }
 
 function viewTaskProgress(bookingId) {
-    showNotification('Loading task progress...', 'info');
-    showSection('active-tasks');
+    // Open job progress modal instead
+    viewHomeownerJobProgress(bookingId);
 }
 
 async function submitBooking(event) {
@@ -974,20 +903,155 @@ async function submitBooking(event) {
 }
 
 function rescheduleBooking(bookingId) {
-    alert('Reschedule booking #' + bookingId.slice(-6).toUpperCase() + '\n\nThis feature is coming soon.');
+    // Find the booking to get current date
+    const booking = myJobs.find(b => b.id === bookingId);
+    const currentDate = booking ? new Date(booking.scheduledDatetime) : new Date();
+    
+    // Create reschedule modal
+    let modal = document.getElementById('rescheduleModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'rescheduleModal';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+    
+    // Format current date for display
+    const currentDateStr = currentDate.toLocaleDateString('en-US', { 
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+    
+    // Set min date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const minDate = tomorrow.toISOString().split('T')[0];
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-calendar-alt"></i> Reschedule Booking</h2>
+                <button class="modal-close" onclick="closeModal('rescheduleModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px; color: var(--text-light);">
+                    Current schedule: <strong>${currentDateStr}</strong>
+                </p>
+                <form id="rescheduleForm" onsubmit="submitReschedule(event, '${bookingId}')">
+                    <div class="form-group">
+                        <label for="newDate"><i class="fas fa-calendar"></i> New Date</label>
+                        <input type="date" id="newDate" name="newDate" min="${minDate}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newTime"><i class="fas fa-clock"></i> New Time</label>
+                        <input type="time" id="newTime" name="newTime" required>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-top: 24px;">
+                        <button type="button" class="btn-secondary" onclick="closeModal('rescheduleModal')" style="flex: 1;">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn-primary" style="flex: 1;">
+                            <i class="fas fa-check"></i> Confirm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    modal.classList.add('active');
+}
+
+async function submitReschedule(event, bookingId) {
+    event.preventDefault();
+    
+    const newDate = document.getElementById('newDate').value;
+    const newTime = document.getElementById('newTime').value;
+    
+    if (!newDate || !newTime) {
+        showNotification('Please select both date and time', 'error');
+        return;
+    }
+    
+    const scheduledDatetime = new Date(`${newDate}T${newTime}`).toISOString();
+    
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rescheduling...';
+    submitBtn.disabled = true;
+    
+    try {
+        await apiRescheduleBooking(bookingId, scheduledDatetime);
+        showNotification('Booking rescheduled successfully!', 'success');
+        closeModal('rescheduleModal');
+        await loadBookings();
+    } catch (error) {
+        showNotification(error.message || 'Failed to reschedule booking', 'error');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
 }
 
 async function cancelBooking(bookingId) {
-    if (confirm('Are you sure you want to cancel this booking?')) {
-        try {
-            await apiRequest(`/jobs/${bookingId}/status`, {
-                method: 'PATCH',
-                body: JSON.stringify({ status: 'cancelled' })
-            });
-            showNotification('Booking cancelled successfully', 'success');
-            await loadBookings();
-        } catch (error) {
-            showNotification('Failed to cancel booking', 'error');
+    // Create cancel confirmation modal
+    let modal = document.getElementById('cancelModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'cancelModal';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-times-circle" style="color: #e74c3c;"></i> Cancel Booking</h2>
+                <button class="modal-close" onclick="closeModal('cancelModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 16px;">Are you sure you want to cancel this booking?</p>
+                <div class="form-group">
+                    <label for="cancelReason">Reason (optional)</label>
+                    <textarea id="cancelReason" rows="3" placeholder="Let the maid know why you're cancelling..."></textarea>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="button" class="btn-secondary" onclick="closeModal('cancelModal')" style="flex: 1;">
+                        Keep Booking
+                    </button>
+                    <button type="button" class="btn-primary" onclick="confirmCancelBooking('${bookingId}')" style="flex: 1; background: #e74c3c;">
+                        <i class="fas fa-times"></i> Cancel Booking
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    modal.classList.add('active');
+}
+
+async function confirmCancelBooking(bookingId) {
+    const reason = document.getElementById('cancelReason')?.value || '';
+    const cancelBtn = document.querySelector('#cancelModal .btn-primary');
+    
+    if (cancelBtn) {
+        cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling...';
+        cancelBtn.disabled = true;
+    }
+    
+    try {
+        await apiCancelBooking(bookingId, reason);
+        showNotification('Booking cancelled successfully', 'success');
+        closeModal('cancelModal');
+        await loadBookings();
+    } catch (error) {
+        showNotification(error.message || 'Failed to cancel booking', 'error');
+        if (cancelBtn) {
+            cancelBtn.innerHTML = '<i class="fas fa-times"></i> Cancel Booking';
+            cancelBtn.disabled = false;
         }
     }
 }
@@ -1019,8 +1083,15 @@ async function submitReview(event) {
     const bookingId = modal?.dataset.bookingId;
     const maidId = modal?.dataset.maidId;
     
-    const rating = document.querySelectorAll('.star-rating .fas').length || 5;
-    const reviewText = form.querySelector('textarea')?.value || '';
+    // Get rating from filled stars (fas class)
+    const filledStars = document.querySelectorAll('.star-rating .fas');
+    const rating = filledStars.length || 5;
+    const reviewText = form.querySelector('textarea')?.value?.trim() || '';
+    
+    if (rating < 1 || rating > 5) {
+        showNotification('Please select a rating', 'error');
+        return;
+    }
     
     const submitBtn = form.querySelector('button[type="submit"]');
     const originalText = submitBtn?.innerHTML;
@@ -1034,12 +1105,19 @@ async function submitReview(event) {
             jobId: bookingId,
             revieweeId: maidId,
             rating: rating,
-            comment: reviewText
+            comments: reviewText
         });
         
         showNotification('Review submitted successfully!', 'success');
         closeModal('reviewModal');
         form.reset();
+        
+        // Reset stars to empty
+        document.querySelectorAll('.star-rating i').forEach(star => {
+            star.classList.remove('fas');
+            star.classList.add('far');
+        });
+        
         await loadBookings();
     } catch (error) {
         showNotification(error.message || 'Failed to submit review', 'error');
@@ -1096,6 +1174,8 @@ function applyFilters() {
 const originalShowSection = typeof showSection === 'function' ? showSection : null;
 
 function showSection(sectionId) {
+    console.log('Homeowner showSection called with:', sectionId);
+    
     // Hide all sections
     document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
@@ -1120,14 +1200,20 @@ function showSection(sectionId) {
         'dashboard': 'Homeowner Dashboard',
         'search-maids': 'Search Maids',
         'my-bookings': 'My Bookings',
-        'active-tasks': 'Active Tasks',
         'history': 'Service History',
-        'messages': 'Messages'
+        'messages': 'Messages',
+        'profile': 'My Profile'
     };
     const pageTitle = document.getElementById('page-title');
     if (pageTitle) pageTitle.textContent = titles[sectionId] || 'Dashboard';
     
     // Load data for section
+    console.log('Loading data for section:', sectionId);
+    loadSectionData(sectionId);
+}
+
+// Separate function to load section data
+async function loadSectionData(sectionId) {
     switch (sectionId) {
         case 'dashboard':
             loadHomeownerDashboard();
@@ -1138,14 +1224,28 @@ function showSection(sectionId) {
         case 'my-bookings':
             loadBookings();
             break;
-        case 'active-tasks':
-            loadActiveTasks();
-            break;
         case 'history':
             loadHistory();
             break;
+        case 'messages':
+            loadConversations();
+            break;
     }
 }
+
+// Also add click event listeners as backup
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (href && href.startsWith('#')) {
+                e.preventDefault();
+                const sectionId = href.substring(1);
+                showSection(sectionId);
+            }
+        });
+    });
+});
 
 // ============================================================
 // Modal Functions
@@ -1173,76 +1273,166 @@ async function viewHomeownerJobProgress(jobId) {
         const progressNotes = job.progress_notes || [];
         const completedTasks = tasks.filter(t => t.completed).length;
         
+        // Determine progress color
+        let progressColor = '#3498db'; // blue
+        if (progressPercent >= 75) progressColor = '#22c55e'; // green
+        else if (progressPercent >= 50) progressColor = '#f59e0b'; // orange
+        
+        // Format scheduled date
+        const scheduledDate = job.scheduled_datetime ? new Date(job.scheduled_datetime).toLocaleDateString('en-US', {
+            weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        }) : 'Not scheduled';
+        
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 700px;">
-                <div class="modal-header">
-                    <h2><i class="fas fa-tasks"></i> Job Progress: ${job.title}</h2>
-                    <button class="modal-close" onclick="closeModal('homeownerJobProgressModal')">
+            <div class="modal-content" style="max-width: 550px; border-radius: 16px; overflow: hidden;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #1e3a5f, #2c5282); color: white; padding: 20px 24px;">
+                    <div>
+                        <h2 style="display: flex; align-items: center; gap: 10px; margin: 0; font-size: 20px;">
+                            <i class="fas fa-clipboard-check"></i> ${job.title}
+                        </h2>
+                        <p style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.9;">
+                            <i class="fas fa-calendar"></i> ${scheduledDate} &nbsp;|&nbsp; 
+                            <i class="fas fa-map-marker-alt"></i> ${job.address || 'No address'}
+                        </p>
+                    </div>
+                    <button class="modal-close" onclick="closeModal('homeownerJobProgressModal')" style="color: white; background: rgba(255,255,255,0.2); border-radius: 50%; width: 32px; height: 32px;">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                    <!-- Progress Bar -->
-                    <div style="margin-bottom: 24px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <h3>Overall Progress</h3>
-                            <span style="font-size: 18px; font-weight: 600; color: var(--primary-color);">${progressPercent}%</span>
-                        </div>
-                        <div style="width: 100%; height: 12px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
-                            <div style="width: ${progressPercent}%; height: 100%; background: var(--success-color); transition: width 0.3s;"></div>
+                <div class="modal-body" style="max-height: 60vh; overflow-y: auto; padding: 24px;">
+                    
+                    <!-- Progress Circle -->
+                    <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 28px;">
+                        <div style="position: relative; width: 140px; height: 140px;">
+                            <svg width="140" height="140" style="transform: rotate(-90deg);">
+                                <circle cx="70" cy="70" r="58" fill="none" stroke="#e2e8f0" stroke-width="12"/>
+                                <circle cx="70" cy="70" r="58" fill="none" stroke="${progressColor}" stroke-width="12"
+                                    stroke-dasharray="${Math.PI * 116}" 
+                                    stroke-dashoffset="${Math.PI * 116 * (1 - progressPercent / 100)}"
+                                    stroke-linecap="round"
+                                    style="transition: stroke-dashoffset 0.5s ease;"/>
+                            </svg>
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                                <div style="font-size: 32px; font-weight: 700; color: ${progressColor};">${progressPercent}%</div>
+                                <div style="font-size: 12px; color: #64748b; font-weight: 500;">Complete</div>
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- Tasks List -->
+                    <!-- Tasks Section -->
                     <div style="margin-bottom: 24px;">
-                        <h3 style="margin-bottom: 16px;">
-                            <i class="fas fa-list-check"></i> Tasks 
-                            <span style="font-size: 14px; font-weight: normal; color: var(--text-light);">
-                                (${completedTasks} of ${tasks.length} completed)
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                            <h4 style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 15px;">
+                                <i class="fas fa-list-check" style="color: #1e3a5f;"></i> 
+                                Task Checklist
+                            </h4>
+                            <span style="font-size: 13px; color: #64748b; font-weight: 500;">
+                                ${completedTasks} of ${tasks.length} done
                             </span>
-                        </h3>
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            ${tasks.length === 0 ? '<p style="color: var(--text-light);">No tasks defined yet.</p>' : ''}
-                            ${tasks.map((task, index) => `
-                                <div class="task-item" style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-light); border-radius: 8px;">
-                                    <i class="fas ${task.completed ? 'fa-check-circle' : 'fa-circle'}" 
-                                       style="color: ${task.completed ? 'var(--success-color)' : '#ccc'}; font-size: 20px;"></i>
-                                    <div style="flex: 1;">
-                                        <div style="font-weight: 500; ${task.completed ? 'text-decoration: line-through; color: var(--text-light);' : ''}">${task.name}</div>
-                                        ${task.notes ? `<div style="font-size: 12px; color: var(--text-light); margin-top: 4px;">${task.notes}</div>` : ''}
-                                        ${task.completed_at ? `<div style="font-size: 11px; color: var(--success-color); margin-top: 4px;">Completed: ${new Date(task.completed_at).toLocaleString()}</div>` : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
                         </div>
+                        ${tasks.length === 0 ? `
+                            <div style="text-align: center; padding: 24px; background: #f8fafc; border-radius: 12px; border: 2px dashed #e2e8f0;">
+                                <i class="fas fa-clipboard" style="font-size: 32px; color: #cbd5e1; margin-bottom: 8px;"></i>
+                                <p style="color: #64748b; margin: 0; font-size: 14px;">No tasks defined for this job</p>
+                            </div>
+                        ` : `
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                ${tasks.map(task => `
+                                    <div style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: ${task.completed ? '#f0fdf4' : '#ffffff'}; border-radius: 10px; border: 1px solid ${task.completed ? '#bbf7d0' : '#e2e8f0'}; transition: all 0.2s;">
+                                        <div style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: ${task.completed ? '#22c55e' : '#e2e8f0'};">
+                                            <i class="fas ${task.completed ? 'fa-check' : 'fa-circle'}" style="color: ${task.completed ? 'white' : '#94a3b8'}; font-size: ${task.completed ? '12px' : '8px'};"></i>
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <div style="font-weight: 500; color: ${task.completed ? '#16a34a' : '#1e293b'}; font-size: 14px;">${task.name}</div>
+                                            ${task.completed_at ? `
+                                                <div style="font-size: 11px; color: #22c55e; margin-top: 3px;">
+                                                    <i class="fas fa-check-double"></i> Completed at ${new Date(task.completed_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `}
                     </div>
                     
                     <!-- Progress Notes -->
-                    <div style="margin-bottom: 24px;">
-                        <h3 style="margin-bottom: 16px;"><i class="fas fa-sticky-note"></i> Progress Updates</h3>
-                        <div style="display: flex; flex-direction: column; gap: 12px; max-height: 300px; overflow-y: auto;">
-                            ${progressNotes.length === 0 ? '<p style="color: var(--text-light);">No progress updates yet.</p>' : ''}
-                            ${progressNotes.slice().reverse().map(note => `
-                                <div style="padding: 12px; background: var(--bg-light); border-radius: 8px; border-left: 3px solid var(--primary-color);">
-                                    <div style="font-size: 14px;">${note.note}</div>
-                                    <div style="font-size: 11px; color: var(--text-light); margin-top: 4px;">
-                                        ${new Date(note.timestamp).toLocaleString()}
+                    ${progressNotes.length > 0 ? `
+                        <div style="margin-bottom: 24px;">
+                            <h4 style="margin: 0 0 14px 0; display: flex; align-items: center; gap: 8px; font-size: 15px;">
+                                <i class="fas fa-comment-alt" style="color: #1e3a5f;"></i> 
+                                Progress Updates
+                            </h4>
+                            <div style="display: flex; flex-direction: column; gap: 10px; max-height: 180px; overflow-y: auto;">
+                                ${progressNotes.slice().reverse().map(note => `
+                                    <div style="padding: 14px; background: #f8fafc; border-radius: 10px; border-left: 4px solid #3b82f6;">
+                                        <div style="font-size: 14px; color: #1e293b; line-height: 1.5;">${note.note}</div>
+                                        <div style="font-size: 11px; color: #64748b; margin-top: 6px;">
+                                            <i class="fas fa-clock"></i> ${new Date(note.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Maid Info Card -->
+                    <div style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: 12px; padding: 18px; border: 1px solid #e2e8f0;">
+                        <h4 style="margin: 0 0 14px 0; display: flex; align-items: center; gap: 8px; font-size: 15px;">
+                            <i class="fas fa-user-tie" style="color: #1e3a5f;"></i> 
+                            Assigned Maid
+                        </h4>
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #1e3a5f, #2c5282); display: flex; align-items: center; justify-content: center; color: white; font-size: 22px; font-weight: 600;">
+                                ${(job.maid?.name || 'M').charAt(0).toUpperCase()}
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; font-size: 16px; color: #1e293b;">${job.maid?.name || 'Not assigned'}</div>
+                                <div style="font-size: 13px; color: #64748b; margin-top: 2px;">
+                                    <i class="fas fa-phone"></i> ${job.maid?.phone || 'No phone'}
+                                </div>
+                                ${job.maid?.rating ? `
+                                    <div style="font-size: 13px; color: #f59e0b; margin-top: 2px;">
+                                        <i class="fas fa-star"></i> ${job.maid.rating.toFixed(1)} rating
+                                    </div>
+                                ` : ''}
+                            </div>
+                            ${job.attendance ? `
+                                <div style="text-align: right;">
+                                    <div style="font-size: 11px; color: #64748b;">Status</div>
+                                    <div style="font-weight: 600; color: ${job.attendance.check_out_time ? '#64748b' : '#22c55e'}; font-size: 13px;">
+                                        ${job.attendance.check_out_time ? 
+                                            `<i class="fas fa-check-circle"></i> Done` : 
+                                            `<i class="fas fa-circle" style="animation: pulse 1.5s infinite;"></i> Working`
+                                        }
+                                    </div>
+                                    <div style="font-size: 11px; color: #64748b; margin-top: 2px;">
+                                        Since ${new Date(job.attendance.check_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 </div>
-                            `).join('')}
+                            ` : `
+                                <div style="text-align: right;">
+                                    <div style="font-size: 11px; color: #64748b;">Status</div>
+                                    <div style="font-weight: 600; color: #f59e0b; font-size: 13px;">
+                                        <i class="fas fa-hourglass-half"></i> Pending
+                                    </div>
+                                </div>
+                            `}
                         </div>
                     </div>
-                    
-                    <!-- Maid Info -->
-                    <div style="padding: 16px; background: var(--bg-light); border-radius: 8px;">
-                        <h4 style="margin-bottom: 12px;"><i class="fas fa-user"></i> Maid Information</h4>
-                        <p><strong>Name:</strong> ${job.maid?.name || 'N/A'}</p>
-                        <p><strong>Phone:</strong> ${job.maid?.phone || 'N/A'}</p>
-                        ${job.attendance ? `
-                            <p><strong>Checked In:</strong> ${new Date(job.attendance.check_in_time).toLocaleString()}</p>
-                            ${job.attendance.check_out_time ? `<p><strong>Checked Out:</strong> ${new Date(job.attendance.check_out_time).toLocaleString()}</p>` : '<p><strong>Status:</strong> Currently working</p>'}
-                        ` : ''}
-                    </div>
+                </div>
+                
+                <!-- Footer Actions -->
+                <div style="padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button class="btn-secondary" onclick="trackMaid('${jobId}')" style="padding: 10px 16px;">
+                        <i class="fas fa-map-marker-alt"></i> Track
+                    </button>
+                    <button class="btn-secondary" onclick="messageFromBooking('${jobId}')" style="padding: 10px 16px;">
+                        <i class="fas fa-comment"></i> Message
+                    </button>
+                    <button class="btn-primary" onclick="closeModal('homeownerJobProgressModal')" style="padding: 10px 20px;">
+                        Close
+                    </button>
                 </div>
             </div>
         `;
@@ -1549,7 +1739,6 @@ showSection = function(sectionId) {
         'dashboard': 'Homeowner Dashboard',
         'search-maids': 'Search Maids',
         'my-bookings': 'My Bookings',
-        'active-tasks': 'Active Tasks',
         'history': 'Service History',
         'messages': 'Messages',
         'profile': 'My Profile'
@@ -2385,7 +2574,55 @@ function openPaymentModal(jobId, jobTitle, maidName, amount, paymentMethod) {
     
     document.getElementById('paymentJobTitle').textContent = jobTitle || 'Service Completed';
     document.getElementById('paymentMaidName').innerHTML = `<i class="fas fa-user"></i> Maid: ${maidName}`;
-    document.getElementById('paymentAmount').textContent = `Total: $${amount.toFixed(2)}`;
+    
+    // Show loading state for breakdown
+    const breakdownEl = document.getElementById('paymentBreakdown');
+    if (breakdownEl) {
+        breakdownEl.innerHTML = '<div style="text-align: center; padding: 10px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    }
+    
+    document.getElementById('paymentModal').classList.add('active');
+    
+    // Fetch payment breakdown from API
+    apiGetPaymentBreakdown(jobId).then(breakdown => {
+        currentPaymentAmount = breakdown.total;
+        
+        // Update breakdown display
+        if (breakdownEl) {
+            breakdownEl.innerHTML = `
+                <div class="breakdown-row" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+                    <span>Service (${breakdown.duration} hrs x $${breakdown.hourlyRate}/hr)</span>
+                    <span>$${breakdown.subtotal.toFixed(2)}</span>
+                </div>
+                <div class="breakdown-row" style="display: flex; justify-content: space-between; padding: 8px 0; color: var(--text-light); font-size: 14px;">
+                    <span><i class="fas fa-info-circle"></i> Platform Fee (${breakdown.platformFeePercent}%)</span>
+                    <span>$${breakdown.platformFee.toFixed(2)}</span>
+                </div>
+                <div class="breakdown-row" style="display: flex; justify-content: space-between; padding: 8px 0; color: var(--success-color); font-size: 14px;">
+                    <span><i class="fas fa-user"></i> Maid Receives</span>
+                    <span>$${breakdown.maidEarnings.toFixed(2)}</span>
+                </div>
+                <div class="breakdown-total" style="display: flex; justify-content: space-between; padding: 12px 0; margin-top: 8px; border-top: 2px solid var(--primary-color); font-weight: bold; font-size: 18px;">
+                    <span>Total</span>
+                    <span style="color: var(--primary-color);">$${breakdown.total.toFixed(2)}</span>
+                </div>
+            `;
+        }
+        
+        document.getElementById('paymentAmount').textContent = `Total: $${breakdown.total.toFixed(2)}`;
+    }).catch(error => {
+        console.error('Error fetching payment breakdown:', error);
+        // Fallback to simple display
+        if (breakdownEl) {
+            breakdownEl.innerHTML = `
+                <div class="breakdown-total" style="display: flex; justify-content: space-between; padding: 12px 0; font-weight: bold; font-size: 18px;">
+                    <span>Total</span>
+                    <span style="color: var(--primary-color);">$${amount.toFixed(2)}</span>
+                </div>
+            `;
+        }
+        document.getElementById('paymentAmount').textContent = `Total: $${amount.toFixed(2)}`;
+    });
     
     // Set default payment tab based on booking payment method
     if (paymentMethod === 'apple_pay') {
@@ -2393,14 +2630,11 @@ function openPaymentModal(jobId, jobTitle, maidName, amount, paymentMethod) {
     } else {
         selectPaymentTab('card');
     }
-    
-    document.getElementById('paymentModal').classList.add('active');
 }
 
 /**
  * Select payment tab (card or apple_pay)
- */
-function selectPaymentTab(tab) {
+ */function selectPaymentTab(tab) {
     const cardForm = document.getElementById('cardPaymentForm');
     const applePaySection = document.getElementById('applePaySection');
     const tabCard = document.getElementById('tabCard');

@@ -348,21 +348,219 @@ function renderAttendanceTable(records) {
     }).join('');
 }
 
+// ============================================================
+// Schedule/Calendar Management
+// ============================================================
+
+// Calendar state
+let currentCalendarDate = new Date();
+let scheduleEvents = [];
+let selectedCalendarDate = null;
+
 // Load schedule data
 async function loadScheduleData() {
+    // Generate calendar immediately with empty events
+    generateCalendar();
+    
     try {
-        const today = new Date();
-        const from = today.toISOString().split('T')[0];
-        const to = new Date(today.setMonth(today.getMonth() + 1)).toISOString().split('T')[0];
+        // Get events for current month and next month
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        const from = new Date(year, month, 1).toISOString().split('T')[0];
+        const to = new Date(year, month + 2, 0).toISOString().split('T')[0];
         
+        console.log('Fetching schedule from', from, 'to', to);
         const data = await apiGetAdminSchedule(from, to);
-        // Schedule rendering would update calendar component
-        console.log('Schedule loaded:', data.events?.length || 0, 'events');
+        scheduleEvents = data.events || [];
+        
+        // Re-generate the calendar with events
+        generateCalendar();
+        
+        console.log('Schedule loaded:', scheduleEvents.length, 'events');
     } catch (error) {
         console.error('Error loading schedule:', error);
-        const errorMessage = error.message || 'Unable to load schedule data. Please try again.';
-        showToast(`Schedule Error: ${errorMessage}`, 'error');
+        // Calendar already generated, just show error
+        if (error.message !== 'Unauthorized') {
+            const errorMessage = error.message || 'Unable to load schedule data.';
+            showToast(`Schedule Error: ${errorMessage}`, 'error');
+        }
     }
+}
+
+// Generate calendar for current month
+function generateCalendar() {
+    const calendarGrid = document.getElementById('calendarGrid');
+    const monthYearDisplay = document.getElementById('calendarMonthYear');
+    
+    if (!calendarGrid || !monthYearDisplay) {
+        console.error('Calendar elements not found - calendarGrid:', calendarGrid, 'monthYearDisplay:', monthYearDisplay);
+        return;
+    }
+    
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    // Update month/year display
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    monthYearDisplay.textContent = `${monthNames[month]} ${year}`;
+    
+    // Build calendar HTML
+    let calendarHTML = '';
+    
+    // Add day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+        calendarHTML += `<div class="calendar-day header">${day}</div>`;
+    });
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+    
+    // Add empty cells for days before month starts
+    for (let i = 0; i < startingDayOfWeek; i++) {
+        calendarHTML += `<div class="calendar-day other-month"></div>`;
+    }
+    
+    // Add days of the month
+    const today = new Date();
+    const todayStr = today.toDateString();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const currentDayDate = new Date(year, month, day);
+        const dateString = currentDayDate.toISOString().split('T')[0];
+        const isToday = currentDayDate.toDateString() === todayStr;
+        const isSelected = selectedCalendarDate && currentDayDate.toDateString() === selectedCalendarDate.toDateString();
+        
+        // Check if this day has jobs
+        const dayJobs = (scheduleEvents || []).filter(event => {
+            if (!event || !event.start) return false;
+            const eventDate = new Date(event.start).toISOString().split('T')[0];
+            return eventDate === dateString;
+        });
+        
+        let classes = 'calendar-day';
+        if (isToday) classes += ' today';
+        if (isSelected) classes += ' selected';
+        if (dayJobs.length > 0) classes += ' has-events';
+        
+        let eventBadge = '';
+        if (dayJobs.length > 0) {
+            eventBadge = `<span class="event-count">${dayJobs.length}</span>`;
+        }
+        
+        calendarHTML += `<div class="${classes}" data-date="${dateString}" onclick="handleCalendarDayClick(${year}, ${month}, ${day}, this)">${day}${eventBadge}</div>`;
+    }
+    
+    // Set the HTML
+    calendarGrid.innerHTML = calendarHTML;
+    
+    console.log('Calendar generated for', monthNames[month], year, '- Days:', daysInMonth);
+}
+
+// Change calendar month
+function changeCalendarMonth(direction) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + direction);
+    loadScheduleData();
+}
+
+// Handle calendar day click (called from onclick in HTML)
+function handleCalendarDayClick(year, month, day, element) {
+    selectCalendarDate(year, month, day, element);
+}
+
+// Select a date and show jobs
+function selectCalendarDate(year, month, day, element) {
+    selectedCalendarDate = new Date(year, month, day);
+    const dateString = selectedCalendarDate.toISOString().split('T')[0];
+    
+    // Update selected day styling
+    document.querySelectorAll('#calendarGrid .calendar-day').forEach(el => {
+        el.classList.remove('selected');
+    });
+    if (element) {
+        element.classList.add('selected');
+    }
+    
+    // Filter jobs for selected date
+    const dayJobs = scheduleEvents.filter(event => {
+        const eventDate = new Date(event.start).toISOString().split('T')[0];
+        return eventDate === dateString;
+    });
+    
+    // Update jobs display
+    displayJobsForDate(selectedCalendarDate, dayJobs);
+}
+
+// Display jobs for selected date
+function displayJobsForDate(date, jobs) {
+    const dateTitle = document.getElementById('selectedDateTitle');
+    const jobsList = document.getElementById('dayJobsList');
+    
+    if (!dateTitle || !jobsList) {
+        console.log('Job display elements not found');
+        return;
+    }
+    
+    const dateStr = date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    dateTitle.innerHTML = `<i class="fas fa-calendar-day"></i> ${dateStr}`;
+    
+    if (jobs.length === 0) {
+        jobsList.innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 40px; color: #666;">
+                <i class="fas fa-calendar-check" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                <p>No jobs scheduled for this date</p>
+            </div>
+        `;
+        return;
+    }
+    
+    jobsList.innerHTML = jobs.map(job => {
+        const startTime = new Date(job.start).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: true 
+        });
+        const endTime = new Date(job.end).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            hour12: true 
+        });
+        
+        const statusColors = {
+            'requested': '#f39c12',
+            'accepted': '#3498db',
+            'in_progress': '#9b59b6',
+            'completed': '#27ae60',
+            'cancelled': '#e74c3c'
+        };
+        const statusColor = statusColors[job.status] || '#666';
+        
+        return `
+            <div class="job-item" style="background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 4px solid ${statusColor};">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                    <h4 style="margin: 0; color: #333;">${escapeHtmlAdmin(job.title)}</h4>
+                    <span style="background: ${statusColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; text-transform: capitalize;">${job.status.replace('_', ' ')}</span>
+                </div>
+                <div style="font-size: 13px; color: #666;">
+                    <p style="margin: 4px 0;"><i class="fas fa-clock" style="width: 16px;"></i> ${startTime} - ${endTime}</p>
+                    <p style="margin: 4px 0;"><i class="fas fa-user-tie" style="width: 16px;"></i> <strong>Maid:</strong> ${escapeHtmlAdmin(job.maidName)}</p>
+                    <p style="margin: 4px 0;"><i class="fas fa-user" style="width: 16px;"></i> <strong>Homeowner:</strong> ${escapeHtmlAdmin(job.homeownerName)}</p>
+                    <p style="margin: 4px 0;"><i class="fas fa-map-marker-alt" style="width: 16px;"></i> ${escapeHtmlAdmin(job.address || 'No address')}</p>
+                    <p style="margin: 4px 0;"><i class="fas fa-dollar-sign" style="width: 16px;"></i> $${job.hourlyRate || 0}/hr</p>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 // Load tasks data
@@ -375,30 +573,44 @@ async function loadTasksData() {
         console.error('Error loading tasks:', error);
         const errorMessage = error.message || 'Unable to load tasks. Please try again.';
         showToast(`Tasks Error: ${errorMessage}`, 'error');
-        // Fallback to empty state
+        // Fallback to empty state - render empty board instead of crashing
         renderTasksBoard([]);
     }
 }
 
 // Render tasks board
 function renderTasksBoard(jobs) {
-    const pendingColumn = document.querySelector('.task-column:nth-child(1)');
-    const inProgressColumn = document.querySelector('.task-column:nth-child(2)');
-    const completedColumn = document.querySelector('.task-column:nth-child(3)');
+    const tasksGrid = document.querySelector('#tasks .tasks-grid');
+    if (!tasksGrid) {
+        console.error('Tasks grid not found');
+        return;
+    }
     
-    if (!pendingColumn || !inProgressColumn || !completedColumn) return;
+    const taskColumns = tasksGrid.querySelectorAll('.task-column');
+    if (taskColumns.length < 3) {
+        console.error('Not enough task columns found');
+        return;
+    }
+    
+    const pendingColumn = taskColumns[0];
+    const inProgressColumn = taskColumns[1];
+    const completedColumn = taskColumns[2];
     
     const pending = jobs.filter(j => j.status === 'requested');
     const inProgress = jobs.filter(j => j.status === 'in_progress' || j.status === 'accepted');
     const completed = jobs.filter(j => j.status === 'completed');
     
-    // Update counts
-    pendingColumn.querySelector('.count').textContent = pending.length;
-    inProgressColumn.querySelector('.count').textContent = inProgress.length;
-    completedColumn.querySelector('.count').textContent = completed.length;
+    // Update counts safely
+    const pendingCount = pendingColumn.querySelector('.count');
+    const inProgressCount = inProgressColumn.querySelector('.count');
+    const completedCount = completedColumn.querySelector('.count');
+    
+    if (pendingCount) pendingCount.textContent = pending.length;
+    if (inProgressCount) inProgressCount.textContent = inProgress.length;
+    if (completedCount) completedCount.textContent = completed.length;
     
     // Render pending tasks
-    const pendingHTML = pending.slice(0, 5).map(job => `
+    const pendingHTML = pending.length > 0 ? pending.slice(0, 5).map(job => `
         <div class="task-card">
             <h4>${escapeHtmlAdmin(job.title)}</h4>
             <p>${escapeHtmlAdmin(job.description || 'No description')}</p>
@@ -409,10 +621,10 @@ function renderTasksBoard(jobs) {
                 <span class="task-priority medium">Medium</span>
             </div>
         </div>
-    `).join('');
+    `).join('') : '<p class="empty-text">No pending tasks</p>';
     
     // Render in-progress tasks
-    const inProgressHTML = inProgress.slice(0, 5).map(job => `
+    const inProgressHTML = inProgress.length > 0 ? inProgress.slice(0, 5).map(job => `
         <div class="task-card">
             <h4>${escapeHtmlAdmin(job.title)}</h4>
             <p>${escapeHtmlAdmin(job.description || 'No description')}</p>
@@ -423,10 +635,10 @@ function renderTasksBoard(jobs) {
                 <span class="task-priority high">High</span>
             </div>
         </div>
-    `).join('');
+    `).join('') : '<p class="empty-text">No tasks in progress</p>';
     
     // Render completed tasks
-    const completedHTML = completed.slice(0, 5).map(job => `
+    const completedHTML = completed.length > 0 ? completed.slice(0, 5).map(job => `
         <div class="task-card completed">
             <h4>${escapeHtmlAdmin(job.title)}</h4>
             <p>${escapeHtmlAdmin(job.description || 'No description')}</p>
@@ -440,22 +652,21 @@ function renderTasksBoard(jobs) {
                 <i class="fas fa-check-circle"></i> Completed
             </div>
         </div>
-    `).join('');
+    `).join('') : '<p class="empty-text">No completed tasks</p>';
     
-    // Clear and append
-    const pendingContainer = pendingColumn.querySelector('.task-card')?.parentElement;
-    const inProgressContainer = inProgressColumn.querySelector('.task-card')?.parentElement;
-    const completedContainer = completedColumn.querySelector('.task-card')?.parentElement;
+    // Remove existing task cards and add new ones
+    // Keep the title, only replace the content after it
+    const pendingCards = pendingColumn.querySelectorAll('.task-card, .empty-text');
+    pendingCards.forEach(card => card.remove());
+    pendingColumn.insertAdjacentHTML('beforeend', pendingHTML);
     
-    if (pendingContainer) {
-        pendingContainer.innerHTML = pendingHTML || '<p class="empty-text">No pending tasks</p>';
-    }
-    if (inProgressContainer) {
-        inProgressContainer.innerHTML = inProgressHTML || '<p class="empty-text">No tasks in progress</p>';
-    }
-    if (completedContainer) {
-        completedContainer.innerHTML = completedHTML || '<p class="empty-text">No completed tasks</p>';
-    }
+    const inProgressCards = inProgressColumn.querySelectorAll('.task-card, .empty-text');
+    inProgressCards.forEach(card => card.remove());
+    inProgressColumn.insertAdjacentHTML('beforeend', inProgressHTML);
+    
+    const completedCards = completedColumn.querySelectorAll('.task-card, .empty-text');
+    completedCards.forEach(card => card.remove());
+    completedColumn.insertAdjacentHTML('beforeend', completedHTML);
 }
 
 // Load payments data
@@ -588,8 +799,131 @@ function renderPaymentsTableFromJobs(jobs) {
 }
 
 // View payment details
-function viewPaymentDetails(paymentId) {
-    showToast('Payment details view - feature coming soon', 'info');
+async function viewPaymentDetails(paymentId) {
+    try {
+        showToast('Loading payment details...', 'info');
+        
+        const payment = await apiGetPaymentDetails(paymentId);
+        
+        // Create modal if it doesn't exist
+        let modal = document.getElementById('paymentDetailsModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'paymentDetailsModal';
+            modal.className = 'modal';
+            document.body.appendChild(modal);
+        }
+        
+        const statusClass = payment.status === 'paid' ? 'completed' : 'pending';
+        const methodIcon = payment.method === 'card' ? 'fa-credit-card' : 
+                          payment.method === 'apple_pay' ? 'fab fa-apple-pay' : 'fa-money-bill-wave';
+        
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-receipt"></i> Payment Details</h2>
+                    <button class="close-btn" onclick="closePaymentDetailsModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Invoice Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color);">
+                        <div>
+                            <h3 style="margin: 0; color: var(--primary-color);">#${payment.invoiceId}</h3>
+                            <p style="margin: 5px 0 0; color: var(--text-light); font-size: 14px;">
+                                ${new Date(payment.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </p>
+                        </div>
+                        <span class="status-badge ${statusClass}" style="font-size: 14px; padding: 8px 16px;">
+                            ${payment.status === 'paid' ? 'Paid' : 'Pending'}
+                        </span>
+                    </div>
+                    
+                    <!-- Parties Info -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div style="background: var(--bg-light); padding: 15px; border-radius: 8px;">
+                            <h4 style="margin: 0 0 10px; font-size: 12px; text-transform: uppercase; color: var(--text-light);">Homeowner</h4>
+                            <p style="margin: 0; font-weight: 600;">${payment.homeowner?.name || 'N/A'}</p>
+                            <p style="margin: 5px 0 0; font-size: 13px; color: var(--text-light);">${payment.homeowner?.email || ''}</p>
+                        </div>
+                        <div style="background: var(--bg-light); padding: 15px; border-radius: 8px;">
+                            <h4 style="margin: 0 0 10px; font-size: 12px; text-transform: uppercase; color: var(--text-light);">Maid</h4>
+                            <p style="margin: 0; font-weight: 600;">${payment.maid?.name || 'N/A'}</p>
+                            <p style="margin: 5px 0 0; font-size: 13px; color: var(--text-light);">${payment.maid?.email || ''}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Service Info -->
+                    ${payment.booking ? `
+                    <div style="background: var(--bg-light); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 10px; font-size: 12px; text-transform: uppercase; color: var(--text-light);">Service Details</h4>
+                        <p style="margin: 0;"><strong>${payment.booking.title || 'Cleaning Service'}</strong></p>
+                        <p style="margin: 5px 0 0; font-size: 13px; color: var(--text-light);">
+                            <i class="fas fa-clock"></i> ${payment.booking.duration} hours @ $${payment.booking.hourlyRate}/hr
+                        </p>
+                        ${payment.booking.address ? `<p style="margin: 5px 0 0; font-size: 13px; color: var(--text-light);"><i class="fas fa-map-marker-alt"></i> ${payment.booking.address}</p>` : ''}
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Payment Breakdown -->
+                    <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 15px; font-size: 14px; text-transform: uppercase; color: var(--text-light);">
+                            <i class="fas fa-calculator"></i> Payment Breakdown
+                        </h4>
+                        
+                        <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--border-color);">
+                            <span>Total Amount</span>
+                            <span style="font-weight: 600;">$${payment.amount.toFixed(2)}</span>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed var(--border-color); color: var(--warning-color);">
+                            <span><i class="fas fa-building"></i> Platform Fee (${payment.commissionRate}%)</span>
+                            <span style="font-weight: 600;">-$${payment.commissionAmount.toFixed(2)}</span>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: space-between; padding: 15px 0; margin-top: 10px; border-top: 2px solid var(--primary-color);">
+                            <span style="font-size: 16px;"><i class="fas fa-user" style="color: var(--success-color);"></i> Maid Receives</span>
+                            <span style="font-size: 20px; font-weight: 700; color: var(--success-color);">$${payment.maidEarnings.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Method -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--bg-light); border-radius: 8px;">
+                        <div>
+                            <span style="font-size: 12px; text-transform: uppercase; color: var(--text-light);">Payment Method</span>
+                            <p style="margin: 5px 0 0; font-weight: 600;">
+                                <i class="fas ${methodIcon}"></i> 
+                                ${payment.method === 'card' ? 'Credit Card' : payment.method === 'apple_pay' ? 'Apple Pay' : 'Cash'}
+                            </p>
+                        </div>
+                        ${payment.paidAt ? `
+                        <div style="text-align: right;">
+                            <span style="font-size: 12px; text-transform: uppercase; color: var(--text-light);">Paid On</span>
+                            <p style="margin: 5px 0 0; font-weight: 600;">
+                                ${new Date(payment.paidAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </p>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="closePaymentDetailsModal()">Close</button>
+                </div>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+    } catch (error) {
+        console.error('Error loading payment details:', error);
+        showToast('Failed to load payment details: ' + (error.message || 'Unknown error'), 'error');
+    }
+}
+
+// Close payment details modal
+function closePaymentDetailsModal() {
+    const modal = document.getElementById('paymentDetailsModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
 }
 
 // Mark payment as paid
@@ -1076,9 +1410,20 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Calendar day click
+// Calendar day click - handled by selectCalendarDate function
+// This old handler is kept for backward compatibility but will be overridden
 document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('calendar-day') && !e.target.classList.contains('header')) {
+    if (e.target.classList.contains('calendar-day') && !e.target.classList.contains('header') && !e.target.classList.contains('other-month')) {
+        // Check if we have the new calendar system with proper elements
+        const calendarGrid = document.getElementById('calendarGrid');
+        const dayJobsList = document.getElementById('dayJobsList');
+        
+        if (calendarGrid && dayJobsList && typeof selectCalendarDate === 'function') {
+            // New calendar handles this via its own click handlers added in generateCalendar()
+            // Don't show the old toast - the new system will handle it
+            return;
+        }
+        // Fallback for old calendar (only if new system not available)
         const day = e.target.textContent;
         showToast(`Schedule for day ${day} would be shown here.`, 'info');
     }

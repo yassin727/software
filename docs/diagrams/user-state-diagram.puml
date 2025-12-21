@@ -1,0 +1,118 @@
+@startuml HMTS_User_State_Diagram
+!theme plain
+title HMTS - User Account State Diagram
+
+[*] --> Registered : User signs up
+
+state Registered {
+  Registered : Account created
+  Registered : Email verification sent
+  Registered : Basic profile incomplete
+}
+
+state EmailVerified {
+  EmailVerified : Email confirmed
+  EmailVerified : Can complete profile
+  EmailVerified : Limited system access
+}
+
+state ProfileComplete {
+  ProfileComplete : All required info provided
+  ProfileComplete : Documents uploaded (for maids)
+  ProfileComplete : Ready for verification
+}
+
+state PendingApproval {
+  PendingApproval : Admin review required
+  PendingApproval : Documents being verified
+  PendingApproval : Background check in progress
+  PendingApproval : Limited system access
+}
+
+state Approved {
+  Approved : Full system access granted
+  Approved : Can accept/create jobs
+  Approved : All features available
+}
+
+state Rejected {
+  Rejected : Application denied
+  Rejected : Reason provided
+  Rejected : Can reapply after corrections
+}
+
+state Suspended {
+  Suspended : Account temporarily disabled
+  Suspended : Investigation in progress
+  Suspended : Limited access
+}
+
+state Banned {
+  Banned : Permanent account closure
+  Banned : Violation of terms
+  Banned : No system access
+}
+
+' Main flow transitions
+Registered --> EmailVerified : email confirmed\n[verification link clicked]
+EmailVerified --> ProfileComplete : profile completed\n[all required fields filled]
+
+' Homeowner path (simpler)
+ProfileComplete --> Approved : homeowner account\n[automatic approval]
+
+' Maid path (requires approval)
+ProfileComplete --> PendingApproval : maid account\n[documents submitted]
+PendingApproval --> Approved : admin approves\n[verification successful]
+PendingApproval --> Rejected : admin rejects\n[documents insufficient]
+
+' Reapplication flow
+Rejected --> PendingApproval : reapplies\n[corrected documents]
+
+' Disciplinary actions
+Approved --> Suspended : policy violation\n[temporary measure]
+Approved --> Banned : serious violation\n[permanent action]
+Suspended --> Approved : investigation cleared\n[account restored]
+Suspended --> Banned : violation confirmed\n[permanent closure]
+
+' Self-transitions
+Approved --> Approved : profile updated\n[information changed]
+PendingApproval --> PendingApproval : additional documents\n[requested by admin]
+
+' Terminal states
+Banned --> [*] : account deleted\n[data retention policy]
+
+note top of Registered
+  **Registration Requirements:**
+  • Valid email address
+  • Strong password
+  • Role selection (homeowner/maid)
+  • Basic contact information
+end note
+
+note right of PendingApproval
+  **Maid Verification Process:**
+  • Identity document review
+  • Background check
+  • Reference verification
+  • Skills assessment
+  • Admin interview (if required)
+end note
+
+note bottom of Approved
+  **Full Access Features:**
+  • Create/accept jobs
+  • Payment processing
+  • Messaging system
+  • Review submission
+  • All dashboard features
+end note
+
+note left of Suspended
+  **Suspension Triggers:**
+  • Multiple complaints
+  • Payment disputes
+  • Policy violations
+  • Suspicious activity
+end note
+
+@enduml

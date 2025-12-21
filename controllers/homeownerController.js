@@ -440,97 +440,6 @@ const getMaidProfile = async (req, res) => {
   }
 };
 
-/**
- * Get active tasks (in-progress jobs) for homeowner
- */
-const getActiveTasks = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const Attendance = require('../models/Attendance');
-
-    // Get all in-progress jobs for this homeowner
-    const activeJobs = await Job.find({
-      homeowner_id: userId,
-      status: 'in_progress'
-    })
-    .populate({
-      path: 'maid_id',
-      populate: { path: 'user_id', select: 'name photo_url phone' }
-    })
-    .sort({ scheduled_datetime: -1 });
-
-    // Get attendance records for these jobs
-    const jobIds = activeJobs.map(j => j._id);
-    const attendances = await Attendance.find({ job_id: { $in: jobIds } })
-      .sort({ check_in_time: -1 });
-    
-    const attendanceMap = new Map();
-    attendances.forEach(a => {
-      if (!attendanceMap.has(a.job_id.toString())) {
-        attendanceMap.set(a.job_id.toString(), a);
-      }
-    });
-
-    const activeTasks = activeJobs.map(job => {
-      const attendance = attendanceMap.get(job._id.toString());
-      const tasks = job.tasks || [];
-      const completedTasks = tasks.filter(t => t.completed).length;
-      const totalTasks = tasks.length;
-      
-      // Calculate duration since check-in
-      let duration = null;
-      let checkInTime = null;
-      if (attendance && attendance.check_in_time) {
-        checkInTime = attendance.check_in_time;
-        const now = new Date();
-        const diffMs = now - new Date(attendance.check_in_time);
-        const diffMins = Math.floor(diffMs / 60000);
-        const hours = Math.floor(diffMins / 60);
-        const mins = diffMins % 60;
-        duration = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-      }
-
-      return {
-        id: job._id,
-        title: job.title,
-        description: job.description,
-        address: job.address,
-        scheduledDatetime: job.scheduled_datetime,
-        status: job.status,
-        progressPercentage: job.progress_percentage || 0,
-        maid: {
-          id: job.maid_id?._id,
-          userId: job.maid_id?.user_id?._id,
-          name: job.maid_id?.user_id?.name || 'Unknown',
-          photo: job.maid_id?.user_id?.photo_url || null,
-          phone: job.maid_id?.user_id?.phone || null
-        },
-        tasks: tasks.map(t => ({
-          name: t.name,
-          completed: t.completed,
-          completedAt: t.completed_at,
-          notes: t.notes
-        })),
-        completedTasks,
-        totalTasks,
-        progressNotes: job.progress_notes || [],
-        checkInTime,
-        duration,
-        hourlyRate: job.hourly_rate,
-        estimatedDuration: job.estimated_duration
-      };
-    });
-
-    return res.json({
-      count: activeTasks.length,
-      activeTasks
-    });
-  } catch (error) {
-    console.error('Error getting active tasks:', error);
-    return res.status(500).json({ message: 'Failed to get active tasks' });
-  }
-};
-
 // Helper functions
 function getActivityAction(status) {
   switch (status) {
@@ -573,6 +482,5 @@ module.exports = {
   getBookings,
   getBookingById,
   getHistory,
-  getMaidProfile,
-  getActiveTasks
+  getMaidProfile
 };

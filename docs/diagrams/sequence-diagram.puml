@@ -1,0 +1,62 @@
+@startuml HMTS_Job_Creation_Sequence
+!theme plain
+title HMTS - Job Creation and Assignment Sequence Diagram
+
+actor "Homeowner" as HO
+participant "Frontend" as FE
+participant "AuthController" as AC
+participant "JobController" as JC
+participant "JobService" as JS
+participant "RecommendationService" as RS
+participant "NotificationService" as NS
+participant "Database" as DB
+actor "Maid" as M
+
+== Job Creation Flow ==
+HO -> FE: Create job request
+FE -> AC: Validate JWT token
+AC -> FE: Token valid
+FE -> JC: POST /api/jobs
+JC -> JS: createJob(jobData)
+JS -> RS: getRecommendedMaids(location, skills)
+RS -> DB: Query maids by criteria
+DB -> RS: Return maid list
+RS -> JS: Return scored recommendations
+JS -> DB: Create job record
+DB -> JS: Job created
+JS -> NS: notifyMaidOfJobRequest(maidId, job)
+NS -> DB: Create notification
+NS -> M: Send email notification
+JS -> JC: Return job with recommendations
+JC -> FE: 201 Created + job data
+FE -> HO: Show job created + recommended maids
+
+== Job Acceptance Flow ==
+M -> FE: View job requests
+FE -> JC: GET /api/jobs/requests
+JC -> DB: Query jobs for maid
+DB -> JC: Return job list
+JC -> FE: Return jobs
+FE -> M: Display job requests
+M -> FE: Accept job
+FE -> JC: POST /api/jobs/accept
+JC -> JS: acceptJob(jobId, maidId)
+JS -> DB: Update job status to 'accepted'
+JS -> NS: notifyHomeownerJobAccepted(homeownerId, job)
+NS -> HO: Send acceptance notification
+JS -> JC: Return updated job
+JC -> FE: 200 OK
+FE -> M: Show job accepted
+
+== Check-in Flow ==
+M -> FE: Arrive at location
+FE -> JC: POST /api/jobs/checkin
+JC -> JS: checkIn(jobId, location)
+JS -> DB: Create attendance record
+JS -> NS: notifyJobStarted(homeownerId)
+NS -> HO: Send check-in notification
+JS -> JC: Return attendance data
+JC -> FE: 200 OK + attendance
+FE -> M: Show checked in status
+
+@enduml

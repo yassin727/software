@@ -164,19 +164,67 @@ class UserService {
 }
 ```
 
-## ✅ 8. Design Patterns (minimum 2)
+## ✅ 8. Design Patterns (minimum 2) - GoF Patterns
 
 **Evidence:**
-- **Service Layer Pattern**: Business logic separation in `services/`
-- **Repository Pattern**: Data access abstraction in `models/`
-- **Documentation**: `docs/patterns.md` explains implementation
+- **Singleton Pattern**: Database connection in `config/mongodb.js`
+- **Factory Method Pattern**: Notification creation in `services/notificationService.js`
+- **Strategy Pattern**: Recommendation algorithms in `services/recommendationService.js`
+- **Chain of Responsibility**: Middleware chain in `middleware/`
+- **Facade Pattern**: API abstraction in `public/api.js`
+- **Documentation**: `docs/patterns.md` explains all implementations
 
 **Key Files:**
 ```
-docs/patterns.md        # Pattern documentation
-services/              # Service Layer Pattern
-models/                # Repository Pattern
-middleware/            # Middleware Pattern
+docs/patterns.md                    # Comprehensive pattern documentation
+config/mongodb.js                   # Singleton Pattern
+services/notificationService.js     # Factory Method Pattern
+services/recommendationService.js   # Strategy Pattern
+middleware/auth.js                  # Chain of Responsibility
+middleware/validate.js              # Chain of Responsibility
+public/api.js                       # Facade Pattern
+```
+
+**Pattern 1: Singleton (Creational)**
+```javascript
+// config/mongodb.js
+let connectionInstance = null;
+
+const connectDB = async () => {
+  // Return existing connection if already connected (Singleton)
+  if (connectionInstance && mongoose.connection.readyState === 1) {
+    console.log('✅ Using existing MongoDB connection (Singleton)');
+    return connectionInstance;
+  }
+  connectionInstance = await mongoose.connect(connectionString);
+  return connectionInstance;
+};
+```
+
+**Pattern 2: Strategy (Behavioral)**
+```javascript
+// services/recommendationService.js
+class RecommendationStrategy {
+  async getRecommendations(homeownerId, limit) {
+    throw new Error('Must be implemented');
+  }
+}
+
+class RatingBasedStrategy extends RecommendationStrategy { ... }
+class ExperienceBasedStrategy extends RecommendationStrategy { ... }
+class HybridScoringStrategy extends RecommendationStrategy { ... }
+
+class RecommendationService {
+  static strategy = new HybridScoringStrategy();
+  
+  static setStrategy(strategy) {
+    this.strategy = strategy;
+  }
+  
+  static async getRecommendedMaidsForHomeowner(homeownerId, limit) {
+    return await this.strategy.getRecommendations(homeownerId, limit);
+  }
+}
 ```
 
 ## ✅ 9. Dynamic Menu (self-reference)

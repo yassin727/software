@@ -1,0 +1,126 @@
+@startuml HMTS_Context_Diagram
+!theme plain
+title HMTS - System Context Diagram
+
+!define RECTANGLE class
+
+RECTANGLE "Homeowner\n(Primary User)" as HO {
+  - Creates job requests
+  - Reviews maids
+  - Makes payments
+  - Tracks job progress
+}
+
+RECTANGLE "Maid\n(Service Provider)" as M {
+  - Accepts jobs
+  - Checks in/out
+  - Updates job status
+  - Manages availability
+}
+
+RECTANGLE "Admin\n(System Manager)" as A {
+  - Approves maids
+  - Manages users
+  - Views reports
+  - Handles disputes
+}
+
+RECTANGLE "HMTS System\n(Core Platform)" as HMTS {
+  **Web Application**
+  - User Management
+  - Job Management
+  - Payment Processing
+  - Notification System
+  - Review System
+  - Location Tracking
+  - Recommendation Engine
+  
+  **Technology Stack**
+  - Node.js + Express
+  - MongoDB Database
+  - JWT Authentication
+  - RESTful APIs
+}
+
+RECTANGLE "MongoDB\n(Database)" as DB {
+  - User data
+  - Job records
+  - Reviews & ratings
+  - Attendance logs
+  - Payment history
+  - Notifications
+}
+
+RECTANGLE "Email Service\n(External)" as EMAIL {
+  - Account verification
+  - Job notifications
+  - Payment confirmations
+  - System alerts
+}
+
+RECTANGLE "Payment Gateway\n(External)" as PAY {
+  - Credit card processing
+  - Apple Pay integration
+  - Transaction security
+  - Payment verification
+}
+
+RECTANGLE "Location Services\n(External)" as LOC {
+  - GPS tracking
+  - Address validation
+  - Distance calculation
+  - Map integration
+}
+
+RECTANGLE "File Storage\n(External)" as FILES {
+  - Profile photos
+  - ID documents
+  - Verification selfies
+  - Job photos
+}
+
+' User interactions with system
+HO --> HMTS : "Creates jobs,\nMakes payments,\nLeaves reviews"
+M --> HMTS : "Accepts jobs,\nChecks in/out,\nUpdates status"
+A --> HMTS : "Manages users,\nApproves maids,\nViews analytics"
+
+' System interactions with external services
+HMTS --> DB : "Stores/retrieves\nall application data"
+HMTS --> EMAIL : "Sends notifications\nand alerts"
+HMTS --> PAY : "Processes payments\nand transactions"
+HMTS --> LOC : "Tracks locations\nand calculates distances"
+HMTS --> FILES : "Stores and serves\nuser uploaded files"
+
+' Bidirectional flows
+HMTS <--> HO : "Real-time updates\nand notifications"
+HMTS <--> M : "Job status updates\nand location sharing"
+HMTS <--> A : "System monitoring\nand management"
+
+' External service responses
+EMAIL --> HMTS : "Delivery status\nand bounce reports"
+PAY --> HMTS : "Payment confirmations\nand failure notifications"
+LOC --> HMTS : "Location data\nand geocoding results"
+FILES --> HMTS : "File URLs\nand storage status"
+
+note top of HMTS
+  **Core Features:**
+  • Role-based authentication
+  • Job lifecycle management
+  • Real-time notifications
+  • Payment processing
+  • Review & rating system
+  • AI-powered recommendations
+  • Location tracking
+  • Admin dashboard
+end note
+
+note bottom of DB
+  **Data Security:**
+  • Encrypted passwords
+  • JWT token authentication
+  • Role-based access control
+  • Data validation
+  • Audit logging
+end note
+
+@enduml

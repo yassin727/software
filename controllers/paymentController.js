@@ -2,8 +2,20 @@ const Payment = require('../models/Payment');
 const Job = require('../models/Job');
 const Maid = require('../models/Maid');
 
+// Platform commission rate (can be moved to config/env)
+const PLATFORM_COMMISSION_RATE = 15; // 15%
+
 // Helper to get userId from req.user
 const getUserId = (req) => req.user?.userId || req.user?.id;
+
+/**
+ * Calculate payment breakdown
+ */
+function calculatePaymentBreakdown(amount, commissionRate = PLATFORM_COMMISSION_RATE) {
+  const commission = Math.round((amount * commissionRate / 100) * 100) / 100;
+  const maidEarnings = Math.round((amount - commission) * 100) / 100;
+  return { commission, maidEarnings, commissionRate };
+}
 
 /**
  * Create a cash payment for a booking
@@ -39,6 +51,7 @@ const createCashPayment = async (req, res) => {
     }
 
     const amount = job.hourly_rate * (job.estimated_duration || 4);
+    const { commission, maidEarnings, commissionRate } = calculatePaymentBreakdown(amount);
 
     const payment = await Payment.create({
       booking_id: bookingId,
@@ -47,10 +60,22 @@ const createCashPayment = async (req, res) => {
       method: 'cash',
       provider: 'cash',
       amount,
+      commission_rate: commissionRate,
+      commission_amount: commission,
+      maid_earnings: maidEarnings,
       status: 'pending'
     });
 
-    res.status(201).json({ payment, message: 'Cash payment created' });
+    res.status(201).json({ 
+      payment, 
+      message: 'Cash payment created',
+      breakdown: {
+        total: amount,
+        platformFee: commission,
+        maidEarnings: maidEarnings,
+        commissionRate: `${commissionRate}%`
+      }
+    });
   } catch (error) {
     console.error('Create cash payment error:', error);
     res.status(500).json({ message: 'Failed to create payment' });
@@ -75,7 +100,7 @@ const getHomeownerPayments = async (req, res) => {
 };
 
 /**
- * Get earnings for maid
+ * Get earnings for maid (shows actual earnings after platform commission)
  */
 const getMaidEarnings = async (req, res) => {
   try {
@@ -85,20 +110,31 @@ const getMaidEarnings = async (req, res) => {
       .populate('homeowner_id', 'name')
       .sort({ createdAt: -1 });
 
-    // Calculate totals
+    // Calculate totals using maid_earnings (after commission)
     const totalEarned = payments
       .filter(p => p.status === 'paid')
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + (p.maid_earnings || p.amount), 0);
     
     const pendingAmount = payments
       .filter(p => p.status === 'pending')
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + (p.maid_earnings || p.amount), 0);
+
+    // Total commission paid to platform
+    const totalCommissionPaid = payments
+      .filter(p => p.status === 'paid')
+      .reduce((sum, p) => sum + (p.commission_amount || 0), 0);
 
     res.json({ 
-      payments, 
-      totalEarned, 
-      pendingAmount,
-      totalPayments: payments.length
+      payments: payments.map(p => ({
+        ...p.toObject(),
+        displayAmount: p.maid_earnings || p.amount, // Show maid's actual earnings
+        platformFee: p.commission_amount || 0
+      })), 
+      totalEarned: Math.round(totalEarned * 100) / 100, 
+      pendingAmount: Math.round(pendingAmount * 100) / 100,
+      totalCommissionPaid: Math.round(totalCommissionPaid * 100) / 100,
+      totalPayments: payments.length,
+      commissionRate: `${PLATFORM_COMMISSION_RATE}%`
     });
   } catch (error) {
     console.error('Get maid earnings error:', error);
@@ -186,7 +222,7 @@ const markPaymentPaid = async (req, res) => {
 };
 
 /**
- * Get payment statistics (admin)
+ * Get payment statistics (admin) - includes commission earnings
  */
 const getPaymentStats = async (req, res) => {
   try {
@@ -196,22 +232,37 @@ const getPaymentStats = async (req, res) => {
     startOfWeek.setDate(today.getDate() - today.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
 
-    const [totalPaid, totalPending, paidThisMonth, dueThisWeek] = await Promise.all([
+    const [totalPaid, totalPending, paidThisMonth, dueThisWeek, commissionStats] = await Promise.all([
       Payment.aggregate([
         { $match: { status: 'paid' } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
+        { $group: { _id: null, total: { $sum: '$amount' }, commission: { $sum: '$commission_amount' }, maidEarnings: { $sum: '$maid_earnings' } } }
       ]),
       Payment.aggregate([
         { $match: { status: 'pending' } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
+        { $group: { _id: null, total: { $sum: '$amount' }, commission: { $sum: '$commission_amount' } } }
       ]),
       Payment.aggregate([
         { $match: { status: 'paid', paid_at: { $gte: startOfMonth } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
+        { $group: { _id: null, total: { $sum: '$amount' }, commission: { $sum: '$commission_amount' } } }
       ]),
       Payment.aggregate([
         { $match: { status: 'pending', createdAt: { $gte: startOfWeek } } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      // Commission by month for chart
+      Payment.aggregate([
+        { $match: { status: 'paid' } },
+        { 
+          $group: { 
+            _id: { $dateToString: { format: '%Y-%m', date: '$paid_at' } },
+            totalAmount: { $sum: '$amount' },
+            totalCommission: { $sum: '$commission_amount' },
+            totalMaidEarnings: { $sum: '$maid_earnings' },
+            count: { $sum: 1 }
+          } 
+        },
+        { $sort: { _id: -1 } },
+        { $limit: 6 }
       ])
     ]);
 
@@ -219,11 +270,122 @@ const getPaymentStats = async (req, res) => {
       totalPaid: totalPaid[0]?.total || 0,
       totalPending: totalPending[0]?.total || 0,
       paidThisMonth: paidThisMonth[0]?.total || 0,
-      dueThisWeek: dueThisWeek[0]?.total || 0
+      dueThisWeek: dueThisWeek[0]?.total || 0,
+      // Commission/Platform earnings
+      totalCommissionEarned: totalPaid[0]?.commission || 0,
+      commissionThisMonth: paidThisMonth[0]?.commission || 0,
+      pendingCommission: totalPending[0]?.commission || 0,
+      totalMaidPayouts: totalPaid[0]?.maidEarnings || 0,
+      commissionRate: `${PLATFORM_COMMISSION_RATE}%`,
+      monthlyBreakdown: commissionStats.reverse()
     });
   } catch (error) {
     console.error('Get payment stats error:', error);
     res.status(500).json({ message: 'Failed to get payment stats' });
+  }
+};
+
+/**
+ * Get admin commission report
+ */
+const getCommissionReport = async (req, res) => {
+  try {
+    const { startDate, endDate, page = 1, limit = 20 } = req.query;
+    
+    const filter = { status: 'paid' };
+    if (startDate || endDate) {
+      filter.paid_at = {};
+      if (startDate) filter.paid_at.$gte = new Date(startDate);
+      if (endDate) filter.paid_at.$lte = new Date(endDate);
+    }
+
+    const payments = await Payment.find(filter)
+      .populate('booking_id', 'title')
+      .populate('homeowner_id', 'name')
+      .populate('maid_id', 'name')
+      .sort({ paid_at: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const total = await Payment.countDocuments(filter);
+
+    // Calculate totals for the filtered period
+    const totals = await Payment.aggregate([
+      { $match: filter },
+      { 
+        $group: { 
+          _id: null, 
+          totalAmount: { $sum: '$amount' },
+          totalCommission: { $sum: '$commission_amount' },
+          totalMaidEarnings: { $sum: '$maid_earnings' }
+        } 
+      }
+    ]);
+
+    res.json({
+      payments: payments.map(p => ({
+        id: p._id,
+        date: p.paid_at,
+        booking: p.booking_id?.title || 'N/A',
+        homeowner: p.homeowner_id?.name || 'N/A',
+        maid: p.maid_id?.name || 'N/A',
+        totalAmount: p.amount,
+        commission: p.commission_amount,
+        maidEarnings: p.maid_earnings,
+        commissionRate: p.commission_rate,
+        method: p.method
+      })),
+      totals: {
+        totalAmount: totals[0]?.totalAmount || 0,
+        totalCommission: totals[0]?.totalCommission || 0,
+        totalMaidEarnings: totals[0]?.totalMaidEarnings || 0
+      },
+      pagination: {
+        total,
+        page: parseInt(page),
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get commission report error:', error);
+    res.status(500).json({ message: 'Failed to get commission report' });
+  }
+};
+
+/**
+ * Get payment breakdown preview (before payment)
+ */
+const getPaymentBreakdown = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const userId = getUserId(req);
+
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    if (String(job.homeowner_id) !== String(userId)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    const amount = job.hourly_rate * (job.actual_duration || job.estimated_duration || 4);
+    const { commission, maidEarnings, commissionRate } = calculatePaymentBreakdown(amount);
+
+    res.json({
+      jobId: job._id,
+      hourlyRate: job.hourly_rate,
+      duration: job.actual_duration || job.estimated_duration || 4,
+      subtotal: amount,
+      platformFee: commission,
+      platformFeePercent: commissionRate,
+      maidEarnings: maidEarnings,
+      total: amount,
+      paymentMethod: job.payment_method
+    });
+  } catch (error) {
+    console.error('Get payment breakdown error:', error);
+    res.status(500).json({ message: 'Failed to get payment breakdown' });
   }
 };
 
@@ -264,6 +426,7 @@ const processPayment = async (req, res) => {
 
     const amount = job.hourly_rate * (job.actual_duration || job.estimated_duration || 4);
     const method = paymentMethod || job.payment_method || 'card';
+    const { commission, maidEarnings, commissionRate } = calculatePaymentBreakdown(amount);
 
     // In a real app, this would integrate with Stripe/Apple Pay
     // For now, we simulate successful payment
@@ -274,6 +437,9 @@ const processPayment = async (req, res) => {
       method: method,
       provider: method === 'apple_pay' ? 'apple_pay' : 'stripe',
       amount,
+      commission_rate: commissionRate,
+      commission_amount: commission,
+      maid_earnings: maidEarnings,
       status: 'paid',
       paid_at: new Date()
     });
@@ -282,18 +448,23 @@ const processPayment = async (req, res) => {
     job.payment_status = 'paid';
     await job.save();
 
-    // Notify maid of payment received
+    // Notify maid of payment received (show their actual earnings)
     const NotificationService = require('../services/notificationService');
     await NotificationService.notifyPaymentReceived(
       maid.user_id,
       job,
-      amount
+      maidEarnings // Send maid's actual earnings, not total amount
     );
 
     res.json({ 
       payment, 
       message: 'Payment processed successfully',
-      amount: amount
+      breakdown: {
+        total: amount,
+        platformFee: commission,
+        maidEarnings: maidEarnings,
+        commissionRate: `${commissionRate}%`
+      }
     });
   } catch (error) {
     console.error('Process payment error:', error);
@@ -335,6 +506,71 @@ const getPendingPayments = async (req, res) => {
   }
 };
 
+/**
+ * Get single payment details (admin)
+ */
+const getPaymentDetails = async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+
+    const payment = await Payment.findById(paymentId)
+      .populate('booking_id', 'title scheduled_datetime status hourly_rate actual_duration estimated_duration address')
+      .populate('homeowner_id', 'name email phone')
+      .populate('maid_id', 'name email phone');
+
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+
+    res.json({
+      id: payment._id,
+      invoiceId: `PAY-${payment._id.toString().slice(-6).toUpperCase()}`,
+      // Payment info
+      amount: payment.amount,
+      commissionRate: payment.commission_rate,
+      commissionAmount: payment.commission_amount,
+      maidEarnings: payment.maid_earnings,
+      method: payment.method,
+      provider: payment.provider,
+      status: payment.status,
+      currency: payment.currency,
+      // Dates
+      createdAt: payment.createdAt,
+      paidAt: payment.paid_at,
+      // Booking info
+      booking: payment.booking_id ? {
+        id: payment.booking_id._id,
+        title: payment.booking_id.title,
+        scheduledDate: payment.booking_id.scheduled_datetime,
+        status: payment.booking_id.status,
+        hourlyRate: payment.booking_id.hourly_rate,
+        duration: payment.booking_id.actual_duration || payment.booking_id.estimated_duration || 4,
+        address: payment.booking_id.address
+      } : null,
+      // Homeowner info
+      homeowner: payment.homeowner_id ? {
+        id: payment.homeowner_id._id,
+        name: payment.homeowner_id.name,
+        email: payment.homeowner_id.email,
+        phone: payment.homeowner_id.phone
+      } : null,
+      // Maid info
+      maid: payment.maid_id ? {
+        id: payment.maid_id._id,
+        name: payment.maid_id.name,
+        email: payment.maid_id.email,
+        phone: payment.maid_id.phone
+      } : null,
+      // Commission settlement
+      commissionSettled: payment.commission_settled,
+      commissionSettledAt: payment.commission_settled_at
+    });
+  } catch (error) {
+    console.error('Get payment details error:', error);
+    res.status(500).json({ message: 'Failed to get payment details' });
+  }
+};
+
 module.exports = {
   createCashPayment,
   getHomeownerPayments,
@@ -343,5 +579,9 @@ module.exports = {
   markPaymentPaid,
   getPaymentStats,
   processPayment,
-  getPendingPayments
+  getPendingPayments,
+  getCommissionReport,
+  getPaymentBreakdown,
+  getPaymentDetails,
+  PLATFORM_COMMISSION_RATE
 };
